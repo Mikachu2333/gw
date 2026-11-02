@@ -312,7 +312,7 @@ namespace 公文排版
                 s.Save();
 
                 MessageBox.Show(
-                    "用户自定义配置文件已保存！\r\n 用户配置文件在Word更新后会被重置.您可通过双击赞赏码修改默认配置文件.",
+                    "用户自定义配置文件已保存！\r\n注意：Word 更新后用户配置文件可能被重置。",
                     this.Text, MessageBoxButtons.OK, MessageBoxIcon.Information);
 
                 ShowAdvancedPanel(false);
@@ -340,32 +340,6 @@ namespace 公文排版
         private void btnSave_Click(object sender, EventArgs e)
         {
             SaveConfig();
-        }
-
-        private void logoPictureBox_DoubleClick(object sender, EventArgs e)
-        {
-            try
-            {
-                string asmPath = Assembly.GetExecutingAssembly().Location;
-                string configPath = asmPath + ".config";
-                string baseDir = Path.GetDirectoryName(asmPath);
-                string editorPath = Path.Combine(baseDir ?? string.Empty, "Resources", "ConfigEditor.exe");
-
-                if (!File.Exists(editorPath))
-                {
-                    MessageBox.Show("未找到配置编辑器:" + editorPath, this.Text,
-                        MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                    return;
-                }
-
-                Process.Start(editorPath, "\"" + configPath + "\"");
-                this.Close();
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(ex.Message + "\r\n\r\n" + ex.Source,
-                    "打开默认配置文件时出错", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
-            }
         }
 
         private void lblTip_DoubleClick(object sender, EventArgs e)

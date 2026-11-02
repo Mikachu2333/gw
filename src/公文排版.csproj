@@ -280,9 +280,6 @@
     <!-- 私钥文件已从项目中移除，签名通过本地证书存储或 CI 注入 -->
   </ItemGroup>
   <ItemGroup>
-    <None Include="Resources\小恐龙logo.png" />
-  </ItemGroup>
-  <ItemGroup>
     <None Include="Resources\HeaderFooterEditFooter.png" />
   </ItemGroup>
   <ItemGroup>
@@ -415,7 +412,6 @@
     <None Include="Resources\H.png" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="Resources\赞赏码.jpg" />
     <None Include="Resources\QuickSearchSubject.png" />
     <None Include="Resources\TableCellAlignTop.png" />
   </ItemGroup>

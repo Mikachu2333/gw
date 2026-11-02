@@ -1278,7 +1278,7 @@ namespace 公文排版
             // btnAbout
             // 
             this.btnAbout.ControlSize = Microsoft.Office.Core.RibbonControlSize.RibbonControlSizeLarge;
-            this.btnAbout.Image = global::公文排版.Properties.Resources.小恐龙logo;
+            this.btnAbout.Image = global::公文排版.Properties.Resources.Info;
             this.btnAbout.Label = "关于插件";
             this.btnAbout.Name = "btnAbout";
             this.btnAbout.ScreenTip = "小恐龙公文助手";
