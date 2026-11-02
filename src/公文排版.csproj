@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="15.0" DefaultTargets="Build" InitialTargets="ValidateOfficePiaReferences" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project ToolsVersion="15.0" DefaultTargets="Build" InitialTargets="ValidateOfficePiaReferences;ValidateSigningSettings" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
   <PropertyGroup>
     <ProjectTypeGuids>{BAA0C2D2-18E2-41B9-852F-F413020CAA33};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
@@ -264,7 +264,7 @@
     <Compile Include="ThisAddIn.cs">
       <SubType>Code</SubType>
     </Compile>
-    <None Include="Resources\xkonglong.com.cer">
+    <None Include="Resources\gw-codecert.cer" Condition="Exists('Resources\gw-codecert.cer')">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="Resources\公文部件.dotx">
@@ -488,28 +488,23 @@
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>
     <VSToolsPath Condition="'$(VSToolsPath)' == ''">$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)</VSToolsPath>
   </PropertyGroup>
-  <PropertyGroup>
+  <PropertyGroup Label="代码签名：证书与私钥不入库。运行 tools\make-dev-cert.ps1 在本机生成自签名证书，" >
+    <SigningKeyFile>gw-codecert.pfx</SigningKeyFile>
+    <AssemblyOriginatorKeyFile>$(SigningKeyFile)</AssemblyOriginatorKeyFile>
+    <ManifestKeyFile>$(SigningKeyFile)</ManifestKeyFile>
+    <DelaySign>false</DelaySign>
+    <!-- VSTO 硬性要求：清单必须签名，否则 Office.targets 的 VerifyClickOnceSigningSettings
+         直接失败（连编译产物都不生成），因此这里不能"缺证书就关掉签名"。
+         缺证书时由 ValidateSigningSettings 给出可执行的修复指引。 -->
+    <SignAssembly>true</SignAssembly>
     <SignManifests>true</SignManifests>
   </PropertyGroup>
-  <PropertyGroup>
-    <ManifestKeyFile>xkonglong.com.pfx</ManifestKeyFile>
-  </PropertyGroup>
-  <PropertyGroup>
-    <ManifestCertificateThumbprint>3E0F68E17300583E21B4917F6B132C55668740B8</ManifestCertificateThumbprint>
-  </PropertyGroup>
-  <PropertyGroup>
-    <ManifestTimestampUrl>
-    </ManifestTimestampUrl>
-  </PropertyGroup>
-  <PropertyGroup>
-    <SignAssembly>true</SignAssembly>
-  </PropertyGroup>
-  <PropertyGroup>
-    <AssemblyOriginatorKeyFile>xkonglong.com.pfx</AssemblyOriginatorKeyFile>
-  </PropertyGroup>
-  <PropertyGroup>
-    <DelaySign>false</DelaySign>
-  </PropertyGroup>
+  <Target Name="ValidateSigningSettings">
+    <Error Condition="'$(SignManifests)' == 'true' And !Exists('$(SigningKeyFile)')"
+           Text="缺少签名私钥 $(SigningKeyFile)（不入库，属本机开发证书）。请运行： powershell -ExecutionPolicy Bypass -File tools\make-dev-cert.ps1 生成自签名代码签名证书，它会导出 pfx/cer 并把证书指纹写入 公文排版.csproj.user。若只想做编译验证，可加 /p:SignManifests=false /p:SignAssembly=false（产物不能被 Word/WPS 加载）。" />
+    <Error Condition="'$(SignManifests)' == 'true' And '$(ManifestCertificateThumbprint)' == ''"
+           Text="清单签名只能按证书存储中的指纹进行（VSTO 的 SignFile 不接受 pfx 路径）。请运行 tools\make-dev-cert.ps1，它会把指纹写入 公文排版.csproj.user；若你已有证书，可在该 .user 文件里手工设置 ManifestCertificateThumbprint。" />
+  </Target>
   <PropertyGroup>
     <ApplicationIcon>
     </ApplicationIcon>
