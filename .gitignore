@@ -1,0 +1,24 @@
+# 构建产物
+bin/
+obj/
+
+# Visual Studio / MSBuild 本地状态
+# .user 内含本机 Office/WPS 安装路径，属于个人环境，不应入库
+.vs/
+*.suo
+*.user
+*.cache
+
+# NuGet 还原产物
+packages/
+
+# 代码签名证书与私钥（私钥绝不能进版本库）
+*.pfx
+*.cer
+*.pvk
+*.key
+
+# VSTO / ClickOnce 发布输出
+publish/
+发布*/
+*.application
