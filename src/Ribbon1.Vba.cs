@@ -152,31 +152,25 @@ namespace 公文排版
 
         private void HandleVbaComException(COMException ex)
         {
-            string err = "";
-            string helpURL;
+            string err;
             switch (ex.ErrorCode)
             {
                 case -2146822220:
-                    err = "Word 未开启信任对VBA工程对象模型的访问。\r\n\r\n点击[确定]获取更多信息！";
-                    helpURL = "https://gw.xkonglong.com/#/vba";
+                    err = "Word 未开启信任对VBA工程对象模型的访问。";
                     break;
                 case -2147467259:
-                    err = "WPS用户请先切换至【VB环境】,并在【宏安全性】选项中开启【信任对VBA工程对象模型的访问】\r\n\r\n点击[确定]获取更多信息！";
-                    helpURL = "https://gw.xkonglong.com/#/vba";
+                    err = "WPS用户请先切换至【VB环境】,并在【宏安全性】选项中开启【信任对VBA工程对象模型的访问】";
                     break;
                 case -2147352573:
-                    err = ex.Message + "\r\n\r\n点击[确定]获取更多信息！";
-                    helpURL = "https://gw.xkonglong.com/#/vba";
+                    err = ex.Message;
                     break;
                 default:
                     err = "错误代码:" + ex.ErrorCode + "\r\n错误信息:" + ex.Message;
                     Clipboard.SetText(err);
-                    err += "\r\n\r\n[错误信息已复制到剪贴板]\r\n点击[确定]向作者反馈问题！";
-                    helpURL = "mailto:xkonglong@qq.com?subject=小恐龙公文助手问题反馈";
+                    err += "\r\n\r\n[错误信息已复制到剪贴板]";
                     break;
             }
-            if (MessageBox.Show(err, "执行VBA代码出错", MessageBoxButtons.OKCancel, MessageBoxIcon.Information) == DialogResult.OK)
-                Process.Start(helpURL);
+            MessageBox.Show(err, "执行VBA代码出错", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
         private static Encoding GetTextFileEncodingType(string fileName)

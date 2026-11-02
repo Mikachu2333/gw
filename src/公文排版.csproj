@@ -28,7 +28,7 @@
     <UpdateIntervalUnits>days</UpdateIntervalUnits>
     <ProductName>小恐龙公文排版助手</ProductName>
     <PublisherName>小恐龙工作室</PublisherName>
-    <SupportUrl>http://gw.xkonglong.com/</SupportUrl>
+    <SupportUrl />
     <FriendlyName>公文排版</FriendlyName>
     <OfficeApplicationDescription>小恐龙公文排版助手 for Word</OfficeApplicationDescription>
     <LoadBehavior>3</LoadBehavior>

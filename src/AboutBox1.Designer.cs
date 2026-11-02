@@ -32,7 +32,6 @@
             this.btnOK = new System.Windows.Forms.Button();
             this.logoPictureBox = new System.Windows.Forms.PictureBox();
             this.lblText = new System.Windows.Forms.Label();
-            this.lnkUpdate = new System.Windows.Forms.LinkLabel();
             this.tableLayoutPanel1 = new System.Windows.Forms.TableLayoutPanel();
             this.lblLetter = new System.Windows.Forms.Label();
             this.lblPageNumber = new System.Windows.Forms.Label();
@@ -109,19 +108,8 @@
             this.lblText.Name = "lblText";
             this.lblText.Size = new System.Drawing.Size(282, 93);
             this.lblText.TabIndex = 33;
-            this.lblText.Text = "           小恐龙工作室荣誉出品\r\n\r\n  小恐龙公文排版插件适用于 Word20010-2021和365版本,WPS Office2013-2019。" +
-    " \r\n\r\n本插件不含任何恶意代码，完全免费，接受捐赠！";
-            // 
-            // lnkUpdate
-            // 
-            this.lnkUpdate.AutoSize = true;
-            this.lnkUpdate.Location = new System.Drawing.Point(250, 242);
-            this.lnkUpdate.Name = "lnkUpdate";
-            this.lnkUpdate.Size = new System.Drawing.Size(71, 12);
-            this.lnkUpdate.TabIndex = 34;
-            this.lnkUpdate.TabStop = true;
-            this.lnkUpdate.Text = "检查更新...";
-            this.lnkUpdate.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.LnkUpdate_LinkClicked);
+            this.lblText.Text = "  小恐龙公文排版插件适用于 Word20010-2021和365版本,WPS Office2013-2019。" +
+    " \r\n\r\n本插件不含任何恶意代码，完全免费。";
             // 
             // tableLayoutPanel1
             // 
@@ -436,7 +424,6 @@
             this.panel1.Controls.Add(this.logoPictureBox);
             this.panel1.Controls.Add(this.txtInfo);
             this.panel1.Controls.Add(this.lblText);
-            this.panel1.Controls.Add(this.lnkUpdate);
             this.panel1.Dock = System.Windows.Forms.DockStyle.Top;
             this.panel1.Location = new System.Drawing.Point(9, 9);
             this.panel1.Name = "panel1";
@@ -528,7 +515,6 @@
         private System.Windows.Forms.Button btnOK;
         private System.Windows.Forms.PictureBox logoPictureBox;
         private System.Windows.Forms.Label lblText;
-        private System.Windows.Forms.LinkLabel lnkUpdate;
         private System.Windows.Forms.TableLayoutPanel tableLayoutPanel1;
         private System.Windows.Forms.Label lblFormatSong;
         private System.Windows.Forms.Button button9;

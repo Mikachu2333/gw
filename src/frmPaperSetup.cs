@@ -270,9 +270,16 @@ namespace 公文排版
 
         private void FrmPaperSetup_HelpButtonClicked(object sender, System.ComponentModel.CancelEventArgs e)
         {
+            string url = Properties.Settings.Default.帮助_页面设置;
+            if (string.IsNullOrWhiteSpace(url))
+            {
+                MessageBox.Show("本版本未内置在线帮助地址。",
+                    "页面设置帮助", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
             try
             {
-                Process.Start(Properties.Settings.Default.帮助_页面设置);
+                Process.Start(url);
             }
             catch (System.ComponentModel.Win32Exception w)
             {

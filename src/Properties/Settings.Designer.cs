@@ -242,7 +242,7 @@ namespace 公文排版.Properties {
         [global::System.Configuration.ApplicationScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.SpecialSettingAttribute(global::System.Configuration.SpecialSetting.WebServiceUrl)]
-        [global::System.Configuration.DefaultSettingValueAttribute("https://mubu.com/doc/1mxzDwtUco")]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
         public string 帮助_页面设置 {
             get {
                 return ((string)(this["帮助_页面设置"]));
@@ -252,7 +252,7 @@ namespace 公文排版.Properties {
         [global::System.Configuration.ApplicationScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.SpecialSettingAttribute(global::System.Configuration.SpecialSetting.WebServiceUrl)]
-        [global::System.Configuration.DefaultSettingValueAttribute("https://mubu.com/doc/1gzHLVBLQo")]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
         public string 在线帮助 {
             get {
                 return ((string)(this["在线帮助"]));
@@ -274,7 +274,7 @@ namespace 公文排版.Properties {
         [global::System.Configuration.ApplicationScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.SpecialSettingAttribute(global::System.Configuration.SpecialSetting.WebServiceUrl)]
-        [global::System.Configuration.DefaultSettingValueAttribute("https://mubu.com/doc/1AWmGNUJ9o")]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
         public string 帮助_高级功能 {
             get {
                 return ((string)(this["帮助_高级功能"]));

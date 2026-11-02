@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Drawing;
 using System.Windows.Forms;
 using MSWord = Microsoft.Office.Interop.Word;
@@ -262,15 +262,6 @@ namespace 公文排版
         }
 
         // ============ 关于组 ============
-        private void btnXkonglong_Click(object sender, RibbonControlEventArgs e)
-        {
-            try { Process.Start("https://gw.xkonglong.com"); }
-            catch (Exception ex)
-            {
-                MessageBox.Show(ex.Message + "\r\n请打开浏览器输入网址访问:\r\n https://gw.xkonglong.com");
-            }
-        }
-
         private void btnAbout_Click(object sender, RibbonControlEventArgs e)
         {
             using (var about = new AboutBox1())
@@ -279,30 +270,19 @@ namespace 公文排版
             }
         }
 
-        private void btnEmail_Click(object sender, RibbonControlEventArgs e)
-        {
-            try
-            {
-                string aVer = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString();
-                Version oVer = System.Environment.OSVersion.Version;
-                string appVer = System.Windows.Forms.Application.ProductName + System.Windows.Forms.Application.ProductVersion;
-                string body = "%0d%0a%0d%0a以下我的系统环境信息,供您参考." + "\r\n当前 Windows Ver:" + oVer +
-                              "\r\n当前程序版本 ver:" + appVer;
-                Process.Start("mailto:xkonglong@qq.com?subject=关于小恐龙公文排版助手v" + aVer + "的意见反馈&body=" + body);
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(ex.Message + "\r\n\r\n" + ex.Source,
-                    "为发送反馈获取系统信息时出错", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
-            }
-        }
-
         private void btnHelp_Click(object sender, RibbonControlEventArgs e)
         {
-            try { Process.Start(Properties.Settings.Default.在线帮助); }
+            string url = Properties.Settings.Default.在线帮助;
+            if (string.IsNullOrWhiteSpace(url))
+            {
+                MessageBox.Show("本版本未内置在线帮助地址。",
+                    "在线帮助", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+            try { Process.Start(url); }
             catch (Exception ex)
             {
-                MessageBox.Show(ex.Message + "\r\n请打开浏览器输入网址访问:\r\n http://xkonglong.com/wordadd_help/");
+                MessageBox.Show(ex.Message + "\r\n请打开浏览器访问帮助地址:\r\n" + url);
             }
         }
 
@@ -354,8 +334,6 @@ namespace 公文排版
             btnClearProtectPW.OfficeImageId = "InkDeleteAllInk";
             btnSpeak.OfficeImageId = "AnimationAudio";
             btnSpeakOption.OfficeImageId = "ConditionalFormattingHighlightEqualTo";
-            btnXkonglong.OfficeImageId = "OutlookGlobe";
-            btnEmail.OfficeImageId = "WorkflowPending";
             mnuSelect.OfficeImageId = "SelectionPane";
             btnSelectObject.OfficeImageId = "SnapToObjects";
             mnuConvert.OfficeImageId = "ArrangeByRecurrence";
@@ -400,8 +378,6 @@ namespace 公文排版
             glyBak.Items[2].OfficeImageId = "exporttopicture32";
             glyBak.Items[3].OfficeImageId = "exporttopicture32";
             btnSaveAsPicAt.OfficeImageId = "ChangePicture";
-            btnXkonglong.OfficeImageId = "InsertHyperlink";
-            btnEmail.OfficeImageId = "Mail";
             mnuSelect.OfficeImageId = "SelectObjects";
             btnSelectSharp.OfficeImageId = "SelectAll";
             btnSelectTables.OfficeImageId = "SelectTable";

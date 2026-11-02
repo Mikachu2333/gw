@@ -175,9 +175,7 @@ namespace 公文排版
             this.btnSpeakOption = this.Factory.CreateRibbonButton();
             this.group5 = this.Factory.CreateRibbonGroup();
             this.btnAbout = this.Factory.CreateRibbonButton();
-            this.btnXkonglong = this.Factory.CreateRibbonButton();
             this.btnHelp = this.Factory.CreateRibbonButton();
-            this.btnEmail = this.Factory.CreateRibbonButton();
             this.groupTest = this.Factory.CreateRibbonGroup();
             this.mnuSelect = this.Factory.CreateRibbonMenu();
             this.btnSelectSharp = this.Factory.CreateRibbonButton();
@@ -1268,9 +1266,7 @@ namespace 公文排版
             ribbonDialogLauncherImpl5.ScreenTip = "列出快捷键";
             this.group5.DialogLauncher = ribbonDialogLauncherImpl5;
             this.group5.Items.Add(this.btnAbout);
-            this.group5.Items.Add(this.btnXkonglong);
             this.group5.Items.Add(this.btnHelp);
-            this.group5.Items.Add(this.btnEmail);
             this.group5.Label = "关于";
             this.group5.Name = "group5";
             this.group5.DialogLauncherClick += new Microsoft.Office.Tools.Ribbon.RibbonControlEventHandler(this.group5_DialogLauncherClick);
@@ -1283,18 +1279,8 @@ namespace 公文排版
             this.btnAbout.Name = "btnAbout";
             this.btnAbout.ScreenTip = "小恐龙公文助手";
             this.btnAbout.ShowImage = true;
-            this.btnAbout.SuperTip = "小恐龙工作室出品 免费,不含恶意代码";
+            this.btnAbout.SuperTip = "免费,不含恶意代码";
             this.btnAbout.Click += new Microsoft.Office.Tools.Ribbon.RibbonControlEventHandler(this.btnAbout_Click);
-            // 
-            // btnXkonglong
-            // 
-            this.btnXkonglong.Label = "访问网站";
-            this.btnXkonglong.Name = "btnXkonglong";
-            this.btnXkonglong.OfficeImageId = "GroupInsertLinks";
-            this.btnXkonglong.ScreenTip = "访问作者网站";
-            this.btnXkonglong.ShowImage = true;
-            this.btnXkonglong.SuperTip = "https://gw.xkonglong.com";
-            this.btnXkonglong.Click += new Microsoft.Office.Tools.Ribbon.RibbonControlEventHandler(this.btnXkonglong_Click);
             // 
             // btnHelp
             // 
@@ -1304,15 +1290,6 @@ namespace 公文排版
             this.btnHelp.ScreenTip = "打开在线帮助";
             this.btnHelp.ShowImage = true;
             this.btnHelp.Click += new Microsoft.Office.Tools.Ribbon.RibbonControlEventHandler(this.btnHelp_Click);
-            // 
-            // btnEmail
-            // 
-            this.btnEmail.Label = "建议反馈";
-            this.btnEmail.Name = "btnEmail";
-            this.btnEmail.OfficeImageId = "OfficeButtonFeedback";
-            this.btnEmail.ScreenTip = "发送邮件到 xkonglong@qq.com";
-            this.btnEmail.ShowImage = true;
-            this.btnEmail.Click += new Microsoft.Office.Tools.Ribbon.RibbonControlEventHandler(this.btnEmail_Click);
             // 
             // groupTest
             // 
@@ -1594,7 +1571,6 @@ namespace 公文排版
         private Microsoft.Office.Tools.Ribbon.RibbonButton btnFormatR2N;
         private Microsoft.Office.Tools.Ribbon.RibbonButton btnFormatDelGraphic;
         private Microsoft.Office.Tools.Ribbon.RibbonButton btnFormatRemoveURL;
-        internal Microsoft.Office.Tools.Ribbon.RibbonButton btnEmail;
         private Microsoft.Office.Tools.Ribbon.RibbonButton btnLine1;
         internal Microsoft.Office.Tools.Ribbon.RibbonGroup group6;
         internal Microsoft.Office.Tools.Ribbon.RibbonGallery glyBak;
@@ -1634,7 +1610,6 @@ namespace 公文排版
         private Microsoft.Office.Tools.Ribbon.RibbonButton btnFontBS2HT;
         private Microsoft.Office.Tools.Ribbon.RibbonButton btnFontHT2BS;
         internal Microsoft.Office.Tools.Ribbon.RibbonButton btnHelp;
-        internal Microsoft.Office.Tools.Ribbon.RibbonButton btnXkonglong;
         private Microsoft.Office.Tools.Ribbon.RibbonButton btnSaveAsJPG;
         internal Microsoft.Office.Tools.Ribbon.RibbonSplitButton btnStyle;
         internal Microsoft.Office.Tools.Ribbon.RibbonButton btnStyleR;

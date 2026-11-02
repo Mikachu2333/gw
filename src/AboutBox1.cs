@@ -1,8 +1,7 @@
-using System;
+﻿using System;
 using System.Drawing;
 using System.Reflection;
 using System.Windows.Forms;
-using System.Net;
 using System.IO;
 using System.Diagnostics;
 
@@ -11,8 +10,6 @@ namespace 公文排版
     partial class AboutBox1 : Form
     {
         private readonly ToolTip _tip = new ToolTip();
-        private string _downloadUrl;
-        private bool _updateChecked;
 
         public AboutBox1()
         {
@@ -74,108 +71,6 @@ namespace 公文排版
             {
                 Debug.WriteLine("AboutBox1_Load: " + ex.Message);
                 // 不再 throw，窗体仍可打开
-            }
-        }
-
-        internal sealed class UpdateResult
-        {
-            public bool Success;
-            public Version NewVersion;
-            public string DownloadUrl;
-            public string Message;
-        }
-
-        /// <summary>
-        /// 通过指定的URL获取版本更新信息. 返回 null 表示网络失败.
-        /// </summary>
-        public static UpdateResult CheckUpdate(string url)
-        {
-            try
-            {
-                var request = (HttpWebRequest)WebRequest.Create(new Uri(url));
-                request.KeepAlive = false;
-                request.AllowAutoRedirect = true;
-                request.UserAgent = "xkonglong WordAddin Check Update Client " +
-                                     Assembly.GetExecutingAssembly().GetName().Version;
-                request.Timeout = 10000;
-                request.ReadWriteTimeout = 10000;
-                request.Method = "GET";
-
-                using (var res = (HttpWebResponse)request.GetResponse())
-                {
-                    if (res.StatusCode != HttpStatusCode.OK && res.StatusCode != HttpStatusCode.PartialContent)
-                    {
-                        return new UpdateResult { Success = false, Message = "网络错误代码:" + (int)res.StatusCode };
-                    }
-
-                    using (var stream = res.GetResponseStream())
-                    using (var reader = new StreamReader(stream))
-                    {
-                        string text = reader.ReadToEnd().Trim();
-                        if (string.IsNullOrEmpty(text))
-                            return new UpdateResult { Success = false, Message = "版本信息为空" };
-
-                        var result = new UpdateResult { Success = true };
-                        if (text.Contains("|"))
-                        {
-                            string[] parts = text.Split(new[] { '|' }, 2);
-                            try { result.NewVersion = new Version(parts[0].Trim()); }
-                            catch { return new UpdateResult { Success = false, Message = "未知的版本信息!" }; }
-                            result.DownloadUrl = parts.Length > 1 ? parts[1].Trim() : null;
-                        }
-                        else
-                        {
-                            try { result.NewVersion = new Version(text); }
-                            catch { return new UpdateResult { Success = false, Message = "未知的版本信息!" }; }
-                        }
-                        return result;
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine("CheckUpdate: " + ex.Message);
-                return new UpdateResult { Success = false, Message = "获取信息出错,请检查网络!" };
-            }
-        }
-
-        private void LnkUpdate_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
-        {
-            if (!_updateChecked)
-            {
-                _updateChecked = true;
-                var result = CheckUpdate("https://xkonglong.com/down/update.txt");
-                if (result == null || !result.Success)
-                {
-                    lnkUpdate.Text = result?.Message ?? "检查更新失败";
-                    lnkUpdate.Enabled = false;
-                    return;
-                }
-
-                Version current = Assembly.GetExecutingAssembly().GetName().Version;
-                if (result.NewVersion.CompareTo(current) > 0)
-                {
-                    _downloadUrl = result.DownloadUrl ?? "https://xkonglong.com";
-                    lnkUpdate.Text = "最新版本:" + result.NewVersion + " 下载可用";
-                }
-                else
-                {
-                    lnkUpdate.Text = "您已是最新版本!";
-                    lnkUpdate.Enabled = false;
-                }
-                return;
-            }
-
-            if (!string.IsNullOrEmpty(_downloadUrl))
-            {
-                try
-                {
-                    Process.Start(_downloadUrl);
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show(ex.Message + "\r\n请手动打开浏览器输入网址访问:\r\n" + _downloadUrl);
-                }
             }
         }
 
@@ -326,9 +221,16 @@ namespace 公文排版
 
         private void AboutBox1_HelpButtonClicked(object sender, System.ComponentModel.CancelEventArgs e)
         {
+            string url = Properties.Settings.Default.帮助_高级功能;
+            if (string.IsNullOrWhiteSpace(url))
+            {
+                MessageBox.Show("本版本未内置在线帮助地址。",
+                    "高级功能帮助", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
             try
             {
-                Process.Start(Properties.Settings.Default.帮助_高级功能);
+                Process.Start(url);
             }
             catch (Exception ex)
             {
