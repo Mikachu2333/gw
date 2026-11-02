@@ -15,7 +15,9 @@ namespace 公文排版
         internal MSWord.Application WordApp;                 // Word Application
         internal System.Speech.Synthesis.SpeechSynthesizer sp; // 语音模块
         internal frmPaperSetup fp;                           // 页面设置窗体
-        internal string wps = "";                            // 宿主程序名
+        internal string hostProcess = "";                    // 宿主进程名：WINWORD / wps
+        internal string hostName = "";                       // Application.Name：Microsoft Word / WPS 文字
+        internal string hostVersion = "";                    // Application.Version：12.0=2007, 14.0=2010, 16.0=2016/365
 
         // 字体变量
         internal Font iniTitle;
@@ -29,7 +31,14 @@ namespace 公文排版
         internal Font iniFoot;
         internal Font iniPageNumber;
 
-        internal bool IsWps => wps.IndexOf("WPS", StringComparison.OrdinalIgnoreCase) >= 0;
+        // WPS 的对象模型会把 Application.Name/Version 伪装成 Word 以兼容插件，
+        // 因此以宿主进程名为准，Name 作为兜底。
+        internal bool IsWps => hostProcess.IndexOf("wps", StringComparison.OrdinalIgnoreCase) >= 0
+                            || hostName.IndexOf("WPS", StringComparison.OrdinalIgnoreCase) >= 0;
+
+        /// <summary>Word 2007(12.x) 或 2010(14.x)：功能区与窗体生命周期处理方式不同</summary>
+        internal bool IsLegacyHost => !IsWps
+            && (hostVersion.StartsWith("12.") || hostVersion.StartsWith("14."));
 
         // ============ 功能区载入/关闭 ============
         private void Ribbon1_Load(object sender, RibbonUIEventArgs e)
@@ -45,9 +54,17 @@ namespace 公文排版
             try
             {
                 btnAbout.Description = "关于小恐龙公文排版助手";
-                wps = System.Windows.Forms.Application.ProductName;
 
-                if (wps.Contains("2007"))
+                // 宿主信息必须取自宿主本身。原先用 WinForms 的 Application.ProductName，
+                // 它取的是本加载项程序集的 AssemblyProduct（"公文排版"），因此 IsWps 恒为
+                // false，所有 WPS 适配分支（图标、页码、对话框、错误提示）从不执行。
+                hostProcess = Process.GetCurrentProcess().ProcessName ?? "";
+                MSWord.Application host = Globals.ThisAddIn.Application;
+                hostName = host.Name ?? "";
+                hostVersion = host.Version ?? "";
+                Debug.WriteLine($"宿主：{hostProcess} / {hostName} {hostVersion}，IsWps={IsWps}");
+
+                if (IsLegacyHost && hostVersion.StartsWith("12."))
                 {
                     MessageBox.Show("公文排版助手不再支持 MS Office 2007 \r\n\t 请安装旧版插件(v1.0.8.3 版本),或者升级您的 Office 版本! ",
                         "小恐龙公文排版助手", MessageBoxButtons.OK, MessageBoxIcon.Warning);

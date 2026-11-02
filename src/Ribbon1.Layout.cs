@@ -13,7 +13,7 @@ namespace 公文排版
             try
             {
                 // Word 2007/2010 走模态对话框，避免 Ribbon 状态与窗体生命周期冲突
-                if (wps.Contains("2010") || wps.Contains("2007"))
+                if (IsLegacyHost)
                 {
                     using (var dlg = new frmPaperSetup())
                         dlg.ShowDialog();
