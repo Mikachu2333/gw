@@ -10,7 +10,10 @@ namespace 公文排版
     {
         private void Button2_Click(object sender, RibbonControlEventArgs e)
         {
-            clearVBA();
+            // 该按钮标签为"列出编号库"，原先却调用 clearVBA()——会删除文档中全部宏。
+            // ShowAllNumber() 才是与标签对应的实现（此前是无人调用的死码）。
+            try { ShowAllNumber(); }
+            catch (Exception ex) { Debug.WriteLine("Button2_Click: " + ex.Message); }
         }
 
         private void Button3_Click(object sender, RibbonControlEventArgs e)
@@ -23,25 +26,32 @@ namespace 公文排版
 
         private void ShowAllNumber()
         {
-            MSWord.ListTemplate myTemplate = WordApp.ActiveDocument.ListTemplates.Add();
-            myTemplate.ListLevels[1].TrailingCharacter = MSWord.WdTrailingCharacter.wdTrailingNone;
-            myTemplate.ListLevels[1].TextPosition = 0;
-            myTemplate.ListLevels[1].NumberPosition = 0;
-            myTemplate.ListLevels[1].StartAt = 1;
-
-            foreach (int myCode in Enum.GetValues(typeof(MSWord.WdListNumberStyle)))
+            // 该探针会往当前文档写文本并把全文编号转成文字，故整体包进一条撤销记录
+            var undo = WordApp.UndoRecord;
+            undo.StartCustomRecord("列出编号库(调试)");
+            try
             {
-                string strName = Enum.GetName(typeof(MSWord.WdListNumberStyle), myCode);
-                WordApp.Selection.TypeText(strName + "   " + myCode + "\r\n");
-                try
+                MSWord.ListTemplate myTemplate = WordApp.ActiveDocument.ListTemplates.Add();
+                myTemplate.ListLevels[1].TrailingCharacter = MSWord.WdTrailingCharacter.wdTrailingNone;
+                myTemplate.ListLevels[1].TextPosition = 0;
+                myTemplate.ListLevels[1].NumberPosition = 0;
+                myTemplate.ListLevels[1].StartAt = 1;
+
+                foreach (int myCode in Enum.GetValues(typeof(MSWord.WdListNumberStyle)))
                 {
-                    myTemplate.ListLevels[1].NumberStyle = (MSWord.WdListNumberStyle)myCode;
-                    WordApp.Selection.Range.ListFormat.ApplyListTemplate(myTemplate);
+                    string strName = Enum.GetName(typeof(MSWord.WdListNumberStyle), myCode);
+                    WordApp.Selection.TypeText(strName + "   " + myCode + "\r\n");
+                    try
+                    {
+                        myTemplate.ListLevels[1].NumberStyle = (MSWord.WdListNumberStyle)myCode;
+                        WordApp.Selection.Range.ListFormat.ApplyListTemplate(myTemplate);
+                    }
+                    catch { }
+                    WordApp.ActiveDocument.Content.ListFormat.ConvertNumbersToText();
+                    WordApp.Selection.TypeText("\r\n");
                 }
-                catch { }
-                WordApp.ActiveDocument.Content.ListFormat.ConvertNumbersToText();
-                WordApp.Selection.TypeText("\r\n");
             }
+            finally { undo.EndCustomRecord(); }
         }
 
         private void ShwoAllDialog()
