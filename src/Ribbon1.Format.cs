@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Windows.Forms;
 using Microsoft.Office.Tools.Ribbon;
 using MSWord = Microsoft.Office.Interop.Word;
@@ -34,9 +34,15 @@ namespace 公文排版
             }
         }
 
-        private bool HasSelectionOrConfirm(string title)
+        /// <summary>
+        /// 确定操作范围。返回 false 表示用户取消；hasSelection 为 true 时只处理选区，
+        /// 为 false 表示用户已确认执行全局操作。
+        /// 原实现把这两种情况都返回 true，调用方无法区分，导致"全局操作"实际按选区执行。
+        /// </summary>
+        private bool TryGetScope(string title, out bool hasSelection)
         {
-            if (WordApp.Selection.Characters.Count > 1) return true;
+            hasSelection = WordApp.Selection.Characters.Count > 1;
+            if (hasSelection) return true;
             var dr = MessageBox.Show("您未选定范围,将执行全局操作!", title,
                 MessageBoxButtons.OKCancel, MessageBoxIcon.Warning);
             return dr != DialogResult.Cancel;
@@ -44,8 +50,8 @@ namespace 公文排版
 
         private void btnFormatFullLine_Click(object sender, RibbonControlEventArgs e)
         {
-            bool s = HasSelectionOrConfirm("断句重排");
-            if (!s) return;
+            bool s;
+            if (!TryGetScope("断句重排", out s)) return;
             WordApp.ScreenUpdating = false;
             WordReplace(true, "([!。：！？])^13@", "\\1", s);
             WordApp.ScreenUpdating = true;
@@ -116,8 +122,8 @@ namespace 公文排版
 
         private void btnFormatDelSpace_Click(object sender, RibbonControlEventArgs e)
         {
-            bool s = HasSelectionOrConfirm("删除空白");
-            if (!s) return;
+            bool s;
+            if (!TryGetScope("删除空白", out s)) return;
             WordApp.ScreenUpdating = false;
             WordReplace(false, "^w", "", s);
             WordReplace(false, "　", "", s);
@@ -126,8 +132,8 @@ namespace 公文排版
 
         private void btnFormatR2N_Click(object sender, RibbonControlEventArgs e)
         {
-            bool s = HasSelectionOrConfirm("换行符转回车");
-            if (!s) return;
+            bool s;
+            if (!TryGetScope("换行符转回车", out s)) return;
             WordApp.ScreenUpdating = false;
             WordReplace(false, "^l", "^p", s);
             WordApp.ScreenUpdating = true;
@@ -135,8 +141,8 @@ namespace 公文排版
 
         private void btnFormatDelGraphic_Click(object sender, RibbonControlEventArgs e)
         {
-            bool s = HasSelectionOrConfirm("删除图形");
-            if (!s) return;
+            bool s;
+            if (!TryGetScope("删除图形", out s)) return;
             WordApp.ScreenUpdating = false;
             WordReplace(false, "^g", "", s);
             WordApp.ScreenUpdating = true;
@@ -146,8 +152,8 @@ namespace 公文排版
         {
             try
             {
-                bool s = HasSelectionOrConfirm("移走链接");
-                if (!s) return;
+                bool s;
+                if (!TryGetScope("移走链接", out s)) return;
                 var undo = WordApp.UndoRecord;
                 undo.StartCustomRecord("移走链接");
                 WordApp.ScreenUpdating = false;
@@ -161,8 +167,8 @@ namespace 公文排版
 
         private void btnFormatDelSelectSpace_Click(object sender, RibbonControlEventArgs e)
         {
-            bool s = HasSelectionOrConfirm("删除半角空格");
-            if (!s) return;
+            bool s;
+            if (!TryGetScope("删除半角空格", out s)) return;
             WordApp.ScreenUpdating = false;
             WordReplace(false, " ", "", s);
             WordApp.ScreenUpdating = true;
@@ -170,8 +176,8 @@ namespace 公文排版
 
         private void btnFormatAddSpace_Click(object sender, RibbonControlEventArgs e)
         {
-            bool s = HasSelectionOrConfirm("中英文之间加空格");
-            if (!s) return;
+            bool s;
+            if (!TryGetScope("中英文之间加空格", out s)) return;
             WordApp.ScreenUpdating = false;
             WordReplace(true, "([A-Za-z])([㐀-﨩])", "\\1 \\2", s);
             WordReplace(true, "([㐀-﨩])([A-Za-z])", "\\1 \\2", s);
@@ -180,8 +186,8 @@ namespace 公文排版
 
         private void btnFormatE2C_Click(object sender, RibbonControlEventArgs e)
         {
-            bool s = HasSelectionOrConfirm("标点符号(英转中)");
-            if (!s) return;
+            bool s;
+            if (!TryGetScope("标点符号(英转中)", out s)) return;
             WordApp.ScreenUpdating = false;
 
             string strFind = "([!0-9])\\.([!0-9])";
@@ -215,8 +221,8 @@ namespace 公文排版
                 else if (dr == DialogResult.Cancel) return;
             }
 
-            bool s = HasSelectionOrConfirm("标点符号(中转英)");
-            if (!s) return;
+            bool s;
+            if (!TryGetScope("标点符号(中转英)", out s)) return;
             WordApp.ScreenUpdating = false;
 
             string[] cArray = { "。", "，", "；", "：", "？", "！", "—", "～", "（", "）", "［", "］", "“", "”", "‘", "’" };
