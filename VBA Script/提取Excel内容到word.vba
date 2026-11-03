@@ -14,52 +14,57 @@
 Option Explicit    '强制声明变量是个好习惯, 可以提高代码速度,减少bug
 
 Sub 提取Excel内容()
+    Dim xls As Object
+    Dim book As Object
+    Dim sheet As Object
+    Dim c As Object
+    Dim dia As FileDialog
+    Dim doc As Document
+    Dim 路径 As String
+    Dim r As String
+    Dim n As Long
 
-On Error Resume Next
-Dim xls As Object
-Set xls = CreateObject("excel.application")
+    On Error GoTo 出错
 
-Dim dia As FileDialog
-Set dia = Application.FileDialog(msoFileDialogFilePicker)
-With dia
-    .AllowMultiSelect = False
-    .Title = "打开一个excel文件"
-    .Filters.Add "Excel 文件", "*.xls*", 1
-    .Show
-End With
+    Set dia = Application.FileDialog(msoFileDialogFilePicker)
+    With dia
+        .AllowMultiSelect = False
+        .Title = "打开一个excel文件"
+        .Filters.Clear
+        .Filters.Add "Excel 文件", "*.xls*", 1
+        If .Show <> -1 Then Exit Sub
+    End With
+    路径 = CStr(dia.SelectedItems(1))
 
-If dia.SelectedItems.Count <= 0 Then Exit Sub   '取消退出'
-    
-Dim book As Object
-Set book = xls.Workbooks.Open(dia.SelectedItems(1))
+    r = InputBox("输入要提取的范围,比如 A1:A10", "提取Excel内容", "A1:A10")
+    If r = "" Then Exit Sub
 
+    Set xls = CreateObject("excel.application")
+    xls.Visible = False
+    xls.DisplayAlerts = False
+    Set book = xls.Workbooks.Open(路径)
+    Set sheet = book.Worksheets(1)
+    Set doc = Application.ActiveDocument
 
+    For Each c In sheet.Range(r).Cells
+        doc.Range.InsertAfter CStr(c.Value) & Chr(9)
+        n = n + 1
+    Next
 
-Dim sheet As Object
-Set sheet = book.Worksheets(1)
+    book.Close False
+    xls.Quit
+    Set sheet = Nothing
+    Set book = Nothing
+    Set xls = Nothing
+    MsgBox "已提取 " & n & " 个单元格到文档末尾。", vbInformation, "提取Excel内容"
+    Exit Sub
 
-
-
-Dim i As Long
-
-Dim doc As Document
-Set doc = Application.ActiveDocument
-
-
-Dim cell As String
-
-Dim r As String
-r = InputBox("输入要提取的范围,比如 A1:A10", "提取Excel内容", "A1:A10")
-
-Dim c As Object
-
-For Each c In sheet.Range(r).Cells
-    cell = c.Value & Chr(9)
-    doc.Range.InsertAfter cell
-Next
-
-xls.Workbooks.Close
-Set xls = Nothing
-
-
-End Sub
+出错:
+    ' 原来整段 On Error Resume Next: 范围写错或文件打不开就什么都不做, 用户只看到"没反应", 后台还留下一个看不见的 EXCEL.EXE
+    On Error Resume Next
+    If Not book Is Nothing Then book.Close False
+    If Not xls Is Nothing Then xls.Quit
+    Set sheet = Nothing
+    Set book = Nothing
+    Set xls = Nothing
+    MsgBox "提取Excel内容时出错：" & Err.Description, vbCritical
