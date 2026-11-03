@@ -23,12 +23,17 @@ Sub 自动打印序列号()
     If lngCount = "" Then
         Exit Sub    '结束编号为空退出
     End If
-    For i = lngStart To lngCount
+    ' 填了非数字时 For 会抛"类型不匹配"并把用户拽进 VBA 调试器
+    If Not IsNumeric(lngStart) Or Not IsNumeric(lngCount) Then
+        MsgBox "开始和结束编号都必须是整数。", vbExclamation, "自动打印序列号"
+        Exit Sub
+    End If
+    For i = CLng(lngStart) To CLng(lngCount)
         Selection.Text = leftWord & Format(i, "00") & rightWord
         '00的格式, 表示 01 02,09,10...99,  你可以根据需求自己调整.  如果为一个0, 则为 1,2,9,10...
         Application.PrintOut FileName:="", Range:=wdPrintAllDocument, Item:= _
         wdPrintDocumentContent, Copies:=1, Pages:="", PageType:=wdPrintAllPages, _
-        ManualDuplexPrint:=False, Collate:=True, Background:=True, PrintToFile:= _
+        ManualDuplexPrint:=False, Collate:=True, Background:=False, PrintToFile:= _
         False, PrintZoomColumn:=0, PrintZoomRow:=0, PrintZoomPaperWidth:=0, _
         PrintZoomPaperHeight:=0
         Selection.Text = ""
