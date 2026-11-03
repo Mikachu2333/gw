@@ -20,6 +20,7 @@ Sub ExtractBookmarksInADoc()
     Dim xBookMark As Bookmark
     Dim xBookMarkDoc As Document
     Dim xParagraph As Paragraph
+    Dim xSavedAs As String
     On Error Resume Next
     Set xDoc = ActiveDocument
     If xDoc.Bookmarks.Count = 0 Then
@@ -45,8 +46,10 @@ Sub ExtractBookmarksInADoc()
               SubAddress:=xBookMark.Name, TextToDisplay:=.Cell(xRow, 3).Range.Text
         Next
     End With
-    xBookMarkDoc.SaveAs xDoc.Path & "\" & "书签在 " & xDoc.Name
+    xSavedAs = xDoc.Path & "\" & "书签在 " & xDoc.Name
+    xBookMarkDoc.SaveAs xSavedAs
     xBookMarkDoc.PrintOut
-    xBookMarkDoc.Close
-    Kill xBookMarkDoc.Path
+    xBookMarkDoc.Close SaveChanges:=False
+    ' 原来 Kill 的是目录而不是文件, 且文档关闭后取 Path 会报错并被 On Error Resume Next 咽掉, 清单就一直留在目录里
+    If Dir(xSavedAs) <> "" Then Kill xSavedAs
 End Sub
