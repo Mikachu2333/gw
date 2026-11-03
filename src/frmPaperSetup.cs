@@ -250,9 +250,18 @@ namespace 公文排版
             Cursor.Current = Cursors.WaitCursor;
             try
             {
-                // ApplySettings 内部已完成 WriteSetting
-                if (ApplySettings())
-                    this.Close();
+                if (!ApplySettings()) return;
+                try
+                {
+                    WriteSetting();
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(ex.Message + "\r\n请重置 Word 默认模板后再尝试!",
+                        "保存设置时出错", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                    return;
+                }
+                this.Close();
             }
             finally
             {
