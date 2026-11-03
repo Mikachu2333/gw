@@ -22,6 +22,12 @@ Option Explicit
 ' 主过程：公文自动排版
 Sub 公文自动排版()
 ' 依次执行各排版步骤
+    ' 文档被限制编辑时每条改写语句都会报错, 宏会停在半成品上, 所以先挡掉
+    If ActiveDocument.ProtectionType <> wdNoProtection Then
+        MsgBox "文档已开启限制编辑，请先在审阅 - 限制编辑中取消保护后再自动排版。", vbExclamation, "公文自动排版"
+        Exit Sub
+    End If
+    On Error GoTo 排版中断
     PaperA4          ' 设置纸张为A4，页边距等
     Initial          ' 初始化文档：删除域、转换编号、替换特殊字符等
     Title2345        ' 处理标题2~5级（一、/（一）/1．/（1）等）
@@ -32,6 +38,13 @@ Sub 公文自动排版()
     Selection.HomeKey Unit:=wdStory  ' 光标移到文档开头
     ActiveDocument.Content.Font.Color = wdColorAutomatic ' 恢复字体颜色为自动
     Options.ReplaceSelection = True '恢复键入时替换所选内容为勾选状态
+    Exit Sub
+排版中断:
+    ' 中断时同样要还原字体颜色和 Options.ReplaceSelection: 后者是 Word 全局开关, 留着 False 会让用户打字时把选区顶掉
+    On Error Resume Next
+    ActiveDocument.Content.Font.Color = wdColorAutomatic
+    Options.ReplaceSelection = True
+    MsgBox "自动排版中断：" & Err.Description & vbCrLf & "文档可能只排到一半, 可撤销后重试。", vbCritical, "公文自动排版"
 End Sub
 
 ' 设置A4纸张和页边距（兼容横纵向）
