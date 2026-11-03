@@ -15,6 +15,7 @@ namespace 公文排版
         internal MSWord.Application WordApp;                 // Word Application
         internal System.Speech.Synthesis.SpeechSynthesizer sp; // 语音模块
         internal frmPaperSetup fp;                           // 页面设置窗体
+        internal frmSpeakOption speakOption;                  // 朗读选项窗体
         // 语音合成器的事件在工作线程回调，而功能区对象与 Word COM 只允许宿主 STA 线程访问。
         // 这个不可见的 Control 只当作封送目标，句柄在 Ribbon1_Load 的 STA 线程上创建。
         private readonly Control speechMarshal = new Control();
@@ -198,6 +199,9 @@ namespace 公文排版
             try
             {
                 try { if (WordApp != null) WordApp.WindowSelectionChange -= WordApp_WindowSelectionChange; } catch { }
+
+                // 朗读选项窗体共用 sp：先关窗体让它解绑回调，再释放合成器
+                if (speakOption != null) { if (!speakOption.IsDisposed) speakOption.Close(); speakOption = null; }
 
                 if (sp != null)
                 {

@@ -39,8 +39,21 @@ namespace 公文排版
         {
             try
             {
+                if (sp == null)
+                {
+                    MessageBox.Show("本机语音合成不可用，朗读功能已停用。",
+                        "朗读选项", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                    return;
+                }
+                // 窗体配置的就是这个共享合成器，同时开两个会各挂一份事件、互相打断朗读
+                if (speakOption != null && !speakOption.IsDisposed)
+                {
+                    speakOption.Activate();
+                    return;
+                }
                 var clsWinWrap = new ClsWinWrap(WordApp.ActiveWindow.Hwnd);
-                clsWinWrap.Show(new frmSpeakOption());
+                speakOption = new frmSpeakOption();
+                clsWinWrap.Show(speakOption);
             }
             catch (Exception ex)
             {
@@ -64,6 +77,8 @@ namespace 公文排版
                     this.btnSpeak.OfficeImageId = "SpeakStop";
                     this.btnSpeak.SuperTip = "正在朗读中,单击停止.";
 
+                    // 合成器现在与朗读选项窗体共用：先停掉窗体那边可能正在读的任务，避免两个声音重叠
+                    sp.SpeakAsyncCancelAll();
                     if (WordApp.Selection.Text.Length > 1)
                     {
                         sp.SpeakAsync(WordApp.Selection.Text);
