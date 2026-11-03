@@ -38,7 +38,11 @@ namespace 公文排版
             module.AddFromFile(vbaFile);
 
             vbext_ProcKind procKind;
-            string macroName = module.get_ProcOfLine(module.CountOfDeclarationLines + 1, out procKind);
+            // 声明段与首个过程之间的空行也归入 CountOfDeclarationLines，只探一行可能落在空白行上取到空名字，故逐个往后找
+            string macroName = "";
+            int firstLine = module.CountOfDeclarationLines + 1;
+            for (int line = firstLine; line <= module.CountOfLines && string.IsNullOrWhiteSpace(macroName); line++)
+                macroName = module.get_ProcOfLine(line, out procKind);
             if (string.IsNullOrWhiteSpace(macroName))
                 throw new InvalidDataException(
                     "所选文件里没有可执行的过程。\r\n请保留一个公共 Sub 作为入口（其他过程用 Function）。");
