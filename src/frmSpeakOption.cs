@@ -21,8 +21,16 @@ namespace 公文排版
 
         private void FrmSpeakOption_Load(object sender, EventArgs e)
         {
-            this.Location = MousePosition;
+            MoveIntoWorkArea(MousePosition.X, MousePosition.Y);
             WordApp = Globals.ThisAddIn.Application;
+        }
+
+        // 本窗体无边框、只能靠拖动移位，位置贴出屏幕后就再也抓不回来了
+        private void MoveIntoWorkArea(int x, int y)
+        {
+            Rectangle wa = Screen.FromPoint(new Point(x, y)).WorkingArea;
+            this.Location = new Point(Math.Max(wa.Left, Math.Min(x, wa.Right - this.Width)),
+                                      Math.Max(wa.Top, Math.Min(y, wa.Bottom - this.Height)));
         }
 
         private void BtnPlay_Click(object sender, EventArgs e)
@@ -185,8 +193,8 @@ namespace 公文排版
         {
             if (e.Button == MouseButtons.Left)
             {
-                this.Location = new Point(this.Location.X + e.X - mPoint.X,
-                                          this.Location.Y + e.Y - mPoint.Y);
+                MoveIntoWorkArea(this.Location.X + e.X - mPoint.X,
+                                 this.Location.Y + e.Y - mPoint.Y);
             }
         }
     }
