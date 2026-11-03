@@ -22,6 +22,12 @@ Option Explicit    '强制声明变量是个好习惯, 可以提高代码速度,减少bug
 
 Sub xkonglong_自动排版()
 '公文
+    ' 文档被限制编辑时每条改写语句都会报错, 宏会停在半成品上, 所以先挡掉
+    If ActiveDocument.ProtectionType <> wdNoProtection Then
+        MsgBox "文档已开启限制编辑，请先在审阅 - 限制编辑中取消保护后再自动排版。", vbExclamation, "公文自动排版"
+        Exit Sub
+    End If
+    On Error GoTo 排版中断
     Initial   '初始化,.
     GWStyle  '公文风格
     Title1  '标题
@@ -29,6 +35,12 @@ Sub xkonglong_自动排版()
     PageNumGW   '公文页码
     Common '公共部分调整
     'xbs '标题设为方正小标宋,有需求删掉本行前的单引号
+    Exit Sub
+排版中断:
+    ' 排版过程用红/粉字体色做临时标记, 中断时不还原就是一份半红半粉的文档
+    On Error Resume Next
+    AutoColor
+    MsgBox "自动排版中断：" & Err.Description & vbCrLf & "文档可能只排到一半, 可撤销后重试。", vbCritical, "公文自动排版"
 End Sub
 
 Function Initial()
