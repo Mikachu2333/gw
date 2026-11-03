@@ -10,16 +10,25 @@ namespace 公文排版
 {
     public partial class Ribbon1
     {
-        /// <summary>确保文档已保存,未保存时提示保存.返回 false 表示用户取消.</summary>
+        /// <summary>
+        /// 确保文档已保存到磁盘、且没有未保存的修改。返回 false 表示用户取消或保存失败。
+        /// 原实现只判断 Path 非空——"存过位置"不等于"当前内容已落盘"：SaveDoc 用 SaveAs2
+        /// 会把活动文档就地转成 .doc，随后再从磁盘重开原文件，未保存的改动就只剩在副本里。
+        /// </summary>
         private bool EnsureDocumentSaved(string title)
         {
-            if (WordApp.ActiveDocument.Path.Length != 0) return true;
-            var dr = MessageBox.Show("生成副本前请先保存本文档,要保存文档吗?", title,
+            MSWord.Document doc = WordApp.ActiveDocument;
+            if (doc.Path.Length != 0 && doc.Saved) return true;
+
+            string ask = doc.Path.Length == 0
+                ? "生成副本前请先保存本文档,要保存文档吗?"
+                : "本文档有未保存的修改,生成副本前需要先保存。\r\n要现在保存吗?";
+            var dr = MessageBox.Show(ask, title,
                 MessageBoxButtons.YesNo, MessageBoxIcon.Question);
             if (dr != DialogResult.Yes) return false;
             try
             {
-                WordApp.ActiveDocument.Save();
+                doc.Save();
                 return true;
             }
             catch (Exception ex)
