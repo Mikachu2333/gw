@@ -1,14 +1,14 @@
 '====================================================================
-'                            ä½¿ç”¨è¯´æ˜Ž:  
-'åˆ¶ä½œ VBA æ–‡ä»¶æ—¶, è¯·åªä¿ç•™ä¸€ä¸ªSub ç”¨äºŽæ‰§è¡Œ,  å…¶ä»–è¿‡ç¨‹è¯·ç”¨ Function å…³é”®å­—ã€‚
-'Sub è¿‡ç¨‹åæŽ¨èç”¨ ç”¨æˆ·ID_ä¸­æ–‡åç§° çš„æ–¹å¼å‘½å,é¿å…ä»£ç å†²çªã€‚
-'VBA æ–‡ä»¶è¯·ä½¿ç”¨ANSI(ç®€ä½“ä¸­æ–‡GB2312)ç¼–ç ä¿å­˜, å¾®è½¯çš„VBAè§£é‡Šå™¨ä¸æ”¯æŒUTF-8è¿™ç±»ç¼–ç ,ä¼šå¯¼è‡´ä¸­æ–‡ä¹±ç ã€‚
-'ä¸æ­£ç¡®çš„ä»£ç å¯èƒ½å¯¼è‡´wordå´©æºƒã€æ–‡æ¡£ä¸¢å¤±æˆ–æŸåã€‚
-'è¯·åŠ¡å¿…ä¿è¯vbaä»£ç æ¥æºå®‰å…¨å¯é ï¼Œæ’ä»¶ä½œè€…ä¸æ‰¿æ‹…vbaæ–‡ä»¶é€ æˆçš„ä»»ä½•æŸå¤±ï¼
-'åˆ†äº« VBA æ–‡ä»¶æ—¶ï¼Œè¯·å°Šé‡ä½œè€…ç‰ˆæƒï¼Œæ³¨æ˜Žæ¥æºä»¥ç¤ºæ„Ÿè°¢ã€‚
+'                            Ê¹ÓÃËµÃ÷:  
+'ÖÆ×÷ VBA ÎÄ¼þÊ±, ÇëÖ»±£ÁôÒ»¸öSub ÓÃÓÚÖ´ÐÐ,  ÆäËû¹ý³ÌÇëÓÃ Function ¹Ø¼ü×Ö¡£
+'Sub ¹ý³ÌÃûÍÆ¼öÓÃ ÓÃ»§ID_ÖÐÎÄÃû³Æ µÄ·½Ê½ÃüÃû,±ÜÃâ´úÂë³åÍ»¡£
+'VBA ÎÄ¼þÇëÊ¹ÓÃANSI(¼òÌåÖÐÎÄGB2312)±àÂë±£´æ, Î¢ÈíµÄVBA½âÊÍÆ÷²»Ö§³ÖUTF-8ÕâÀà±àÂë,»áµ¼ÖÂÖÐÎÄÂÒÂë¡£
+'²»ÕýÈ·µÄ´úÂë¿ÉÄÜµ¼ÖÂword±ÀÀ£¡¢ÎÄµµ¶ªÊ§»òËð»µ¡£
+'ÇëÎñ±Ø±£Ö¤vba´úÂëÀ´Ô´°²È«¿É¿¿£¬²å¼þ×÷Õß²»³Ðµ£vbaÎÄ¼þÔì³ÉµÄÈÎºÎËðÊ§£¡
+'·ÖÏí VBA ÎÄ¼þÊ±£¬Çë×ðÖØ×÷Õß°æÈ¨£¬×¢Ã÷À´Ô´ÒÔÊ¾¸ÐÐ»¡£
 '====================================================================
-'åŽŸä½œè€…: Extendoffice
-'ä¿®æ”¹: å°æé¾™  
+'Ô­×÷Õß: Extendoffice
+'ÐÞ¸Ä: Ð¡¿ÖÁú  
 
 
 
@@ -23,18 +23,18 @@ Sub ExtractBookmarksInADoc()
     On Error Resume Next
     Set xDoc = ActiveDocument
     If xDoc.Bookmarks.Count = 0 Then
-        MsgBox "æ–‡æ¡£ä¸­æ²¡æœ‰ä¹¦ç­¾", vbInformation, "VBAè„šæœ¬:æ‰“å°ä¹¦ç­¾"
+        MsgBox "ÎÄµµÖÐÃ»ÓÐÊéÇ©", vbInformation, "VBA½Å±¾:´òÓ¡ÊéÇ©"
         Exit Sub
     End If
     Set xBookMarkDoc = Documents.Add
     xRow = 1
-    Selection.TypeText "ä¹¦ç­¾åœ¨ " & "'" & xDoc.Name & "'"
+    Selection.TypeText "ÊéÇ©ÔÚ " & "'" & xDoc.Name & "'"
     Set xTable = Selection.Tables.Add(Selection.Range, 1, 3)
     xTable.Borders.Enable = True
     With xTable
-        .Cell(xRow, 1).Range.Text = "åç§°"
-        .Cell(xRow, 2).Range.Text = "æ–‡å­—"
-        .Cell(xRow, 3).Range.Text = "é¡µç "
+        .Cell(xRow, 1).Range.Text = "Ãû³Æ"
+        .Cell(xRow, 2).Range.Text = "ÎÄ×Ö"
+        .Cell(xRow, 3).Range.Text = "Ò³Âë"
         For Each xBookMark In xDoc.Bookmarks
             xTable.Rows.Add
             xRow = xRow + 1
@@ -45,7 +45,7 @@ Sub ExtractBookmarksInADoc()
               SubAddress:=xBookMark.Name, TextToDisplay:=.Cell(xRow, 3).Range.Text
         Next
     End With
-    xBookMarkDoc.SaveAs xDoc.Path & "\" & "ä¹¦ç­¾åœ¨ " & xDoc.Name
+    xBookMarkDoc.SaveAs xDoc.Path & "\" & "ÊéÇ©ÔÚ " & xDoc.Name
     xBookMarkDoc.PrintOut
     xBookMarkDoc.Close
     Kill xBookMarkDoc.Path

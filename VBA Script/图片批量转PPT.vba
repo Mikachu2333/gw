@@ -1,16 +1,16 @@
 '====================================================================
-'                            ä½¿ç”¨è¯´æ˜:
-'åˆ¶ä½œ VBA æ–‡ä»¶æ—¶, è¯·åªä¿ç•™ä¸€ä¸ªSub ç”¨äºæ‰§è¡Œ,  å…¶ä»–è¿‡ç¨‹è¯·ç”¨ Function å…³é”®å­—ã€‚
-'Sub è¿‡ç¨‹åæ¨èç”¨ ç”¨æˆ·ID_ä¸­æ–‡åç§° çš„æ–¹å¼å‘½å,é¿å…ä»£ç å†²çªã€‚
-'VBA æ–‡ä»¶è¯·ä½¿ç”¨ANSI(ç®€ä½“ä¸­æ–‡GB2312)ç¼–ç ä¿å­˜, å¾®è½¯çš„VBAè§£é‡Šå™¨ä¸æ”¯æŒUTF-8è¿™ç±»ç¼–ç ,ä¼šå¯¼è‡´ä¸­æ–‡ä¹±ç ã€‚
-'ä¸æ­£ç¡®çš„ä»£ç å¯èƒ½å¯¼è‡´wordå´©æºƒã€æ–‡æ¡£ä¸¢å¤±æˆ–æŸåã€‚
-'è¯·åŠ¡å¿…ä¿è¯vbaä»£ç æ¥æºå®‰å…¨å¯é ï¼Œæ’ä»¶ä½œè€…ä¸æ‰¿æ‹…vbaæ–‡ä»¶é€ æˆçš„ä»»ä½•æŸå¤±ï¼
-'åˆ†äº« VBA æ–‡ä»¶æ—¶ï¼Œè¯·å°Šé‡ä½œè€…ç‰ˆæƒï¼Œæ³¨æ˜æ¥æºä»¥ç¤ºæ„Ÿè°¢ã€‚
+'                            Ê¹ÓÃËµÃ÷:
+'ÖÆ×÷ VBA ÎÄ¼şÊ±, ÇëÖ»±£ÁôÒ»¸öSub ÓÃÓÚÖ´ĞĞ,  ÆäËû¹ı³ÌÇëÓÃ Function ¹Ø¼ü×Ö¡£
+'Sub ¹ı³ÌÃûÍÆ¼öÓÃ ÓÃ»§ID_ÖĞÎÄÃû³Æ µÄ·½Ê½ÃüÃû,±ÜÃâ´úÂë³åÍ»¡£
+'VBA ÎÄ¼şÇëÊ¹ÓÃANSI(¼òÌåÖĞÎÄGB2312)±àÂë±£´æ, Î¢ÈíµÄVBA½âÊÍÆ÷²»Ö§³ÖUTF-8ÕâÀà±àÂë,»áµ¼ÖÂÖĞÎÄÂÒÂë¡£
+'²»ÕıÈ·µÄ´úÂë¿ÉÄÜµ¼ÖÂword±ÀÀ£¡¢ÎÄµµ¶ªÊ§»òËğ»µ¡£
+'ÇëÎñ±Ø±£Ö¤vba´úÂëÀ´Ô´°²È«¿É¿¿£¬²å¼ş×÷Õß²»³Ğµ£vbaÎÄ¼şÔì³ÉµÄÈÎºÎËğÊ§£¡
+'·ÖÏí VBA ÎÄ¼şÊ±£¬Çë×ğÖØ×÷Õß°æÈ¨£¬×¢Ã÷À´Ô´ÒÔÊ¾¸ĞĞ»¡£
 '====================================================================
-'ä½œè€…: å°æé¾™'
-'æ—¥æœŸ:2025å¹´10æœˆ31æ—¥'
+'×÷Õß: Ğ¡¿ÖÁú'
+'ÈÕÆÚ:2025Äê10ÔÂ31ÈÕ'
 
-Sub å›¾ç‰‡æ‰¹é‡è½¬PPT()
+Sub Í¼Æ¬ÅúÁ¿×ªPPT()
 	Dim pptApp As Object
     Dim pptPres As Object
     Dim pptSlide As Object
@@ -22,7 +22,7 @@ Sub å›¾ç‰‡æ‰¹é‡è½¬PPT()
     Dim slideWidth As Single
     Dim slideHeight As Single
     
-    ' åˆ›å»ºPowerPointåº”ç”¨ç¨‹åºå¯¹è±¡
+    ' ´´½¨PowerPointÓ¦ÓÃ³ÌĞò¶ÔÏó
     On Error Resume Next
     Set pptApp = GetObject(, "PowerPoint.Application")
     If Err.Number <> 0 Then
@@ -30,35 +30,35 @@ Sub å›¾ç‰‡æ‰¹é‡è½¬PPT()
     End If
     On Error GoTo 0
     
-    ' è®©PowerPointå¯è§ï¼ˆå¯é€‰ï¼‰
+    ' ÈÃPowerPoint¿É¼û£¨¿ÉÑ¡£©
     pptApp.Visible = True
     
-    ' åˆ›å»ºæ–°çš„æ¼”ç¤ºæ–‡ç¨¿
+    ' ´´½¨ĞÂµÄÑİÊ¾ÎÄ¸å
     Set pptPres = pptApp.Presentations.Add
     
-    ' è·å–å¹»ç¯ç‰‡å°ºå¯¸
+    ' »ñÈ¡»ÃµÆÆ¬³ß´ç
     With pptPres.PageSetup
         slideWidth = .slideWidth
         slideHeight = .slideHeight
     End With
     
-    ' é€‰æ‹©å›¾ç‰‡æ–‡ä»¶
+    ' Ñ¡ÔñÍ¼Æ¬ÎÄ¼ş
     Set fd = Application.FileDialog(msoFileDialogFilePicker)
     With fd
-        .Title = "é€‰æ‹©è¦è½¬æ¢ä¸ºPPTXçš„å›¾ç‰‡æ–‡ä»¶"
+        .Title = "Ñ¡ÔñÒª×ª»»ÎªPPTXµÄÍ¼Æ¬ÎÄ¼ş"
         .AllowMultiSelect = True
         .Filters.Clear
-        .Filters.Add "å›¾ç‰‡æ–‡ä»¶", "*.jpg;*.jpeg;*.png;*.bmp;*.gif;*.tif;*.tiff"
+        .Filters.Add "Í¼Æ¬ÎÄ¼ş", "*.jpg;*.jpeg;*.png;*.bmp;*.gif;*.tif;*.tiff"
         
-        If .Show = -1 Then ' ç”¨æˆ·é€‰æ‹©äº†æ–‡ä»¶
+        If .Show = -1 Then ' ÓÃ»§Ñ¡ÔñÁËÎÄ¼ş
             i = 0
             For Each fileItem In .SelectedItems
                 imagePath = CStr(fileItem)
                 
-                ' æ·»åŠ æ–°å¹»ç¯ç‰‡ï¼ˆä½¿ç”¨ç©ºç™½ç‰ˆå¼ï¼‰
+                ' Ìí¼ÓĞÂ»ÃµÆÆ¬£¨Ê¹ÓÃ¿Õ°×°æÊ½£©
                 Set pptSlide = pptPres.Slides.Add(pptPres.Slides.Count + 1, 12) ' ppLayoutBlank
                 
-                ' æ·»åŠ å›¾ç‰‡åˆ°å¹»ç¯ç‰‡ï¼Œå¡«å……æ•´ä¸ªå¹»ç¯ç‰‡
+                ' Ìí¼ÓÍ¼Æ¬µ½»ÃµÆÆ¬£¬Ìî³äÕû¸ö»ÃµÆÆ¬
                 With pptSlide.Shapes.AddPicture( _
                     FileName:=imagePath, _
                     LinkToFile:=msoFalse, _
@@ -72,13 +72,13 @@ Sub å›¾ç‰‡æ‰¹é‡è½¬PPT()
                 i = i + 1
             Next fileItem
         Else
-            MsgBox "æ²¡æœ‰é€‰æ‹©ä»»ä½•æ–‡ä»¶ã€‚"
+            MsgBox "Ã»ÓĞÑ¡ÔñÈÎºÎÎÄ¼ş¡£"
             GoTo CleanUp
         End If
     End With
     
 CleanUp:
-    ' æ¸…ç†å¯¹è±¡
+    ' ÇåÀí¶ÔÏó
     Set pptSlide = Nothing
     Set pptPres = Nothing
     Set pptApp = Nothing

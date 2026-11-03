@@ -128,10 +128,12 @@ namespace 公文排版
         private bool CheckVbaEncoding(string vbaFile)
         {
             Encoding encoding = GetTextFileEncodingType(vbaFile);
-            if (encoding == Encoding.Unicode || encoding == Encoding.UTF8)
+            // BigEndianUnicode 原来漏在判定之外：UTF-16BE 文件会被放行，AddFromFile 读出乱码
+            if (encoding == Encoding.Unicode || encoding == Encoding.BigEndianUnicode || encoding == Encoding.UTF8)
             {
                 var result = MessageBox.Show(
-                    "您所选文件非ANSI编码,WordVBA不支持UTF8编码。\r\n您要用记事本打开并查看文件编码吗?\r\n单击确定将运行记事本程序,取消退出。",
+                    "您所选文件为 " + encoding.WebName + " 编码，Word VBA 只支持 ANSI(简体中文 GB2312)。\r\n" +
+                    "要用记事本打开以便另存为 ANSI 吗?\r\n单击确定将运行记事本程序，取消退出。",
                     "读取VBA文件", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning);
                 if (result == DialogResult.OK)
                 {
@@ -220,23 +222,29 @@ namespace 公文排版
 
         private static Encoding GetTextFileEncodingType(string fileName)
         {
-            try
-            {
-                using (var fs = new FileStream(fileName, FileMode.Open, FileAccess.Read))
-                using (var br = new BinaryReader(fs, Encoding.Default))
-                {
-                    byte[] buffer = br.ReadBytes((int)fs.Length);
-                    if (buffer.Length >= 3 && buffer[0] == 0xEF && buffer[1] == 0xBB && buffer[2] == 0xBF)
-                        return Encoding.UTF8;
-                    if (buffer.Length >= 3 && buffer[0] == 0xFE && buffer[1] == 0xFF && buffer[2] == 0x00)
-                        return Encoding.BigEndianUnicode;
-                    if (buffer.Length >= 3 && buffer[0] == 0xFF && buffer[1] == 0xFE && buffer[2] == 0x41)
-                        return Encoding.Unicode;
-                    if (IsUTF8Bytes(buffer)) return Encoding.UTF8;
-                    return Encoding.Default;
-                }
-            }
+            byte[] buffer;
+            try { buffer = File.ReadAllBytes(fileName); }
             catch { return Encoding.Default; }
+
+            if (buffer.Length >= 3 && buffer[0] == 0xEF && buffer[1] == 0xBB && buffer[2] == 0xBF)
+                return Encoding.UTF8;
+            // UTF-16 的 BOM 只有两个字节有效。原实现额外要求第 3 字节是 0x00 / 0x41，
+            // 于是 "Sub…"、"Option…" 开头的 UTF-16 文件全部漏判，被当成 ANSI 放行后读出乱码
+            if (buffer.Length >= 2 && buffer[0] == 0xFE && buffer[1] == 0xFF)
+                return Encoding.BigEndianUnicode;
+            if (buffer.Length >= 2 && buffer[0] == 0xFF && buffer[1] == 0xFE)
+                return Encoding.Unicode;
+
+            // 纯 ASCII 同时是合法的 UTF-8 和合法的 ANSI/GB2312，VBA 按 ANSI 读它不会乱码，
+            // 必须放行。原实现用 IsUTF8Bytes 一刀切，把 ASCII 文件也判成 UTF-8 直接拒绝，
+            // 结果自带的 图片批量转PPT.vba、打印文档中的所有书签.vba 无法通过自家门禁。
+            bool hasHighByte = false;
+            for (int i = 0; i < buffer.Length; i++)
+            {
+                if (buffer[i] >= 0x80) { hasHighByte = true; break; }
+            }
+            if (hasHighByte && IsUTF8Bytes(buffer)) return Encoding.UTF8;
+            return Encoding.Default;
         }
 
         private static bool IsUTF8Bytes(byte[] data)
@@ -337,7 +345,18 @@ namespace 公文排版
                 {
                     vbaFolder = Properties.Settings.Default.VBA路径;
                     if (string.IsNullOrEmpty(vbaFolder))
-                        vbaFolder = Path.Combine(GetDllPath() ?? string.Empty, "VBA脚本");
+                    {
+                        // 发行仓库里的脚本目录名是 "VBA Script"（README 同），原代码只找 "VBA脚本"，
+                        // 两个名字都对不上时菜单就是空的，而且没有任何提示
+                        string baseDir = GetDllPath() ?? string.Empty;
+                        foreach (string candidate in new[] { "VBA Script", "VBA脚本" })
+                        {
+                            string dir = Path.Combine(baseDir, candidate);
+                            if (Directory.Exists(dir)) { vbaFolder = dir; break; }
+                        }
+                        if (string.IsNullOrEmpty(vbaFolder))
+                            vbaFolder = Path.Combine(baseDir, "VBA脚本");
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -347,7 +366,11 @@ namespace 公文排版
             }
 
             mnuVBA.Items.Clear();
-            if (!Directory.Exists(vbaFolder)) return;
+            if (!Directory.Exists(vbaFolder))
+            {
+                Debug.WriteLine("未找到 VBA 脚本目录：" + vbaFolder);
+                return;
+            }
 
             foreach (string file in Directory.GetFiles(vbaFolder))
             {
