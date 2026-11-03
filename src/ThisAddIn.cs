@@ -72,8 +72,10 @@ namespace 公文排版
                 ControlEnable(false);
                 if (Globals.Ribbons.Ribbon1 != null)
                 {
-                    Globals.Ribbons.Ribbon1.btnSpeak.Enabled = true;
-                    Globals.Ribbons.Ribbon1.glyBak.Enabled = true;
+                    // 受保护视图下只保留"朗读"：它只读取文本，不写盘也不改文档。
+                    // 原来还把 glyBak（生成 PDF/DOC/图片副本）打开，而受保护视图禁止保存与导出，
+                    // 用户点了只会得到一条错误，等于给一个必然失败的按钮放行。
+                    Globals.Ribbons.Ribbon1.btnSpeak.Enabled = Globals.Ribbons.Ribbon1.sp != null;
                 }
             }
             catch (Exception ex) { Debug.WriteLine(ex.Message); }
@@ -132,7 +134,9 @@ namespace 公文排版
             rb.btnNormal.Enabled = enable;
             rb.btnNum2Txt.Enabled = enable;
             rb.btnPaper.Enabled = enable;
-            rb.btnSpeak.Enabled = enable;
+            // 语音模块初始化失败时 Ribbon1_Load 会禁用朗读按钮；这里若无条件按 enable 覆盖，
+            // 切换文档就会把一个必然失败的按钮重新打开
+            rb.btnSpeak.Enabled = enable && rb.sp != null;
             rb.btnStyle.Enabled = enable;
 
             rb.mnuTitle1.Enabled = enable;
@@ -154,6 +158,14 @@ namespace 公文排版
             rb.mnuSelect.Enabled = enable;
             rb.mnuConvert.Enabled = enable;
             rb.btnAI.Enabled = enable;
+
+            // VBA 注入不受文档保护约束：注入的宏可以调用 Document.Unprotect（无口令保护时
+            // 直接成功），等于绕过"只读/限制编辑"。受保护或只读文档必须一并关掉这些入口。
+            // 按控件包含关系核对过：其余改动型控件都已被上面某个容器覆盖，只有这四处是漏网。
+            rb.btnVBA.Enabled = enable;
+            rb.btnClearVBA.Enabled = enable;
+            rb.mnuVBA.Enabled = enable;
+            rb.mnuScript.Enabled = enable;
         }
 
         private void ThisAddIn_NewDocument(MSWord.Document Doc)
