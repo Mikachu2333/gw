@@ -19,7 +19,9 @@ namespace 公文排版
 
             newTable.Rows.RelativeVerticalPosition = MSWord.WdRelativeVerticalPosition.wdRelativeVerticalPositionMargin;
             newTable.Rows.VerticalPosition = (float)MSWord.WdFramePosition.wdFrameBottom;
-            newTable.PreferredWidth = 443;
+            // 443pt 就是标准公文页 156mm 版心的宽度，页边距一改线就短一截；改成按版心百分比铺满
+            newTable.PreferredWidthType = MSWord.WdPreferredWidthType.wdPreferredWidthPercent;
+            newTable.PreferredWidth = 100;
             newTable.Rows.Height = 28.5f;
             newTable.Rows.Alignment = MSWord.WdRowAlignment.wdAlignRowLeft;
 
