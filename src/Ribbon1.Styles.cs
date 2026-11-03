@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Windows.Forms;
 using MSWord = Microsoft.Office.Interop.Word;
 using Microsoft.Office.Tools.Ribbon;
@@ -11,8 +12,20 @@ namespace 公文排版
         {
             try
             {
+                // Styles 是实时集合，边遍历边删会跳项；而且被正文引用的样式 Delete 会抛错，
+                // 原写法因此中断循环——剩下的样式一个都没删掉，却只报一句"出错"
+                var targets = new List<MSWord.Style>();
                 foreach (MSWord.Style sy in WordApp.ActiveDocument.Styles)
-                    if (!sy.BuiltIn) sy.Delete();
+                    if (!sy.BuiltIn) targets.Add(sy);
+
+                int failed = 0;
+                foreach (MSWord.Style sy in targets)
+                {
+                    try { sy.Delete(); }
+                    catch { failed++; }
+                }
+                if (failed > 0)
+                    WordApp.StatusBar = "有 " + failed + " 个自定义样式正被内容引用，未能删除";
             }
             catch (Exception ex)
             {

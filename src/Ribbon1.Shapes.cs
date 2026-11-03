@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Windows.Forms;
 using MSWord = Microsoft.Office.Interop.Word;
@@ -39,8 +40,15 @@ namespace 公文排版
                 int i = 0;
                 WithUndo("转换图片环绕方式", () =>
                 {
+                    // ConvertToShape 会把该图形从 InlineShapes 实时集合中移除，
+                    // 边遍历边转换会隔项漏转：先快照，再从后往前处理
+                    var targets = new List<MSWord.InlineShape>();
                     foreach (MSWord.InlineShape shape in WordApp.ActiveDocument.InlineShapes)
+                        targets.Add(shape);
+
+                    for (int k = targets.Count - 1; k >= 0; k--)
                     {
+                        MSWord.InlineShape shape = targets[k];
                         switch (type)
                         {
                             case 1: shape.ConvertToShape(); i++; break;

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Windows.Forms;
 using Microsoft.Office.Tools.Ribbon;
 using MSWord = Microsoft.Office.Interop.Word;
@@ -72,13 +73,18 @@ namespace 公文排版
                 }
                 WithUndo("删除空行", () =>
                 {
+                    // Paragraphs 是实时集合，边遍历边 Delete 会跳过段落甚至直接抛错：
+                    // 先快照出目标 Range，再从文档末尾往前删，前面的位置不受影响
+                    var empty = new List<MSWord.Range>();
                     foreach (MSWord.Paragraph i in p)
                     {
                         if (i.Range.Text.Trim().Length <= 0 && i.Range.ShapeRange.Count == 0)
-                        {
-                            i.Range.Delete();
-                            n++;
-                        }
+                            empty.Add(i.Range);
+                    }
+                    for (int k = empty.Count - 1; k >= 0; k--)
+                    {
+                        empty[k].Delete();
+                        n++;
                     }
                 }, suspendScreen: true);
                 WordApp.StatusBar = "已删除 " + n + " 个空行!";
@@ -98,13 +104,18 @@ namespace 公文排版
                 MSWord.Paragraphs p = WordApp.Selection.Paragraphs;
                 WithUndo("删除选区空行", () =>
                 {
+                    // Paragraphs 是实时集合，边遍历边 Delete 会跳过段落甚至直接抛错：
+                    // 先快照出目标 Range，再从文档末尾往前删，前面的位置不受影响
+                    var empty = new List<MSWord.Range>();
                     foreach (MSWord.Paragraph i in p)
                     {
                         if (i.Range.Text.Trim().Length <= 0 && i.Range.ShapeRange.Count == 0)
-                        {
-                            i.Range.Delete();
-                            n++;
-                        }
+                            empty.Add(i.Range);
+                    }
+                    for (int k = empty.Count - 1; k >= 0; k--)
+                    {
+                        empty[k].Delete();
+                        n++;
                     }
                 }, suspendScreen: true);
                 WordApp.StatusBar = "已删除 " + n + " 个空行!";
