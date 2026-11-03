@@ -103,6 +103,14 @@ End Function
 ' 将文档中所有带下划线的空格临时替换为特殊字符“`”，以便后续恢复
 Function ComeUnderLine()
     With ActiveDocument.Content.Find
+        .ClearFormatting
+        .Replacement.ClearFormatting
+        ' 反引号只是下划线空格的临时占位: 原文里本来就有的反引号会被 BackUnderLine 换成带下划线的空格, 正文就被改坏了
+        If .Execute(FindText:="`") Then
+            MsgBox "文档中含有""`""字符, 它被本功能用作下划线空格占位符, 会与正文里的反引号冲突。" _
+                & vbCrLf & "请先删除或替换这些字符后再自动排版。", vbExclamation, "公文自动排版"
+            Exit Function
+        End If
         .Font.Underline = wdUnderlineSingle
         .Execute FindText:=" ", ReplaceWith:="`", Format:=True, Replace:=wdReplaceAll
     End With
