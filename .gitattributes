@@ -1,0 +1,24 @@
+# 行尾策略：仓库内统一存 LF，签出时按下面的规则还原本地换行。
+# 不加这个文件的话，core.autocrlf=input 会让每个被工具改过的 .cs 在提交时
+# 悄悄把 CRLF 规范成 LF，制造与改动无关的整文件 diff。
+
+*.cs        text eol=crlf
+*.csproj    text eol=crlf
+*.sln       text eol=crlf
+*.resx      text eol=crlf
+*.config    text eol=crlf
+*.settings  text eol=crlf
+*.xml       text eol=crlf
+*.ps1       text eol=crlf
+*.md        text eol=lf
+
+# VBA 脚本是 GB2312/ANSI 编码（加载项的编码门禁要求如此），
+# 绝不能被行尾或编码规范化改动 —— 一律按二进制处理。
+*.vba       binary
+*.bas       binary
+*.dotx      binary
+*.ico       binary
+*.png       binary
+*.gif       binary
+*.jpg       binary
+*.svg       text
