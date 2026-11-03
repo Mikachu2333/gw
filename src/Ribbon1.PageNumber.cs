@@ -71,8 +71,8 @@ namespace 公文排版
                                 r = s.Footers[MSWord.WdHeaderFooterIndex.wdHeaderFooterPrimary].Range;
                                 r.Font.Size = (float)Math.Round(iniPageNumber.SizeInPoints, 1);
                                 r.Font.Name = iniPageNumber.Name;
-                                if (iniPageNumber.Bold) r.Font.Bold = 1;
-                                if (iniPageNumber.Italic) r.Font.Italic = 1;
+                                r.Font.Bold = iniPageNumber.Bold ? 1 : 0;
+                                r.Font.Italic = iniPageNumber.Italic ? 1 : 0;
                                 r.ParagraphFormat.Alignment = MSWord.WdParagraphAlignment.wdAlignParagraphRight;
                                 r.Text = "— ";
                                 r.Collapse(MSWord.WdCollapseDirection.wdCollapseEnd);
@@ -85,8 +85,8 @@ namespace 公文排版
                                 r = s.Footers[MSWord.WdHeaderFooterIndex.wdHeaderFooterEvenPages].Range;
                                 r.Font.Size = (float)Math.Round(iniPageNumber.SizeInPoints, 1);
                                 r.Font.Name = iniPageNumber.Name;
-                                if (iniPageNumber.Bold) r.Font.Bold = 1;
-                                if (iniPageNumber.Italic) r.Font.Italic = 1;
+                                r.Font.Bold = iniPageNumber.Bold ? 1 : 0;
+                                r.Font.Italic = iniPageNumber.Italic ? 1 : 0;
                                 r.ParagraphFormat.Alignment = MSWord.WdParagraphAlignment.wdAlignParagraphLeft;
                                 r.Text = "— ";
                                 r.Collapse(MSWord.WdCollapseDirection.wdCollapseEnd);
@@ -148,8 +148,8 @@ namespace 公文排版
             {
                 WordApp.Selection.Font.Size = (float)Math.Round(iniPageNumber.SizeInPoints, 1);
                 WordApp.Selection.Font.Name = iniPageNumber.Name;
-                if (iniPageNumber.Bold) WordApp.Selection.Font.Bold = 1;
-                if (iniPageNumber.Italic) WordApp.Selection.Font.Italic = 1;
+                WordApp.Selection.Font.Bold = iniPageNumber.Bold ? 1 : 0;
+                WordApp.Selection.Font.Italic = iniPageNumber.Italic ? 1 : 0;
                 WordApp.Selection.TypeText("— ");
                 WordApp.Selection.Fields.Add(WordApp.Selection.Range, MSWord.WdFieldType.wdFieldEmpty, "PAGE \\* Arabic");
                 WordApp.Selection.TypeText(" —");

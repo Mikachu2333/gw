@@ -17,8 +17,9 @@ namespace 公文排版
             {
                 WordApp.Selection.Font.Name = myFont.Name;
                 WordApp.Selection.Font.Size = myFont.SizeInPoints;
-                if (myFont.Bold) WordApp.Selection.Font.Bold = 1;
-                if (myFont.Italic) WordApp.Selection.Font.Italic = 1;
+                // 粗/斜只在配置本身为真时才赋值，会让原来的粗体残留下来（"设为正文"去不掉粗体）
+                WordApp.Selection.Font.Bold = myFont.Bold ? 1 : 0;
+                WordApp.Selection.Font.Italic = myFont.Italic ? 1 : 0;
             }
             catch (Exception ex)
             {
