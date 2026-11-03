@@ -51,11 +51,18 @@ namespace 公文排版
         private void SaveDoc(string fileName, string oldFile)
         {
             WordApp.StatusBar = "正在生成 Word97-2003 格式副本...";
-            WordApp.ActiveDocument.SaveAs2(fileName, MSWord.WdSaveFormat.wdFormatDocument97);
+            // SaveAs2 不是"另存副本"：它把活动文档就地变成这个 .doc 文件。
+            // 原先只补了一句 Documents.Open(oldFile) 再用 Windows[w-1] 激活——
+            // Windows 集合是 1 基的，w-1 取到的是倒数第二个窗口而不是刚打开的原文档，
+            // 于是用户以为自己在原文档上继续编辑，实际一直在 .doc 副本上改。
+            MSWord.Document copyDoc = WordApp.ActiveDocument;
+            copyDoc.SaveAs2(fileName, MSWord.WdSaveFormat.wdFormatDocument97);
+
+            MSWord.Document original = WordApp.Documents.Open(oldFile);
+            copyDoc.Close(false);       // 副本已落盘，不必留在编辑器里占着一个窗口
+            original.Activate();
+
             WordApp.StatusBar = "已生成 Word97-2003 格式副本:" + fileName;
-            WordApp.Documents.Open(oldFile);
-            int w = WordApp.Windows.Count;
-            if (w > 1) WordApp.Windows[w - 1].Activate();
         }
 
         private void btnSaveAsPDF_Click(object sender, RibbonControlEventArgs e)
