@@ -1005,13 +1005,16 @@ sk:
 
         ' 调整引子部分的段落间距
         With doc.Range(0, oDate1.End)
+            ' 前移到字号 26 的标题段; 找不到时原来的 Do...Loop Until 永不满足, Word 会一直空转, 所以加上走到范围末尾就停
             Do
                 .MoveStart 4
-            Loop Until .Previous(4, 1).Font.Size = 26
-            .MoveEnd 4, -5
-            If .ComputeStatistics(wdStatisticLines) <= 4 Then
-                .ParagraphFormat.LineSpacing = LinesToPoints(1.75)
-                .Previous.Font.Size = 28
+            Loop While .Start < .End And .Previous(4, 1).Font.Size <> 26
+            If .Previous(4, 1).Font.Size = 26 Then
+                .MoveEnd 4, -5
+                If .ComputeStatistics(wdStatisticLines) <= 4 Then
+                    .ParagraphFormat.LineSpacing = LinesToPoints(1.75)
+                    .Previous.Font.Size = 28
+                End If
             End If
         End With
     End If
@@ -1424,9 +1427,10 @@ Function CutLine()
     End With
     With r.Font
         If j <> 1 Then .Parent.MoveStart
-        Do
+        ' 逐档紧缩字间距直到这段少占一页; 省不出整页时原来的循环永不满足, 且间距会被压到荒谬值, 故设上限
+        Do While s.ComputeStatistics(1) > i - 1 And .Spacing > -4
             .Spacing = .Spacing - 0.1
-        Loop Until s.ComputeStatistics(1) = i - 1
+        Loop
     End With
 End Function
 
@@ -1449,9 +1453,10 @@ End Function
 Function SelectText()
     With ActiveDocument.Content
         If .Paragraphs(2).Range Like "*〔????〕*号?" Then .MoveStart 4, 2
-        Do
+        ' 逐段前移到第一个空段落; 全文没有空段落时原来的循环永不满足, 范围一旦收缩到末尾就再也走不动
+        Do While .Start < .End And Left(.Text, 1) <> vbCr
             .MoveStart 4
-        Loop Until .Text Like vbCr & "*"
+        Loop
         .MoveStart 4
         .Select
         With .Find
