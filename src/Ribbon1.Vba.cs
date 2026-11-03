@@ -15,6 +15,58 @@ namespace 公文排版
 {
     public partial class Ribbon1
     {
+        private const string VbaModuleName = "小恐龙公文排版助手";
+
+        /// <summary>
+        /// 把 .vba 文件注入活动文档、执行其首个过程，并在结束时移除注入的模块。
+        /// OpenVba（文件对话框）与 RunVBA（菜单/历史）共用此实现。
+        /// </summary>
+        private bool RunVbaFile(string vbaFile)
+        {
+            if (!CheckVbaEncoding(vbaFile)) return false;
+
+            VBComponents vbc = WordApp.ActiveDocument.VBProject.VBComponents;
+            VBComponent vbm = vbc.Add(vbext_ComponentType.vbext_ct_StdModule);
+            try
+            {
+                // 文档里可能已有同名组件，改名失败时沿用 VBIDE 给的默认名，不影响执行
+                vbm.Name = VbaModuleName;
+            }
+            catch (Exception ex) { Debug.WriteLine("VBA 模块改名失败: " + ex.Message); }
+
+            CodeModule module = vbm.CodeModule;
+            module.AddFromFile(vbaFile);
+
+            vbext_ProcKind procKind;
+            string macroName = module.get_ProcOfLine(module.CountOfDeclarationLines + 1, out procKind);
+            if (string.IsNullOrWhiteSpace(macroName))
+                throw new InvalidDataException(
+                    "所选文件里没有可执行的过程。\r\n请保留一个公共 Sub 作为入口（其他过程用 Function）。");
+
+            MSWord.UndoRecord undo = WordApp.UndoRecord;
+            bool recording = false;
+            try
+            {
+                undo.StartCustomRecord("运行VBA:" + macroName);
+                recording = true;
+                WordApp.Run(macroName);
+            }
+            finally
+            {
+                // 两步清理必须彼此独立：原先写在同一个 finally 里，
+                // EndCustomRecord 一旦抛异常，vbc.Remove 就不会执行，
+                // 注入的模块会留在用户文档里被保存并随文档分发出去。
+                if (recording)
+                {
+                    try { undo.EndCustomRecord(); }
+                    catch (Exception ex) { Debug.WriteLine("EndCustomRecord 失败: " + ex.Message); }
+                }
+                try { vbc.Remove(vbm); }
+                catch (Exception ex) { Debug.WriteLine("移除注入的 VBA 模块失败: " + ex.Message); }
+            }
+            return true;
+        }
+
         private void OpenVba()
         {
             try
@@ -27,25 +79,9 @@ namespace 公文排版
                     vbaFile = ofd.FileName;
                 }
 
-                if (!CheckVbaEncoding(vbaFile)) return;
-
-                MSWord.Document doc = WordApp.ActiveDocument;
-                VBComponents vbc = doc.VBProject.VBComponents;
-                VBComponent vbm = vbc.Add(vbext_ComponentType.vbext_ct_StdModule);
-                vbm.Name = "小恐龙公文排版助手";
-                CodeModule module = vbm.CodeModule;
-                module.AddFromFile(vbaFile);
-
-                vbext_ProcKind ProcKind;
-                int startLine = module.CountOfDeclarationLines + 1;
-                string macroName = module.get_ProcOfLine(startLine, out ProcKind);
-
                 var stopwatch = new Stopwatch();
                 stopwatch.Start();
-                var undo = WordApp.UndoRecord;
-                undo.StartCustomRecord("运行VBA:" + macroName);
-                try { WordApp.Run(macroName); }
-                finally { undo.EndCustomRecord(); vbc.Remove(vbm); }
+                if (!RunVbaFile(vbaFile)) return;
                 stopwatch.Stop();
                 WordApp.StatusBar = $"VBA文件执行共用时:{stopwatch.Elapsed.TotalSeconds:F2} 秒";
 
@@ -63,33 +99,16 @@ namespace 公文排版
 
         private void btnVBA_Click(object sender, RibbonControlEventArgs e)
         {
-            //if (sender is RibbonButton btn) RunVBA(btn.ScreenTip);
             OpenVba();
         }
 
         private bool RunVBA(string vbaFile)
         {
+            var stopwatch = new Stopwatch();
             try
             {
-                if (!CheckVbaEncoding(vbaFile)) return false;
-
-                MSWord.Document doc = WordApp.ActiveDocument;
-                VBComponents vbc = doc.VBProject.VBComponents;
-                VBComponent vbm = vbc.Add(vbext_ComponentType.vbext_ct_StdModule);
-                vbm.Name = "小恐龙公文排版助手";
-                CodeModule module = vbm.CodeModule;
-                module.AddFromFile(vbaFile);
-
-                vbext_ProcKind ProcKind;
-                int startLine = module.CountOfDeclarationLines + 1;
-                string macroName = module.get_ProcOfLine(startLine, out ProcKind);
-
-                var stopwatch = new Stopwatch();
                 stopwatch.Start();
-                var undo = WordApp.UndoRecord;
-                undo.StartCustomRecord("运行VBA:" + macroName);
-                try { WordApp.Run(macroName); }
-                finally { undo.EndCustomRecord(); vbc.Remove(vbm); }
+                if (!RunVbaFile(vbaFile)) return false;
                 stopwatch.Stop();
                 WordApp.StatusBar = $"VBA文件执行共用时:{stopwatch.Elapsed.TotalSeconds:F2} 秒";
                 return true;
