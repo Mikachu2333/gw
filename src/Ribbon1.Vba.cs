@@ -170,18 +170,33 @@ namespace 公文排版
             }
         }
 
+        // 原代码用裸数字做分支，并把 E_FAIL 直接当作"WPS 用户"的特征。
+        private const int HResultVbaProjectUntrusted = -2146822220;   // 0x800A17B4 未信任对 VBA 工程对象模型的访问
+        private const int HResultGenericFailure = -2147467259;        // 0x80004005 E_FAIL 未指定的错误
+        private const int HResultMemberNotFound = -2147352573;        // 0x80020003 DISP_E_MEMBERNOTEXIST
+
+        private const string VbaTrustGuideWord =
+            "未开启“信任对 VBA 工程对象模型的访问”。\r\n" +
+            "请在【文件 → 选项 → 信任中心 → 信任中心设置 → 宏设置】中勾选该项。";
+        private const string VbaTrustGuideWps =
+            "未开启“信任对 VBA 工程对象模型的访问”。\r\n" +
+            "请切换到【VB 环境】，在【宏安全性】选项中开启该项。";
+
         private void HandleVbaComException(COMException ex)
         {
+            // 提示文案要按实际宿主给，不能靠 HRESULT 猜宿主
+            string guide = IsWps ? VbaTrustGuideWps : VbaTrustGuideWord;
             string err;
             switch (ex.ErrorCode)
             {
-                case -2146822220:
-                    err = "Word 未开启信任对VBA工程对象模型的访问。";
+                case HResultVbaProjectUntrusted:
+                    err = guide;
                     break;
-                case -2147467259:
-                    err = "WPS用户请先切换至【VB环境】,并在【宏安全性】选项中开启【信任对VBA工程对象模型的访问】";
+                case HResultGenericFailure:
+                    // E_FAIL 是"未指定的错误"，Word 与 WPS 都会返回，只能作为附加线索
+                    err = guide + "\r\n\r\n（原始错误：未指定的错误 E_FAIL）";
                     break;
-                case -2147352573:
+                case HResultMemberNotFound:
                     err = ex.Message;
                     break;
                 default:
