@@ -43,6 +43,18 @@ namespace 公文排版
         internal bool IsLegacyHost => !IsWps
             && (hostVersion.StartsWith("12.") || hostVersion.StartsWith("14."));
 
+        // FormatFontSize 每次都新建 Font，而 GDI+ Font 持有 GDI 字体句柄。
+        // 这里只登记"由本类创建"的实例用于释放：Properties.Settings.Default 返回的 Font
+        // 归设置对象所有，绝不能由我们 Dispose。
+        private readonly System.Collections.Generic.List<Font> ownedFonts
+            = new System.Collections.Generic.List<Font>();
+
+        private Font Track(Font font)
+        {
+            if (font != null) ownedFonts.Add(font);
+            return font;
+        }
+
         // ============ 功能区载入/关闭 ============
         private void Ribbon1_Load(object sender, RibbonUIEventArgs e)
         {
@@ -199,6 +211,11 @@ namespace 公文排版
                     sp = null;
                 }
                 if (fp != null) { if (!fp.IsDisposed) fp.Dispose(); fp = null; }
+                foreach (Font f in ownedFonts)
+                {
+                    try { f.Dispose(); } catch { }
+                }
+                ownedFonts.Clear();
                 if (!speechMarshal.IsDisposed) speechMarshal.Dispose();
             }
             catch (Exception ex)
@@ -229,27 +246,24 @@ namespace 公文排版
         // ============ 字体配置 ============
         private void ReadSetting()
         {
-            iniTitle = Properties.Settings.Default.公文标题;
-            iniTitle1 = Properties.Settings.Default.一级标题;
-            iniTitle2 = Properties.Settings.Default.二级标题;
-            iniTitle3 = Properties.Settings.Default.三级标题;
-            iniTitle4 = Properties.Settings.Default.四级标题;
-            iniNormal = Properties.Settings.Default.正文;
-            iniHead = Properties.Settings.Default.版头;
-            iniName = Properties.Settings.Default.签发人姓名;
-            iniFoot = Properties.Settings.Default.版记;
-            iniPageNumber = Properties.Settings.Default.页码;
+            // FormatFontSize 每次都新建 Font。原先直接覆盖字段、旧实例无人释放，
+            // 于是每次"关于→确定"都泄漏 10 个 GDI 字体句柄（长会话下整进程绘制开始出错）
+            foreach (Font old in ownedFonts)
+            {
+                try { old.Dispose(); } catch { }
+            }
+            ownedFonts.Clear();
 
-            iniTitle = FormatFontSize(iniTitle);
-            iniTitle1 = FormatFontSize(iniTitle1);
-            iniTitle2 = FormatFontSize(iniTitle2);
-            iniTitle3 = FormatFontSize(iniTitle3);
-            iniTitle4 = FormatFontSize(iniTitle4);
-            iniNormal = FormatFontSize(iniNormal);
-            iniHead = FormatFontSize(iniHead);
-            iniName = FormatFontSize(iniName);
-            iniFoot = FormatFontSize(iniFoot);
-            iniPageNumber = FormatFontSize(iniPageNumber);
+            iniTitle = Track(FormatFontSize(Properties.Settings.Default.公文标题));
+            iniTitle1 = Track(FormatFontSize(Properties.Settings.Default.一级标题));
+            iniTitle2 = Track(FormatFontSize(Properties.Settings.Default.二级标题));
+            iniTitle3 = Track(FormatFontSize(Properties.Settings.Default.三级标题));
+            iniTitle4 = Track(FormatFontSize(Properties.Settings.Default.四级标题));
+            iniNormal = Track(FormatFontSize(Properties.Settings.Default.正文));
+            iniHead = Track(FormatFontSize(Properties.Settings.Default.版头));
+            iniName = Track(FormatFontSize(Properties.Settings.Default.签发人姓名));
+            iniFoot = Track(FormatFontSize(Properties.Settings.Default.版记));
+            iniPageNumber = Track(FormatFontSize(Properties.Settings.Default.页码));
 
             btnTitleHei.SuperTip = "设置公文大标题,规范为二号,小标宋.\r\n\r\n当前字体为:" + (iniTitle?.Name ?? "未设置");
             btnNormal.SuperTip = "设置所选文字为正文格式,规范为三号,仿宋.\r\n\r\n当前字体为:" + (iniNormal?.Name ?? "未设置");
