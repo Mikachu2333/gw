@@ -488,22 +488,20 @@
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>
     <VSToolsPath Condition="'$(VSToolsPath)' == ''">$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)</VSToolsPath>
   </PropertyGroup>
-  <PropertyGroup Label="代码签名：证书与私钥不入库。运行 tools\make-dev-cert.ps1 在本机生成自签名证书，" >
-    <SigningKeyFile>gw-codecert.pfx</SigningKeyFile>
-    <AssemblyOriginatorKeyFile>$(SigningKeyFile)</AssemblyOriginatorKeyFile>
-    <ManifestKeyFile>$(SigningKeyFile)</ManifestKeyFile>
+  <PropertyGroup Label="签名：强名称用 .snk，清单签名用证书存储里的指纹。两者都不入库，由 tools\make-dev-cert.ps1 生成">
+    <!-- 强名称与清单签名是两套机制。ResolveKeySource 会把 AssemblyOriginatorKeyFile 导入
+         传统强名称 CSP 容器，读不了 PowerShell 导出的无口令 pfx（MSB3325）；而 VSTO 的
+         SignFile 只接受证书存储里的指纹。所以：强名称 → .snk；清单 → ManifestCertificateThumbprint。 -->
+    <AssemblyOriginatorKeyFile>gw-strongname.snk</AssemblyOriginatorKeyFile>
     <DelaySign>false</DelaySign>
-    <!-- VSTO 硬性要求：清单必须签名，否则 Office.targets 的 VerifyClickOnceSigningSettings
-         直接失败（连编译产物都不生成），因此这里不能"缺证书就关掉签名"。
-         缺证书时由 ValidateSigningSettings 给出可执行的修复指引。 -->
     <SignAssembly>true</SignAssembly>
     <SignManifests>true</SignManifests>
   </PropertyGroup>
   <Target Name="ValidateSigningSettings">
-    <Error Condition="'$(SignManifests)' == 'true' And !Exists('$(SigningKeyFile)')"
-           Text="缺少签名私钥 $(SigningKeyFile)（不入库，属本机开发证书）。请运行： powershell -ExecutionPolicy Bypass -File tools\make-dev-cert.ps1 生成自签名代码签名证书，它会导出 pfx/cer 并把证书指纹写入 公文排版.csproj.user。若只想做编译验证，可加 /p:SignManifests=false /p:SignAssembly=false（产物不能被 Word/WPS 加载）。" />
+    <Error Condition="'$(SignAssembly)' == 'true' And !Exists('$(AssemblyOriginatorKeyFile)')"
+           Text="缺少强名称密钥 $(AssemblyOriginatorKeyFile)（不入库，属本机开发密钥）。请运行： powershell -ExecutionPolicy Bypass -File tools\make-dev-cert.ps1" />
     <Error Condition="'$(SignManifests)' == 'true' And '$(ManifestCertificateThumbprint)' == ''"
-           Text="清单签名只能按证书存储中的指纹进行（VSTO 的 SignFile 不接受 pfx 路径）。请运行 tools\make-dev-cert.ps1，它会把指纹写入 公文排版.csproj.user；若你已有证书，可在该 .user 文件里手工设置 ManifestCertificateThumbprint。" />
+           Text="清单签名只能按证书存储中的指纹进行（VSTO 的 SignFile 不接受 pfx 路径）。请运行 tools\make-dev-cert.ps1，它会把指纹写入 公文排版.csproj.user；若已有代码签名证书，可在该 .user 文件里手工设置 ManifestCertificateThumbprint。" />
   </Target>
   <PropertyGroup>
     <ApplicationIcon>

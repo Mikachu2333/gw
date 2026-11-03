@@ -12,11 +12,12 @@ obj/
 # NuGet 还原产物
 packages/
 
-# 代码签名证书与私钥（私钥绝不能进版本库）
+# 代码签名证书、私钥与强名称密钥（均不得进版本库）
 *.pfx
 *.cer
 *.pvk
 *.key
+*.snk
 
 # VSTO / ClickOnce 发布输出
 publish/

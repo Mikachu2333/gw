@@ -11,6 +11,10 @@
         -Force      已存在同名证书时，先删除旧的再重新生成
         -Subject    证书主题，默认 "CN=GW 公文排版助手 开发证书"
 
+    产物：src\gw-codecert.pfx（证书+私钥，便于迁移）、src\Resources\gw-codecert.cer（公钥，
+    供信任发布者）、src\gw-strongname.snk（用同一张证书私钥导出的强名称密钥）、
+    以及写入 src\公文排版.csproj.user 的证书指纹。
+
     本脚本只写当前用户存储（Cert:\CurrentUser\My），不需要管理员权限。
     要让 Word/WPS 不再弹信任提示，还需把证书导入本机受信任根与受信任发布者，
     脚本最后会打印出需要以管理员身份执行的那两行命令，由你自行决定。
@@ -37,7 +41,7 @@ $existing = Get-ChildItem Cert:\CurrentUser\My -CodeSigningCert |
             Select-Object -First 1
 
 if ($existing -and $Force) {
-    Write-Host "移除旧证书 $existing.Thumbprint"
+    Write-Host ("移除旧证书 " + $existing.Thumbprint)
     Remove-Item $existing.PSPath -Force
     $existing = $null
 }
@@ -46,6 +50,10 @@ if ($existing) {
     $cert = $existing
     Write-Host "复用已存在的代码签名证书：$($cert.Thumbprint)"
 } else {
+    # 必须用传统 CAPI 提供者（-Provider，而非默认的 CNG/Platform Crypto Provider）：
+    # .NET Framework 的清单签名器 SecurityUtilities.SignFile → GetRSAPrivateKey →
+    # CngKey.Open 对 CNG 句柄会抛 "已检测到正在打开的 CNG 密钥句柄是极短的，
+    # 但未指定 EphemeralKey 打开选项"（ArgumentException），导致 MSB4018 构建失败。
     $cert = New-SelfSignedCertificate `
         -Type CodeSigningCert `
         -Subject $Subject `
@@ -53,6 +61,7 @@ if ($existing) {
         -KeyUsage DigitalSignature `
         -KeyExportPolicy Exportable `
         -KeyAlgorithm RSA -KeyLength 2048 `
+        -Provider 'Microsoft Enhanced Cryptographic Provider v1.0' `
         -CertStoreLocation Cert:\CurrentUser\My `
         -NotAfter (Get-Date).AddYears(3) `
         -TextExtension @('2.5.29.37={text}1.3.6.1.5.5.7.3.3')
@@ -67,6 +76,21 @@ $cerBytes = $cert.Export([System.Security.Cryptography.X509Certificates.X509Cont
 [System.IO.File]::WriteAllBytes($cerPath, $cerBytes)
 Write-Host "已导出：$pfxPath"
 Write-Host "已导出：$cerPath"
+
+# 2b) 强名称密钥（.snk）必须来自"同一张证书私钥"。
+#     ClickOnce/VSTO 清单里的 <assemblyIdentity publicKeyToken> 由清单签名证书的公钥推导，
+#     若 .snk 是另一把随机密钥，程序集 token 与 .vsto 声明的 token 就会不一致，
+#     VSTO 运行时按 .vsto 里的 token 定位加载项程序集 → 安装/加载失败。
+#     上游项目把 pfx 同时用作两者正是这个原因；这里用 .snk 是因为 ResolveKeySource
+#     无法导入 PowerShell 导出的无口令 pfx（MSB3325）。
+$snkPath = Join-Path $projDir 'gw-strongname.snk'
+$rsaPriv = [System.Security.Cryptography.X509Certificates.RSACertificateExtensions]::GetRSAPrivateKey($cert)
+if (-not $rsaPriv) { throw "无法从证书取得私钥（私钥不可导出？请用 -Force 重新生成证书）" }
+$csp = New-Object System.Security.Cryptography.RSACryptoServiceProvider
+$csp.ImportParameters($rsaPriv.ExportParameters($true))
+$snkBlob = [byte[]]$csp.ExportCspBlob($true)
+[System.IO.File]::WriteAllBytes($snkPath, $snkBlob)
+Write-Host ("已用证书私钥重建强名称密钥：$snkPath（" + $snkBlob.Length + " 字节）")
 
 # 3) 把指纹写入 .csproj.user（MSBuild 会自动导入同名 .user，且 .gitignore 已忽略它）
 #    用纯文本注入而非 XML 解析：.user 带 MSBuild 默认命名空间，XPath 处理容易出错。
