@@ -270,6 +270,11 @@
     <None Include="Resources\公文部件.dotx">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <!-- 示例 VBA 脚本随构建输出，"实验室"菜单才能默认列出脚本。
+         目标子目录名与 LoadVBA 的探测顺序一致（先 "VBA Script"，再 "VBA脚本"）。 -->
+    <Content Include="..\VBA Script\*.vba" Link="VBA Script\%(Filename)%(Extension)">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <None Include="ThisAddIn.Designer.xml">
       <DependentUpon>ThisAddIn.cs</DependentUpon>
     </None>
