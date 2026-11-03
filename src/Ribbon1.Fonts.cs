@@ -137,6 +137,8 @@ namespace 公文排版
         private void cobFonts_TextChanged(object sender, RibbonControlEventArgs e)
         {
             string fontName = cobFonts.Text;
+            // RibbonComboBox 只有 TextChanged：手打时每个字符都进来一次，会把选区改成半个字体名，故只认列表里的完整名字
+            if (!IsFontListItem(fontName)) return;
             try
             {
                 WithUndo("所选文字设为二号" + fontName, () =>
@@ -150,6 +152,16 @@ namespace 公文排版
                 });
             }
             catch (Exception ex) { MessageBox.Show(ex.Message); }
+        }
+
+        private bool IsFontListItem(string label)
+        {
+            if (string.IsNullOrEmpty(label)) return false;
+            foreach (var item in cobFonts.Items)
+            {
+                if (string.Equals(item.Label, label, StringComparison.Ordinal)) return true;
+            }
+            return false;
         }
 
         private void btnHead_Click(object sender, RibbonControlEventArgs e)
