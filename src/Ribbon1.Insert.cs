@@ -51,18 +51,27 @@ namespace 公文排版
             }
             try
             {
-                WordApp.AddIns.Add(dotFilename, Install: true);
+                // AddIns.Add(..., Install: true) 会把模板永久登记进用户的 Word 启动项
+                // （写注册表 AddIns），每次插入版头都调用一次就是在反复改用户的 Word 配置，
+                // 卸载插件后仍残留。这里只需要它本次会话可用，取其中的公文部件即可。
+                WordApp.AddIns.Add(dotFilename, Install: false);
             }
             catch (Exception ex)
             {
                 MessageBox.Show(ex.Message + "\r\n\r\n" + ex.Source, "加载公文部件时出错",
                     MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                return;
             }
             try
             {
                 WordApp.Selection.Collapse(MSWord.WdCollapseDirection.wdCollapseEnd);
                 MSWord.Template template = WordApp.Templates[dotFilename];
-                if (template.BuildingBlockEntries.Count < 1) return;
+                if (template.BuildingBlockEntries.Count < 1)
+                {
+                    MessageBox.Show("公文部件里没有可用的文档部件，请确认插件安装完整。", "插入版头时出错",
+                        MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                    return;
+                }
                 template.BuildingBlockEntries.Item(autoText).Insert(Where: WordApp.Selection.Range);
             }
             catch (Exception ex)
