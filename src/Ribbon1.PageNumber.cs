@@ -41,6 +41,12 @@ namespace 公文排版
                                 MessageBoxButtons.OK, MessageBoxIcon.Error);
                             return;
                         }
+                        if (FooterHasContent() &&
+                            MessageBox.Show("外侧页码会整段替换页脚,页脚里已有的文字将被清除(可用撤销恢复)。\r\n确定继续吗?",
+                                "插入页码", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes)
+                        {
+                            return;
+                        }
                         if (IsWps)
                         {
                             WordApp.ActiveDocument.PageSetup.OddAndEvenPagesHeaderFooter = -1;
@@ -112,6 +118,27 @@ namespace 公文排版
                 MessageBox.Show(ex.Message, "PageNumberAligment 方法出错");
             }
             finally { WordApp.ScreenUpdating = true; }
+        }
+
+        // 外侧页码用 Range.Text 整段替换页脚，页脚里原有的文字会被直接抹掉，
+        // 所以动手前先探测有没有东西会被吃掉。页脚末尾的段落标记不算内容。
+        private bool FooterHasContent()
+        {
+            foreach (MSWord.Section s in WordApp.ActiveDocument.Sections)
+            {
+                MSWord.WdHeaderFooterIndex[] indexes =
+                {
+                    MSWord.WdHeaderFooterIndex.wdHeaderFooterPrimary,
+                    MSWord.WdHeaderFooterIndex.wdHeaderFooterEvenPages
+                };
+                foreach (MSWord.WdHeaderFooterIndex idx in indexes)
+                {
+                    string text = s.Footers[idx].Range.Text;
+                    if (string.IsNullOrEmpty(text)) continue;
+                    if (text.Trim('\r', '\n', '\a', '\t', ' ').Length > 0) return true;
+                }
+            }
+            return false;
         }
 
         /// <summary>插入页码,格式为 — 1 —</summary>
