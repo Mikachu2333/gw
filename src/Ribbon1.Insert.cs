@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Diagnostics;
 using System.IO;
 using System.Windows.Forms;
@@ -74,49 +74,48 @@ namespace 公文排版
 
         private void btnFootSingle_Click(object sender, RibbonControlEventArgs e)
         {
-            var undo = WordApp.UndoRecord;
-            undo.StartCustomRecord("插入单行版记");
-            InsertLine();
-            undo.EndCustomRecord();
+            WithUndo("插入单行版记", () =>
+            {
+                InsertLine();
+            });
         }
 
         private void btnFootDouble_Click(object sender, RibbonControlEventArgs e)
         {
-            var undo = WordApp.UndoRecord;
-            undo.StartCustomRecord("插入双行版记");
-            InsertLine(2);
-            undo.EndCustomRecord();
+            WithUndo("插入双行版记", () =>
+            {
+                InsertLine(2);
+            });
         }
 
         private void btnDate_Click(object sender, RibbonControlEventArgs e)
         {
-            var undo = WordApp.UndoRecord;
-            undo.StartCustomRecord("插入日期");
-            SetFont(iniNormal);
-            try
+            WithUndo("插入日期", () =>
             {
-                WordApp.Selection.InsertDateTime("YYYY年M月D日", false);
-                WordApp.Selection.InsertParagraphAfter();
-            }
-            catch (Exception ex) { MessageBox.Show(ex.Message); }
-            finally { undo.EndCustomRecord(); }
+                SetFont(iniNormal);
+                try
+                {
+                    WordApp.Selection.InsertDateTime("YYYY年M月D日", false);
+                    WordApp.Selection.InsertParagraphAfter();
+                }
+                catch (Exception ex) { MessageBox.Show(ex.Message); }
+            });
         }
 
         private void btnLine1_Click(object sender, RibbonControlEventArgs e)
         {
             try
             {
-                WordApp.ScreenUpdating = false;
-                var undo = WordApp.UndoRecord;
-                undo.StartCustomRecord("插入间隔线");
-                WordApp.Selection.ParagraphFormat.Borders[MSWord.WdBorderType.wdBorderBottom].LineStyle = MSWord.WdLineStyle.wdLineStyleSingle;
-                WordApp.Selection.ParagraphFormat.Borders[MSWord.WdBorderType.wdBorderBottom].LineWidth = MSWord.WdLineWidth.wdLineWidth225pt;
-                undo.EndCustomRecord();
+                WithUndo("插入间隔线", () =>
+                {
+                    WordApp.Selection.ParagraphFormat.Borders[MSWord.WdBorderType.wdBorderBottom].LineStyle = MSWord.WdLineStyle.wdLineStyleSingle;
+                    WordApp.Selection.ParagraphFormat.Borders[MSWord.WdBorderType.wdBorderBottom].LineWidth = MSWord.WdLineWidth.wdLineWidth225pt;
+                }, suspendScreen: true);
 
-                undo.StartCustomRecord("间隔线设为红色");
-                WordApp.Selection.ParagraphFormat.Borders[MSWord.WdBorderType.wdBorderBottom].Color = MSWord.WdColor.wdColorRed;
-                undo.EndCustomRecord();
-                WordApp.ScreenUpdating = true;
+                WithUndo("间隔线设为红色", () =>
+                {
+                    WordApp.Selection.ParagraphFormat.Borders[MSWord.WdBorderType.wdBorderBottom].Color = MSWord.WdColor.wdColorRed;
+                }, suspendScreen: true);
             }
             catch (Exception ex) { MessageBox.Show(ex.Message); }
         }
@@ -125,17 +124,18 @@ namespace 公文排版
         {
             try
             {
-                var undo = WordApp.UndoRecord;
-                undo.StartCustomRecord("插入横页");
-                WordApp.ActiveWindow.ActivePane.View.SeekView = MSWord.WdSeekView.wdSeekMainDocument;
-                WordApp.Selection.InsertBreak(MSWord.WdBreakType.wdSectionBreakNextPage);
-                WordApp.Selection.PageSetup.Orientation = MSWord.WdOrientation.wdOrientLandscape;
-                undo.EndCustomRecord();
+                WithUndo("插入横页", () =>
+                {
+                    WordApp.ActiveWindow.ActivePane.View.SeekView = MSWord.WdSeekView.wdSeekMainDocument;
+                    WordApp.Selection.InsertBreak(MSWord.WdBreakType.wdSectionBreakNextPage);
+                    WordApp.Selection.PageSetup.Orientation = MSWord.WdOrientation.wdOrientLandscape;
+                });
 
-                undo.StartCustomRecord("插入竖页");
-                WordApp.Selection.InsertBreak(MSWord.WdBreakType.wdSectionBreakNextPage);
-                WordApp.Selection.PageSetup.Orientation = MSWord.WdOrientation.wdOrientPortrait;
-                undo.EndCustomRecord();
+                WithUndo("插入竖页", () =>
+                {
+                    WordApp.Selection.InsertBreak(MSWord.WdBreakType.wdSectionBreakNextPage);
+                    WordApp.Selection.PageSetup.Orientation = MSWord.WdOrientation.wdOrientPortrait;
+                });
             }
             catch (Exception ex)
             {
@@ -149,10 +149,10 @@ namespace 公文排版
             try
             {
                 string f = glySymbol.SelectedItem.Label;
-                var undo = WordApp.UndoRecord;
-                undo.StartCustomRecord("插入符号:" + f);
-                WordApp.Selection.TypeText(f);
-                undo.EndCustomRecord();
+                WithUndo("插入符号:" + f, () =>
+                {
+                    WordApp.Selection.TypeText(f);
+                });
             }
             catch (Exception ex) { MessageBox.Show(ex.Message); }
         }
@@ -186,18 +186,18 @@ namespace 公文排版
                 return;
             }
 
-            var undo = WordApp.UndoRecord;
-            undo.StartCustomRecord("带圈数字序列");
-            MSWord.ListTemplate myTemplate2 = WordApp.ActiveDocument.ListTemplates.Add();
-            myTemplate2.ListLevels[1].NumberFormat = "%1";
-            myTemplate2.ListLevels[1].NumberStyle = MSWord.WdListNumberStyle.wdListNumberStyleNumberInCircle;
-            myTemplate2.ListLevels[1].TrailingCharacter = MSWord.WdTrailingCharacter.wdTrailingNone;
-            myTemplate2.ListLevels[1].TextPosition = 0;
-            myTemplate2.ListLevels[1].NumberPosition = 0;
-            if (at <= 0) at = 1;
-            myTemplate2.ListLevels[1].StartAt = at;
-            WordApp.Selection.Range.ListFormat.ApplyListTemplate(myTemplate2);
-            undo.EndCustomRecord();
+            WithUndo("带圈数字序列", () =>
+            {
+                MSWord.ListTemplate myTemplate2 = WordApp.ActiveDocument.ListTemplates.Add();
+                myTemplate2.ListLevels[1].NumberFormat = "%1";
+                myTemplate2.ListLevels[1].NumberStyle = MSWord.WdListNumberStyle.wdListNumberStyleNumberInCircle;
+                myTemplate2.ListLevels[1].TrailingCharacter = MSWord.WdTrailingCharacter.wdTrailingNone;
+                myTemplate2.ListLevels[1].TextPosition = 0;
+                myTemplate2.ListLevels[1].NumberPosition = 0;
+                if (at <= 0) at = 1;
+                myTemplate2.ListLevels[1].StartAt = at;
+                WordApp.Selection.Range.ListFormat.ApplyListTemplate(myTemplate2);
+            });
         }
 
         // ============ 公章 ============
@@ -205,18 +205,19 @@ namespace 公文排版
         {
             try
             {
-                var undo = WordApp.UndoRecord;
-                undo.StartCustomRecord("以链接方式插入印章");
                 btnInsertSignPic.Tag = "Link";
                 btnInsertSignPic.SuperTip = btnInsertSignPicLink.SuperTip;
+                string picked;
                 using (var ofd = new OpenFileDialog())
                 {
                     ofd.Title = "请选择以链接方式插入的印章";
                     ofd.Filter = "支持透明度的图片(*.PNG,*.gif,*.TIFF)|*.png;*.gif;*.tiff|所有文件(*.*)|*.*";
-                    if (ofd.ShowDialog() == DialogResult.OK)
-                        InsertSignPic(ofd.FileName);
+                    if (ofd.ShowDialog() != DialogResult.OK) return;
+                    picked = ofd.FileName;
                 }
-                undo.EndCustomRecord();
+                // 撤销记录只在真正插入时开启：原先在弹文件框之前就开始记录，
+                // 用户取消也会留下一条空的撤销步骤。
+                WithUndo("以链接方式插入印章", () => InsertSignPic(picked));
             }
             catch (Exception ex)
             {
@@ -229,18 +230,17 @@ namespace 公文排版
         {
             try
             {
-                var undo = WordApp.UndoRecord;
-                undo.StartCustomRecord("以嵌入方式插入印章");
                 btnInsertSignPic.Tag = "";
                 btnInsertSignPic.SuperTip = btnInsertSignPicSave.SuperTip;
+                string picked;
                 using (var ofd = new OpenFileDialog())
                 {
                     ofd.Title = "请选择以保存方式插入的印章";
                     ofd.Filter = "支持透明度的图片(*.PNG,*.gif,*.TIFF)|*.png;*.gif;*.tiff|所有文件(*.*)|*.*";
-                    if (ofd.ShowDialog() == DialogResult.OK)
-                        InsertSignPic(ofd.FileName, false);
+                    if (ofd.ShowDialog() != DialogResult.OK) return;
+                    picked = ofd.FileName;
                 }
-                undo.EndCustomRecord();
+                WithUndo("以嵌入方式插入印章", () => InsertSignPic(picked, false));
             }
             catch (Exception ex)
             {
@@ -265,42 +265,42 @@ namespace 公文排版
         // ============ 版头快捷按钮 ============
         private void btnHeadSingle_Click(object sender, RibbonControlEventArgs e)
         {
-            var undo = WordApp.UndoRecord;
-            undo.StartCustomRecord("插入版头:单行发文机关");
-            InsertHead("版头:单行发文机关");
-            undo.EndCustomRecord();
+            WithUndo("插入版头:单行发文机关", () =>
+            {
+                InsertHead("版头:单行发文机关");
+            });
         }
 
         private void btnHeadMulti_Click(object sender, RibbonControlEventArgs e)
         {
-            var undo = WordApp.UndoRecord;
-            undo.StartCustomRecord("插入版头:联合发文机关");
-            InsertHead("版头:联合发文机关");
-            undo.EndCustomRecord();
+            WithUndo("插入版头:联合发文机关", () =>
+            {
+                InsertHead("版头:联合发文机关");
+            });
         }
 
         private void BtnLineH1_Click(object sender, RibbonControlEventArgs e)
         {
-            var undo = WordApp.UndoRecord;
-            undo.StartCustomRecord("插入版头:函线(上沿)");
-            InsertHead("版头:函线(上沿)");
-            undo.EndCustomRecord();
+            WithUndo("插入版头:函线(上沿)", () =>
+            {
+                InsertHead("版头:函线(上沿)");
+            });
         }
 
         private void BtnLineH2_Click(object sender, RibbonControlEventArgs e)
         {
-            var undo = WordApp.UndoRecord;
-            undo.StartCustomRecord("插入版头:函线(下沿)");
-            InsertHead("版头:函线(下沿)");
-            undo.EndCustomRecord();
+            WithUndo("插入版头:函线(下沿)", () =>
+            {
+                InsertHead("版头:函线(下沿)");
+            });
         }
 
         private void BtnBindLine_Click(object sender, RibbonControlEventArgs e)
         {
-            var undo = WordApp.UndoRecord;
-            undo.StartCustomRecord("插入装订线");
-            InsertHead("装订线");
-            undo.EndCustomRecord();
+            WithUndo("插入装订线", () =>
+            {
+                InsertHead("装订线");
+            });
         }
     }
 }

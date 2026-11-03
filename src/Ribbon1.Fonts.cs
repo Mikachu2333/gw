@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Drawing;
 using System.Windows.Forms;
 using MSWord = Microsoft.Office.Interop.Word;
@@ -72,122 +72,120 @@ namespace 公文排版
 
         private void MnuTitle4_item_Click(object sender, RibbonControlEventArgs e)
         {
-            var undo = WordApp.UndoRecord;
-            undo.StartCustomRecord("所选文字设为四级标题");
-            SetFont(iniTitle4);
-            SetTitle(sender, 4);
-            undo.EndCustomRecord();
+            WithUndo("所选文字设为四级标题", () =>
+            {
+                SetFont(iniTitle4);
+                SetTitle(sender, 4);
+            });
         }
 
         private void MnuTitle3_item_Click(object sender, RibbonControlEventArgs e)
         {
-            var undo = WordApp.UndoRecord;
-            undo.StartCustomRecord("所选文字设为三级标题");
-            SetFont(iniTitle3);
-            SetTitle(sender, 3);
-            undo.EndCustomRecord();
+            WithUndo("所选文字设为三级标题", () =>
+            {
+                SetFont(iniTitle3);
+                SetTitle(sender, 3);
+            });
         }
 
         private void MnuTitle2_item_Click(object sender, RibbonControlEventArgs e)
         {
-            var undo = WordApp.UndoRecord;
-            undo.StartCustomRecord("所选文字设为二级标题");
-            SetFont(iniTitle2);
-            SetTitle(sender, 2);
-            undo.EndCustomRecord();
+            WithUndo("所选文字设为二级标题", () =>
+            {
+                SetFont(iniTitle2);
+                SetTitle(sender, 2);
+            });
         }
 
         private void MnuTitle1_item_Click(object sender, RibbonControlEventArgs e)
         {
-            var undo = WordApp.UndoRecord;
-            undo.StartCustomRecord("所选文字设为一级标题");
-            SetFont(iniTitle1);
-            SetTitle(sender, 1);
-            undo.EndCustomRecord();
+            WithUndo("所选文字设为一级标题", () =>
+            {
+                SetFont(iniTitle1);
+                SetTitle(sender, 1);
+            });
         }
 
         private void BtnNormal_Click(object sender, RibbonControlEventArgs e)
         {
-            var undo = WordApp.UndoRecord;
-            undo.StartCustomRecord("所选文字设为公文:正文");
-            SetFont(iniNormal);
-            undo.EndCustomRecord();
             try
             {
-                undo.StartCustomRecord("所选文字取消编号和大纲级别");
-                WordApp.Selection.Range.ListFormat.RemoveNumbers(MSWord.WdNumberType.wdNumberAllNumbers);
-                WordApp.Selection.ParagraphFormat.OutlineLevel = MSWord.WdOutlineLevel.wdOutlineLevelBodyText;
-                undo.EndCustomRecord();
+                WithUndo("所选文字设为公文:正文", () => SetFont(iniNormal));
+                WithUndo("所选文字取消编号和大纲级别", () =>
+                {
+                    WordApp.Selection.Range.ListFormat.RemoveNumbers(MSWord.WdNumberType.wdNumberAllNumbers);
+                    WordApp.Selection.ParagraphFormat.OutlineLevel = MSWord.WdOutlineLevel.wdOutlineLevelBodyText;
+                });
             }
             catch (Exception ex) { MessageBox.Show(ex.Message); }
         }
 
         private void btnTitleHei_Click(object sender, RibbonControlEventArgs e)
         {
-            var undo = WordApp.UndoRecord;
-            undo.StartCustomRecord("所选文字设为公文:标题");
-            SetFont(iniTitle);
-            undo.EndCustomRecord();
             try
             {
-                undo.StartCustomRecord("设置标题居中");
-                WordApp.Selection.ParagraphFormat.Alignment = MSWord.WdParagraphAlignment.wdAlignParagraphCenter;
-                undo.EndCustomRecord();
+                WithUndo("所选文字设为公文:标题", () => SetFont(iniTitle));
+                WithUndo("设置标题居中", () =>
+                {
+                    WordApp.Selection.ParagraphFormat.Alignment = MSWord.WdParagraphAlignment.wdAlignParagraphCenter;
+                });
             }
             catch (Exception ex) { MessageBox.Show(ex.Message); }
         }
 
         private void cobFonts_TextChanged(object sender, RibbonControlEventArgs e)
         {
-            var undo = WordApp.UndoRecord;
-            undo.StartCustomRecord("所选文字设为二号" + cobFonts.Text);
-            WordApp.Selection.Font.Name = cobFonts.Text;
-            WordApp.Selection.Font.Size = 22;
-            undo.EndCustomRecord();
+            string fontName = cobFonts.Text;
             try
             {
-                undo.StartCustomRecord("设置标题居中");
-                WordApp.Selection.ParagraphFormat.Alignment = MSWord.WdParagraphAlignment.wdAlignParagraphCenter;
-                undo.EndCustomRecord();
+                WithUndo("所选文字设为二号" + fontName, () =>
+                {
+                    WordApp.Selection.Font.Name = fontName;
+                    WordApp.Selection.Font.Size = 22;
+                });
+                WithUndo("设置标题居中", () =>
+                {
+                    WordApp.Selection.ParagraphFormat.Alignment = MSWord.WdParagraphAlignment.wdAlignParagraphCenter;
+                });
             }
             catch (Exception ex) { MessageBox.Show(ex.Message); }
         }
 
         private void btnHead_Click(object sender, RibbonControlEventArgs e)
         {
-            var undo = WordApp.UndoRecord;
-            undo.StartCustomRecord("设置所选字体");
-            SetFont(iniHead);
-            undo.EndCustomRecord();
+            WithUndo("设置所选字体", () =>
+            {
+                SetFont(iniHead);
+            });
         }
 
         private void btnName_Click(object sender, RibbonControlEventArgs e)
         {
-            var undo = WordApp.UndoRecord;
-            undo.StartCustomRecord("设置所选字体");
-            SetFont(iniName);
-            undo.EndCustomRecord();
+            WithUndo("设置所选字体", () =>
+            {
+                SetFont(iniName);
+            });
         }
 
         private void btnFoot_Click(object sender, RibbonControlEventArgs e)
         {
-            var undo = WordApp.UndoRecord;
-            undo.StartCustomRecord("设置所选字体");
-            SetFont(iniFoot);
-            undo.EndCustomRecord();
+            WithUndo("设置所选字体", () =>
+            {
+                SetFont(iniFoot);
+            });
         }
 
         private void btnUnderDot_Click(object sender, RibbonControlEventArgs e)
         {
             try
             {
-                var undo = WordApp.UndoRecord;
-                undo.StartCustomRecord("着重号");
-                if (WordApp.Selection.Font.EmphasisMark != MSWord.WdEmphasisMark.wdEmphasisMarkUnderSolidCircle)
-                    WordApp.Selection.Font.EmphasisMark = MSWord.WdEmphasisMark.wdEmphasisMarkUnderSolidCircle;
-                else
-                    WordApp.Selection.Font.EmphasisMark = MSWord.WdEmphasisMark.wdEmphasisMarkNone;
-                undo.EndCustomRecord();
+                WithUndo("着重号", () =>
+                {
+                    if (WordApp.Selection.Font.EmphasisMark != MSWord.WdEmphasisMark.wdEmphasisMarkUnderSolidCircle)
+                                        WordApp.Selection.Font.EmphasisMark = MSWord.WdEmphasisMark.wdEmphasisMarkUnderSolidCircle;
+                    else
+                                        WordApp.Selection.Font.EmphasisMark = MSWord.WdEmphasisMark.wdEmphasisMarkNone;
+                });
             }
             catch (Exception ex) { MessageBox.Show(ex.Message); }
         }
@@ -196,11 +194,11 @@ namespace 公文排版
         {
             try
             {
-                var undo = WordApp.UndoRecord;
-                undo.StartCustomRecord("隐藏");
-                int hide = WordApp.Selection.Font.Hidden;
-                WordApp.Selection.Font.Hidden = hide == -1 ? 0 : -1;
-                undo.EndCustomRecord();
+                WithUndo("隐藏", () =>
+                {
+                    int hide = WordApp.Selection.Font.Hidden;
+                    WordApp.Selection.Font.Hidden = hide == -1 ? 0 : -1;
+                });
             }
             catch (Exception ex) { MessageBox.Show(ex.Message); }
         }

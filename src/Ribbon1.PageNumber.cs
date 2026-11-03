@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Windows.Forms;
 using Microsoft.Office.Tools.Ribbon;
 using MSWord = Microsoft.Office.Interop.Word;
@@ -135,34 +135,34 @@ namespace 公文排版
 
         private void btnNumberCenter_Click(object sender, RibbonControlEventArgs e)
         {
-            var undo = WordApp.UndoRecord;
-            undo.StartCustomRecord("插入居中页码");
-            PageNumberAligment(0);
-            undo.EndCustomRecord();
+            WithUndo("插入居中页码", () =>
+            {
+                PageNumberAligment(0);
+            });
         }
 
         private void BtnNumberRight_Click(object sender, RibbonControlEventArgs e)
         {
-            var undo = WordApp.UndoRecord;
-            undo.StartCustomRecord("插入右侧页码");
-            PageNumberAligment(2);
-            undo.EndCustomRecord();
+            WithUndo("插入右侧页码", () =>
+            {
+                PageNumberAligment(2);
+            });
         }
 
         private void btnNumberOutside_Click(object sender, RibbonControlEventArgs e)
         {
-            var undo = WordApp.UndoRecord;
-            undo.StartCustomRecord("插入外侧页码");
-            PageNumberAligment(1);
-            undo.EndCustomRecord();
+            WithUndo("插入外侧页码", () =>
+            {
+                PageNumberAligment(1);
+            });
         }
 
         private void BtnNumberOnLocation_Click(object sender, RibbonControlEventArgs e)
         {
-            var undo = WordApp.UndoRecord;
-            undo.StartCustomRecord("光标处插入页码");
-            InsertNumber();
-            undo.EndCustomRecord();
+            WithUndo("光标处插入页码", () =>
+            {
+                InsertNumber();
+            });
         }
     }
 }

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Diagnostics;
 using System.Windows.Forms;
 using MSWord = Microsoft.Office.Interop.Word;
@@ -36,19 +36,19 @@ namespace 公文排版
         {
             try
             {
-                var undo = WordApp.UndoRecord;
-                undo.StartCustomRecord("转换图片环绕方式");
                 int i = 0;
-                foreach (MSWord.InlineShape shape in WordApp.ActiveDocument.InlineShapes)
+                WithUndo("转换图片环绕方式", () =>
                 {
-                    switch (type)
+                    foreach (MSWord.InlineShape shape in WordApp.ActiveDocument.InlineShapes)
                     {
-                        case 1: shape.ConvertToShape(); i++; break;
-                        case 2: shape.ConvertToShape().WrapFormat.Type = MSWord.WdWrapType.wdWrapSquare; i++; break;
-                        case 3: shape.ConvertToShape().WrapFormat.Type = MSWord.WdWrapType.wdWrapTopBottom; i++; break;
+                        switch (type)
+                        {
+                            case 1: shape.ConvertToShape(); i++; break;
+                            case 2: shape.ConvertToShape().WrapFormat.Type = MSWord.WdWrapType.wdWrapSquare; i++; break;
+                            case 3: shape.ConvertToShape().WrapFormat.Type = MSWord.WdWrapType.wdWrapTopBottom; i++; break;
+                        }
                     }
-                }
-                undo.EndCustomRecord();
+                });
                 WordApp.StatusBar = "已转换 " + i + "个图形!";
             }
             catch (Exception ex) { MessageBox.Show(ex.Message); }
@@ -59,16 +59,19 @@ namespace 公文排版
             int i = 0;
             try
             {
-                var undo = WordApp.UndoRecord;
-                undo.StartCustomRecord("转换衬于文字下图片");
-                foreach (MSWord.Shape shape in WordApp.ActiveDocument.Shapes)
+                // 原实现在这里只调了 StartCustomRecord，从未 EndCustomRecord：
+                // 每次点击都在撤销栈上留下一条永不闭合的记录，之后的编辑都被并进它。
+                WithUndo("转换衬于文字下图片", () =>
                 {
-                    if (shape.WrapFormat.Type == MSWord.WdWrapType.wdWrapBehind)
+                    foreach (MSWord.Shape shape in WordApp.ActiveDocument.Shapes)
                     {
-                        shape.WrapFormat.Type = MSWord.WdWrapType.wdWrapFront;
-                        i++;
+                        if (shape.WrapFormat.Type == MSWord.WdWrapType.wdWrapBehind)
+                        {
+                            shape.WrapFormat.Type = MSWord.WdWrapType.wdWrapFront;
+                            i++;
+                        }
                     }
-                }
+                });
             }
             catch (Exception ex) { WordApp.StatusBar = ex.Message; }
             finally
@@ -81,21 +84,21 @@ namespace 公文排版
         {
             try
             {
-                var undo = WordApp.UndoRecord;
-                undo.StartCustomRecord("删除页眉");
-                WordApp.ScreenUpdating = false;
-                if (WordApp.ActiveWindow.ActivePane.View.SeekView != MSWord.WdSeekView.wdSeekCurrentPageHeader)
-                    WordApp.ActiveWindow.ActivePane.View.SeekView = MSWord.WdSeekView.wdSeekCurrentPageHeader;
-                WordApp.Selection.WholeStory();
-                WordApp.Selection.Delete();
-                WordApp.Selection.ClearFormatting();
+                WithUndo("删除页眉", () =>
+                {
+                    WordApp.ScreenUpdating = false;
+                    if (WordApp.ActiveWindow.ActivePane.View.SeekView != MSWord.WdSeekView.wdSeekCurrentPageHeader)
+                                        WordApp.ActiveWindow.ActivePane.View.SeekView = MSWord.WdSeekView.wdSeekCurrentPageHeader;
+                    WordApp.Selection.WholeStory();
+                    WordApp.Selection.Delete();
+                    WordApp.Selection.ClearFormatting();
 
-                var style = WordApp.ActiveDocument.Styles.Add("公文:页眉", MSWord.WdStyleType.wdStyleTypeParagraph);
-                style.set_BaseStyle("");
-                WordApp.Selection.set_Style(style);
+                    var style = WordApp.ActiveDocument.Styles.Add("公文:页眉", MSWord.WdStyleType.wdStyleTypeParagraph);
+                    style.set_BaseStyle("");
+                    WordApp.Selection.set_Style(style);
 
-                WordApp.ActiveWindow.ActivePane.View.SeekView = MSWord.WdSeekView.wdSeekMainDocument;
-                undo.EndCustomRecord();
+                    WordApp.ActiveWindow.ActivePane.View.SeekView = MSWord.WdSeekView.wdSeekMainDocument;
+                });
             }
             catch (Exception ex)
             {

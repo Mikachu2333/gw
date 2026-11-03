@@ -278,6 +278,36 @@ namespace 公文排版
             return Path.GetDirectoryName(fullPath);
         }
 
+        /// <summary>
+        /// 在一条自定义撤销记录中执行操作，并保证撤销记录一定闭合、ScreenUpdating 一定恢复。
+        /// 原写法把 StartCustomRecord 放在 try 之外、EndCustomRecord 放在 try 之内：
+        /// 中途抛异常时撤销记录永不闭合，之后用户的每一次编辑都被并进这条记录，
+        /// Ctrl+Z 会一次回退掉大片无关改动；ScreenUpdating 忘了恢复则 Word 看起来像卡死。
+        /// </summary>
+        /// <param name="label">显示在撤销栈上的操作名</param>
+        /// <param name="work">实际改动文档的动作</param>
+        /// <param name="suspendScreen">执行期间是否关闭屏幕刷新</param>
+        internal void WithUndo(string label, Action work, bool suspendScreen = false)
+        {
+            MSWord.UndoRecord undo = WordApp.UndoRecord;
+            undo.StartCustomRecord(label);
+            try
+            {
+                if (suspendScreen) WordApp.ScreenUpdating = false;
+                work();
+            }
+            finally
+            {
+                if (suspendScreen)
+                {
+                    try { WordApp.ScreenUpdating = true; }
+                    catch (Exception ex) { Debug.WriteLine("恢复 ScreenUpdating 失败: " + ex.Message); }
+                }
+                try { undo.EndCustomRecord(); }
+                catch (Exception ex) { Debug.WriteLine("EndCustomRecord 失败: " + label + " — " + ex.Message); }
+            }
+        }
+
         // ============ 关于组 ============
         private void btnAbout_Click(object sender, RibbonControlEventArgs e)
         {

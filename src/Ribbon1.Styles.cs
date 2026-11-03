@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Windows.Forms;
 using MSWord = Microsoft.Office.Interop.Word;
 using Microsoft.Office.Tools.Ribbon;

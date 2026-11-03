@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Windows.Forms;
 using MSWord = Microsoft.Office.Interop.Word;
 using Microsoft.Office.Tools.Ribbon;
@@ -48,10 +48,10 @@ namespace 公文排版
         {
             try
             {
-                var undo = WordApp.UndoRecord;
-                undo.StartCustomRecord("首行缩进2字符");
-                WordApp.Selection.ParagraphFormat.CharacterUnitFirstLineIndent = 2;
-                undo.EndCustomRecord();
+                WithUndo("首行缩进2字符", () =>
+                {
+                    WordApp.Selection.ParagraphFormat.CharacterUnitFirstLineIndent = 2;
+                });
             }
             catch (Exception ex)
             {
@@ -65,13 +65,13 @@ namespace 公文排版
         {
             try
             {
-                var undo = WordApp.UndoRecord;
-                undo.StartCustomRecord("段落顶格");
-                WordApp.Selection.ParagraphFormat.CharacterUnitFirstLineIndent = 0;
-                WordApp.Selection.ParagraphFormat.FirstLineIndent = 0;
-                WordApp.Selection.ParagraphFormat.LeftIndent = 0;
-                WordApp.Selection.ParagraphFormat.CharacterUnitLeftIndent = 0;
-                undo.EndCustomRecord();
+                WithUndo("段落顶格", () =>
+                {
+                    WordApp.Selection.ParagraphFormat.CharacterUnitFirstLineIndent = 0;
+                    WordApp.Selection.ParagraphFormat.FirstLineIndent = 0;
+                    WordApp.Selection.ParagraphFormat.LeftIndent = 0;
+                    WordApp.Selection.ParagraphFormat.CharacterUnitLeftIndent = 0;
+                });
             }
             catch (Exception ex)
             {
@@ -85,18 +85,18 @@ namespace 公文排版
         {
             try
             {
-                var undo = WordApp.UndoRecord;
-                undo.StartCustomRecord("删除页眉横线");
-                WordApp.ScreenUpdating = false;
+                WithUndo("删除页眉横线", () =>
+                {
+                    WordApp.ScreenUpdating = false;
 
-                if (WordApp.ActiveWindow.ActivePane.View.SeekView != MSWord.WdSeekView.wdSeekCurrentPageHeader)
-                    WordApp.ActiveWindow.ActivePane.View.SeekView = MSWord.WdSeekView.wdSeekCurrentPageHeader;
+                    if (WordApp.ActiveWindow.ActivePane.View.SeekView != MSWord.WdSeekView.wdSeekCurrentPageHeader)
+                                        WordApp.ActiveWindow.ActivePane.View.SeekView = MSWord.WdSeekView.wdSeekCurrentPageHeader;
 
-                WordApp.Selection.WholeStory();
-                WordApp.Selection.Borders[MSWord.WdBorderType.wdBorderBottom].LineStyle = MSWord.WdLineStyle.wdLineStyleNone;
+                    WordApp.Selection.WholeStory();
+                    WordApp.Selection.Borders[MSWord.WdBorderType.wdBorderBottom].LineStyle = MSWord.WdLineStyle.wdLineStyleNone;
 
-                WordApp.ActiveWindow.ActivePane.View.SeekView = MSWord.WdSeekView.wdSeekMainDocument;
-                undo.EndCustomRecord();
+                    WordApp.ActiveWindow.ActivePane.View.SeekView = MSWord.WdSeekView.wdSeekMainDocument;
+                });
             }
             catch (Exception ex)
             {
@@ -119,10 +119,10 @@ namespace 公文排版
                     "编号转为文字", MessageBoxButtons.OKCancel, MessageBoxIcon.Question);
                 if (dr != DialogResult.OK) return;
 
-                var undo = WordApp.UndoRecord;
-                undo.StartCustomRecord("编号转为文字");
-                WordApp.ActiveDocument.Content.ListFormat.ConvertNumbersToText();
-                undo.EndCustomRecord();
+                WithUndo("编号转为文字", () =>
+                {
+                    WordApp.ActiveDocument.Content.ListFormat.ConvertNumbersToText();
+                });
                 WordApp.StatusBar = "编号已全部转为文字形式!";
             }
             catch (Exception ex)

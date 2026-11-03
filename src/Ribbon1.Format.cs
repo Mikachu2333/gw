@@ -70,18 +70,17 @@ namespace 公文排版
                     if (dr == DialogResult.Cancel) return;
                     p = WordApp.ActiveDocument.Paragraphs;
                 }
-                var undo = WordApp.UndoRecord;
-                undo.StartCustomRecord("删除空行");
-                WordApp.ScreenUpdating = false;
-                foreach (MSWord.Paragraph i in p)
+                WithUndo("删除空行", () =>
                 {
-                    if (i.Range.Text.Trim().Length <= 0 && i.Range.ShapeRange.Count == 0)
+                    foreach (MSWord.Paragraph i in p)
                     {
-                        i.Range.Delete();
-                        n++;
+                        if (i.Range.Text.Trim().Length <= 0 && i.Range.ShapeRange.Count == 0)
+                        {
+                            i.Range.Delete();
+                            n++;
+                        }
                     }
-                }
-                undo.EndCustomRecord();
+                }, suspendScreen: true);
                 WordApp.StatusBar = "已删除 " + n + " 个空行!";
             }
             catch (Exception ex)
@@ -89,7 +88,6 @@ namespace 公文排版
                 MessageBox.Show(ex.Message + "\r\n\r\n" + ex.Source, "删除空行时出错",
                     MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
             }
-            finally { WordApp.ScreenUpdating = true; }
         }
 
         private void btnFormatDelSelectEmptyLine_Click(object sender, RibbonControlEventArgs e)
@@ -97,19 +95,18 @@ namespace 公文排版
             int n = 0;
             try
             {
-                var undo = WordApp.UndoRecord;
-                undo.StartCustomRecord("删除空行");
                 MSWord.Paragraphs p = WordApp.Selection.Paragraphs;
-                WordApp.ScreenUpdating = false;
-                foreach (MSWord.Paragraph i in p)
+                WithUndo("删除选区空行", () =>
                 {
-                    if (i.Range.Text.Trim().Length <= 0 && i.Range.ShapeRange.Count == 0)
+                    foreach (MSWord.Paragraph i in p)
                     {
-                        i.Range.Delete();
-                        n++;
+                        if (i.Range.Text.Trim().Length <= 0 && i.Range.ShapeRange.Count == 0)
+                        {
+                            i.Range.Delete();
+                            n++;
+                        }
                     }
-                }
-                undo.EndCustomRecord();
+                }, suspendScreen: true);
                 WordApp.StatusBar = "已删除 " + n + " 个空行!";
             }
             catch (Exception ex)
@@ -117,7 +114,6 @@ namespace 公文排版
                 MessageBox.Show(ex.Message + "\r\n\r\n" + ex.Source, "删除空行时出错",
                     MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
             }
-            finally { WordApp.ScreenUpdating = true; }
         }
 
         private void btnFormatDelSpace_Click(object sender, RibbonControlEventArgs e)
@@ -154,13 +150,11 @@ namespace 公文排版
             {
                 bool s;
                 if (!TryGetScope("移走链接", out s)) return;
-                var undo = WordApp.UndoRecord;
-                undo.StartCustomRecord("移走链接");
-                WordApp.ScreenUpdating = false;
-                if (s) WordApp.Selection.Fields.Unlink();
-                else WordApp.ActiveDocument.Fields.Unlink();
-                WordApp.ScreenUpdating = true;
-                undo.EndCustomRecord();
+                WithUndo("移走链接", () =>
+                {
+                    if (s) WordApp.Selection.Fields.Unlink();
+                    else WordApp.ActiveDocument.Fields.Unlink();
+                }, suspendScreen: true);
             }
             catch (Exception ex) { MessageBox.Show(ex.Message); }
         }
@@ -236,9 +230,7 @@ namespace 公文排版
 
         private void Frame2txt()
         {
-            var undo = WordApp.UndoRecord;
-            undo.StartCustomRecord("文本框转文字");
-            try
+            WithUndo("文本框转文字", () =>
             {
                 if (WordApp.Selection.ShapeRange.Count > 0)
                 {
@@ -247,8 +239,7 @@ namespace 公文排版
                     sh.Delete();
                     WordApp.Selection.TypeText(t);
                 }
-            }
-            finally { undo.EndCustomRecord(); }
+            });
         }
 
         private void btnFormatParaPage_Click(object sender, RibbonControlEventArgs e)
