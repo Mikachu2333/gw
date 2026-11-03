@@ -10,6 +10,19 @@ namespace 公文排版
     {
         private void Sp_SpeakCompleted(object sender, System.Speech.Synthesis.SpeakCompletedEventArgs e)
         {
+            // 该回调由 SpeechSynthesizer 的工作线程发出，而下面要改的是功能区对象和
+            // Word COM（STA）。直接跨套间调用会报 RPC 错误，或与正等待朗读结束的 STA 互相等待。
+            // 同仓 frmSpeakOption.Synth_SpeakCompleted 已用 InvokeRequired/BeginInvoke，两处标准一致。
+            try
+            {
+                if (!speechMarshal.IsHandleCreated || speechMarshal.IsDisposed) return;
+                speechMarshal.BeginInvoke(new Action(ResetSpeakButton));
+            }
+            catch (Exception ex) { Debug.WriteLine("Sp_SpeakCompleted: " + ex.Message); }
+        }
+
+        private void ResetSpeakButton()
+        {
             try
             {
                 this.btnSpeak.OfficeImageId = "SpeakCells";

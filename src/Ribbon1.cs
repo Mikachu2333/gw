@@ -15,6 +15,9 @@ namespace 公文排版
         internal MSWord.Application WordApp;                 // Word Application
         internal System.Speech.Synthesis.SpeechSynthesizer sp; // 语音模块
         internal frmPaperSetup fp;                           // 页面设置窗体
+        // 语音合成器的事件在工作线程回调，而功能区对象与 Word COM 只允许宿主 STA 线程访问。
+        // 这个不可见的 Control 只当作封送目标，句柄在 Ribbon1_Load 的 STA 线程上创建。
+        private readonly Control speechMarshal = new Control();
         internal string hostProcess = "";                    // 宿主进程名：WINWORD / wps
         internal string hostName = "";                       // Application.Name：Microsoft Word / WPS 文字
         internal string hostVersion = "";                    // Application.Version：12.0=2007, 14.0=2010, 16.0=2016/365
@@ -83,6 +86,7 @@ namespace 公文排版
             // 语音初始化
             try
             {
+                _ = speechMarshal.Handle;   // 在 STA 线程上建立句柄，供语音回调封送回本线程
                 sp = new System.Speech.Synthesis.SpeechSynthesizer();
                 sp.SpeakCompleted += Sp_SpeakCompleted;
             }
@@ -183,8 +187,19 @@ namespace 公文排版
             {
                 try { if (WordApp != null) WordApp.WindowSelectionChange -= WordApp_WindowSelectionChange; } catch { }
 
-                if (sp != null) { sp.Dispose(); sp = null; }
+                if (sp != null)
+                {
+                    // 先停掉正在朗读的任务、再解绑事件，最后释放：
+                    // 反过来做会让 SpeakCompleted 在合成器已销毁之后回调到已失效的功能区对象上
+                    try { sp.SpeakAsyncCancelAll(); }
+                    catch (Exception ex) { Debug.WriteLine("停止朗读失败: " + ex.Message); }
+                    try { sp.SpeakCompleted -= Sp_SpeakCompleted; }
+                    catch (Exception ex) { Debug.WriteLine("解绑朗读事件失败: " + ex.Message); }
+                    sp.Dispose();
+                    sp = null;
+                }
                 if (fp != null) { if (!fp.IsDisposed) fp.Dispose(); fp = null; }
+                if (!speechMarshal.IsDisposed) speechMarshal.Dispose();
             }
             catch (Exception ex)
             {
