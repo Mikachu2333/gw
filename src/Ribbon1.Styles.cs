@@ -219,23 +219,49 @@ namespace 公文排版
             Cursor.Current = Cursors.WaitCursor;
             try
             {
-                creatCustomStyle();
+                WithUndo("创建公文样式", () => creatCustomStyle());
                 WordApp.TaskPanes[MSWord.WdTaskPanes.wdTaskPaneFormatting].Visible = true;
                 WordApp.ShowStylePreviews = true;
+            }
+            catch (Exception ex)
+            {
+                // 原先只有 try/finally 恢复光标，异常直接冲到功能区回调
+                MessageBox.Show(ex.Message, "创建公文样式时出错",
+                    MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
             }
             finally { Cursor.Current = Cursors.Default; }
         }
 
         private void btnStyleR_Click(object sender, RibbonControlEventArgs e)
         {
+            bool hasSelection = false;
+            try { hasSelection = WordApp.Selection.Characters.Count > 1; } catch { }
+
+            // 这个按钮会删掉文档里所有自定义样式，还会清掉当前选区的直接格式；
+            // 原先一句确认都没有，误点即毁掉用户自己定义的样式表
+            var dr = MessageBox.Show(
+                "将删除本文档的全部自定义样式" + (hasSelection ? "，并清除当前所选内容的直接格式" : "") +
+                "，然后按当前公文字体设置重建。" +
+                "\r\n\r\n用户自己定义的样式会一并删除，建议先保存文档副本。确定继续吗?",
+                "恢复公文样式", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning);
+            if (dr != DialogResult.OK) return;
+
             Cursor.Current = Cursors.WaitCursor;
             try
             {
-                WordApp.Selection.ClearFormatting();
-                clearCustomStyles();
-                creatCustomStyle();
+                WithUndo("恢复公文样式", () =>
+                {
+                    if (hasSelection) WordApp.Selection.ClearFormatting();
+                    clearCustomStyles();
+                    creatCustomStyle();
+                });
                 WordApp.TaskPanes[MSWord.WdTaskPanes.wdTaskPaneFormatting].Visible = true;
                 WordApp.ShowStylePreviews = true;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message, "恢复公文样式时出错",
+                    MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
             }
             finally { Cursor.Current = Cursors.Default; }
         }
