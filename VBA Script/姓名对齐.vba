@@ -27,7 +27,8 @@ Sub xkonglong_所选姓名对齐()
     Selection.find.Replacement.ClearFormatting
     With Selection.find
         .Text = " "
-        .Replacement.Text = "^p"
+        ' 替换成 ^p 会把选区拆成多段, 下一句 FitTextWidth 只在同一段内有效; 这里要的是去掉补位空格再按 n 字撑开
+        .Replacement.Text = ""
         .Forward = False
         .Wrap = wdFindStop
         .Format = False
