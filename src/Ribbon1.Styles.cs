@@ -8,6 +8,23 @@ namespace 公文排版
 {
     public partial class Ribbon1
     {
+        /// <summary>
+        /// 把样式绑定到组合键。已绑定到同一样式则跳过，键位被别的命令占用则不抢——
+        /// 原实现每次新建样式都无条件 KeyBindings.Add，反复点击会往用户的键位表里
+        /// 追加一串重复项，而且覆盖的是 Word 全局（Normal）设置。
+        /// </summary>
+        private void BindStyleKey(string styleName, int key)
+        {
+            foreach (MSWord.KeyBinding kb in WordApp.KeyBindings)
+            {
+                if (kb.KeyCode != key) continue;
+                if (string.Equals(kb.Command, styleName, StringComparison.Ordinal)) return;
+                WordApp.StatusBar = "快捷键已被其它命令占用，未绑定样式：" + styleName;
+                return;
+            }
+            WordApp.KeyBindings.Add(MSWord.WdKeyCategory.wdKeyCategoryStyle, styleName, key);
+        }
+
         private void clearCustomStyles()
         {
             try
@@ -19,13 +36,26 @@ namespace 公文排版
                     if (!sy.BuiltIn) targets.Add(sy);
 
                 int failed = 0;
+                var deletedNames = new List<string>();
                 foreach (MSWord.Style sy in targets)
                 {
-                    try { sy.Delete(); }
+                    // 删除前先取名：样式删除后该 RCW 可能已失效，再读 NameLocal 会抛错
+                    string name = sy.NameLocal;
+                    try { sy.Delete(); deletedNames.Add(name); }
                     catch { failed++; }
                 }
                 if (failed > 0)
                     WordApp.StatusBar = "有 " + failed + " 个自定义样式正被内容引用，未能删除";
+
+                // 样式删掉后，指向它的键位必须一起清掉：否则用户按下快捷键时
+                // Word 会报"命令不可用"。键位集合是实时集合，先快照再移除。
+                var bindings = new List<MSWord.KeyBinding>();
+                foreach (MSWord.KeyBinding kb in WordApp.KeyBindings)
+                    if (deletedNames.Contains(kb.Command)) bindings.Add(kb);
+                foreach (MSWord.KeyBinding kb in bindings)
+                {
+                    try { kb.Clear(); } catch { }
+                }
             }
             catch (Exception ex)
             {
@@ -147,7 +177,7 @@ namespace 公文排版
                     sy.set_BaseStyle(MSWord.WdBuiltinStyle.wdStyleNormal);
 
                     int key = WordApp.BuildKeyCode(MSWord.WdKey.wdKeyAlt, MSWord.WdKey.wdKeyShift, MSWord.WdKey.wdKeyZ);
-                    WordApp.KeyBindings.Add(MSWord.WdKeyCategory.wdKeyCategoryStyle, "公文:正文", key);
+                    BindStyleKey("公文:正文", key);
                 }
 
                 if (!ts)
@@ -162,7 +192,7 @@ namespace 公文排版
                     sys.ParagraphFormat.CharacterUnitFirstLineIndent = 2;
 
                     int key = WordApp.BuildKeyCode(MSWord.WdKey.wdKeyAlt, MSWord.WdKey.wdKeyShift, MSWord.WdKey.wdKeyS);
-                    WordApp.KeyBindings.Add(MSWord.WdKeyCategory.wdKeyCategoryStyle, "公文:正文(缩进)", key);
+                    BindStyleKey("公文:正文(缩进)", key);
                 }
 
                 if (!th)
