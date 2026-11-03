@@ -17,13 +17,13 @@ Option Explicit    '强制声明变量是个好习惯, 可以提高代码速度,减少bug
 Sub xkonglong_删除页眉页脚()
     On Error Resume Next
     Dim oSec As Section
-    Dim mydoc As Document
     Dim i As Long
+    Dim n As Long
     
     Application.ScreenUpdating = False
     With ActiveDocument
         .ActiveWindow.View.Type = wdPrintView
-        For Each oSec In mydoc.Sections '文档的节中循环
+        For Each oSec In .Sections '文档的节中循环(原文用从未 Set 的 mydoc,整段循环被 On Error Resume Next 吞掉,其实什么都没删)
             For i = 9 To 10
                 .ActiveWindow.View.SeekView = i '9-wdSeekCurrentPageHeader,10-wdSeekCurrentPageFooter
                 .Application.Selection.WholeStory
@@ -31,8 +31,9 @@ Sub xkonglong_删除页眉页脚()
                 .ActiveWindow.View.SeekView = 0 ' wdSeekMainDocument
                 .Styles("页眉").ParagraphFormat.Borders(wdBorderBottom).LineStyle = wdLineStyleNone  '删除页眉横线
             Next
+            n = n + 1
         Next
     End With
     Application.ScreenUpdating = True
-    MsgBox "页眉页脚删除完毕！"
+    MsgBox "页眉页脚删除完毕,共处理 " & n & " 节！"
 End Sub
