@@ -169,14 +169,16 @@ namespace 公文排版
 
         private void BtnReset_Click(object sender, EventArgs e)
         {
-            if (MessageBox.Show("确定恢复默认页面设置吗？", "确认",
+            if (MessageBox.Show("确定恢复默认页面设置吗？\r\n（不影响公文字体与 VBA 运行历史）", "确认",
                 MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes)
                 return;
 
             try
             {
-                Properties.Settings.Default.Reset();
-                Properties.Settings.Default.Reload();
+                // 同上：Reset() 会连带清空字体设置与 VBA 历史
+                Properties.Settings.Default.ResetNames(
+                    "上边距", "下边距", "左边距", "右边距", "页脚边距",
+                    "行数", "字数", "行间距", "允许行间距", "公文版式");
             }
             catch (Exception ex)
             {

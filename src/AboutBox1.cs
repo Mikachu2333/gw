@@ -246,14 +246,18 @@ namespace 公文排版
 
         private void lblTip_DoubleClick(object sender, EventArgs e)
         {
-            if (MessageBox.Show("确定恢复默认字体设置吗？", "确认",
-                MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes)
+            if (MessageBox.Show("确定把公文字体相关的用户设置恢复为默认值吗？\r\n（不影响页面设置与 VBA 运行历史）",
+                "确认", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes)
                 return;
 
             try
             {
-                Properties.Settings.Default.Reset();
-                Properties.Settings.Default.Reload();
+                // 原先用 Settings.Default.Reset()：那会清空全部用户设置，
+                // 连 VBA 运行历史、脚本路径一起抹掉，而提示只说"恢复默认字体设置"
+                Properties.Settings.Default.ResetNames(
+                    "公文标题", "一级标题", "二级标题", "三级标题", "四级标题",
+                    "正文", "版头", "签发人姓名", "版记", "页码",
+                    "英文字体", "数字字体");
                 GetFont();
             }
             catch (Exception ex)
