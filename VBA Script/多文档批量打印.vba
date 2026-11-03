@@ -11,33 +11,61 @@
 '日期:2023年2月13日'
 
 
+Option Explicit    '强制声明变量
+
+Dim 最近错误 As String    '由 打印一个文档 回报失败原因
+
 Sub 批量打印WORD文档()
+    Dim 筛选器 As FileDialog, 文件名
+    Dim 份数 As Long, 份数输入 As String
+    Dim 成功数 As Long, 失败数 As Long, 失败清单 As String
 
-    On Error Resume Next
-
-    Dim 筛选器 As FileDialog, 文件名, 文件 As Document, pd, 计数 As Integer
     Set 筛选器 = Application.FileDialog(msoFileDialogFilePicker)
     With 筛选器
         .AllowMultiSelect = True
         .Title = "请选择要批量打印的文档,可多选"
-        .Show
+        If .Show <> -1 Then Exit Sub     '点击取消按钮退出
     End With
-    If 筛选器.SelectedItems.Count <= 0 Then Exit Sub     '点击取消按钮退出
-    
-    Dim 份数 As Long
-    份数 = InputBox("请输入要打印的份数?", "小恐龙VBA脚本", 1)
-    
-    If 份数 <= 0 Then Exit Sub    '点击取消或份数<=0退出'
-    
+
+    份数输入 = InputBox("请输入要打印的份数?", "小恐龙VBA脚本", 1)
+    ' 取消或填了非数字时不再靠吞异常蒙过去, 直接退出
+    If Not IsNumeric(份数输入) Then Exit Sub
+    份数 = CLng(份数输入)
+    If 份数 <= 0 Then Exit Sub
+
     For Each 文件名 In 筛选器.SelectedItems
-        If Not Right(文件名, Len(文件名) - InStrRev(文件名, ".")) Like "doc*" Then GoTo 结束
-        Set 文件 = Documents.Open(文件名)  '打开文件
-        文件.PrintOut , , , , , , , 份数 '文件打印
-        文件.Close False  '文件关闭
-        计数 = 计数 + 1
-        Set 文件 = Nothing
-        
-结束:  Next
+        If Right(文件名, Len(文件名) - InStrRev(文件名, ".")) Like "doc*" Then
+            If 打印一个文档(CStr(文件名), 份数) Then
+                成功数 = 成功数 + 1
+            Else
+                失败数 = 失败数 + 1
+                失败清单 = 失败清单 & vbCrLf & 文件名 & "：" & 最近错误
+            End If
+        End If
+    Next
     Set 筛选器 = Nothing
-    MsgBox "已完成！共打印了" & 计数 & "个文件,各" & 份数 & "份!"
+
+    If 失败数 = 0 Then
+        MsgBox "已完成！共打印了" & 成功数 & "个文件,各" & 份数 & "份!", vbInformation, "批量打印"
+    Else
+        MsgBox "成功打印 " & 成功数 & " 个文件,各" & 份数 & "份; 以下 " & 失败数 & " 个文件失败:" _
+            & vbCrLf & 失败清单, vbExclamation, "批量打印"
+    End If
 End Sub
+
+' 原来整段 On Error Resume Next: 文档打不开也照样往下走, 计数照加, 于是一条没打出来也报"共打印了N个文件"
+Function 打印一个文档(fname As String, 份数 As Long) As Boolean
+    Dim 文件 As Document
+    最近错误 = ""
+    On Error GoTo 打印失败
+    Set 文件 = Documents.Open(FileName:=fname, AddToRecentFiles:=False)
+    文件.PrintOut , , , , , , , 份数
+    文件.Close False
+    打印一个文档 = True
+    Exit Function
+打印失败:
+    最近错误 = Err.Description
+    On Error Resume Next
+    If Not 文件 Is Nothing Then 文件.Close False
+    打印一个文档 = False
+End Function
