@@ -131,18 +131,38 @@ namespace 公文排版
             // BigEndianUnicode 原来漏在判定之外：UTF-16BE 文件会被放行，AddFromFile 读出乱码
             if (encoding == Encoding.Unicode || encoding == Encoding.BigEndianUnicode || encoding == Encoding.UTF8)
             {
-                var result = MessageBox.Show(
-                    "您所选文件为 " + encoding.WebName + " 编码，Word VBA 只支持 ANSI(简体中文 GB2312)。\r\n" +
-                    "要用记事本打开以便另存为 ANSI 吗?\r\n单击确定将运行记事本程序，取消退出。",
-                    "读取VBA文件", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning);
-                if (result == DialogResult.OK)
-                {
-                    try { Process.Start("notepad", vbaFile); }
-                    catch (Exception ex) { Debug.WriteLine(ex.Message); }
-                }
-                return false;
+                return RejectVbaFile(vbaFile,
+                    "您所选文件为 " + encoding.WebName + " 编码，Word VBA 只支持 ANSI(简体中文 GB2312)，" +
+                    "请另存为 ANSI 后再运行。");
+            }
+
+            // VBA 以 CR 断行：LF 行尾的文件会被 AddFromFile 解析成一行，报的错误莫名其妙，不如在这里说清楚
+            byte[] bytes = File.ReadAllBytes(vbaFile);
+            int cr = 0, lf = 0;
+            for (int i = 0; i < bytes.Length; i++)
+            {
+                if (bytes[i] == 0x0A) lf++;
+                else if (bytes[i] == 0x0D) cr++;
+            }
+            if (lf > 0 && cr != lf)
+            {
+                return RejectVbaFile(vbaFile,
+                    "您所选文件的行尾不是 Windows(CRLF) 格式，VBA 会把整个文件解析成一行。");
             }
             return true;
+        }
+
+        private bool RejectVbaFile(string vbaFile, string reason)
+        {
+            var result = MessageBox.Show(
+                reason + "\r\n要用记事本打开以便修改吗?\r\n单击确定将运行记事本程序，取消退出。",
+                "读取VBA文件", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning);
+            if (result == DialogResult.OK)
+            {
+                try { Process.Start("notepad", vbaFile); }
+                catch (Exception ex) { Debug.WriteLine(ex.Message); }
+            }
+            return false;
         }
 
         private void AddVbaHistory(string vbaFile)
