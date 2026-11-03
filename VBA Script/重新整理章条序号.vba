@@ -49,17 +49,37 @@ Function ProcessHeading(typeChar As String) As Boolean
     ProcessHeading = (counter > 1)
 End Function
 
-' 整数→中文数字（支持1~99）
+' 整数→中文数字（支持0~9999）
 Function IntegerToChinese(num As Integer) As String
-    Dim units As Variant
-    units = Array("零", "一", "二", "三", "四", "五", "六", "七", "八", "九", "十")
-    If num <= 10 Then
-        IntegerToChinese = units(num)
-    ElseIf num < 20 Then
-        IntegerToChinese = "十" & units(num - 10)
-    ElseIf num Mod 10 = 0 Then
-        IntegerToChinese = units(num \ 10) & "十"
-    Else
-        IntegerToChinese = units(num \ 10) & "十" & units(num Mod 10)
+    Dim digits As Variant, bigUnits As Variant
+    Dim n As Integer, unit As Integer, d As Integer
+    Dim result As String, needZero As Boolean
+    digits = Array("零", "一", "二", "三", "四", "五", "六", "七", "八", "九")
+    bigUnits = Array("", "十", "百", "千")
+    ' 原来只查 1~99 的表, 数到第 100 条时下标越界, 宏中断而文档已改了一半
+    If num < 0 Or num > 9999 Then
+        IntegerToChinese = CStr(num)
+        Exit Function
     End If
+    If num = 0 Then
+        IntegerToChinese = "零"
+        Exit Function
+    End If
+    n = num
+    Do While n > 0
+        d = n Mod 10
+        If d = 0 Then
+            If result <> "" Then needZero = True
+        Else
+            If needZero Then
+                result = "零" & result
+                needZero = False
+            End If
+            result = digits(d) & bigUnits(unit) & result
+        End If
+        n = n \ 10
+        unit = unit + 1
+    Loop
+    If num < 100 And Left(result, 2) = "一十" Then result = Mid(result, 2)
+    IntegerToChinese = result
 End Function
