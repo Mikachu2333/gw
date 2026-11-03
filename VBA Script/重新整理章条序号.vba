@@ -13,11 +13,17 @@
 
 ' 主程序：先章后条，各自从1开始顺序编号
 Sub 整理章条序号()
+    On Error GoTo Failed
     Application.ScreenUpdating = False
     Call ProcessHeading("章")
     Call ProcessHeading("条")
     Application.ScreenUpdating = True
     MsgBox "整理完成！", vbInformation
+    Exit Sub
+Failed:
+    ' 出错也要把屏幕刷新还回去, 否则 Word 卡在"不重绘"状态, 看起来像死掉了
+    Application.ScreenUpdating = True
+    MsgBox "整理章条序号时出错：" & Err.Description, vbCritical
 End Sub
 
 ' 通用处理函数：逐查找并替换，只处理段落开头的匹配
