@@ -1174,9 +1174,8 @@ After:
                         .TypeText Text:="附件"
                     End With
                     GoTo After
-                Else
-                    Stop
                 End If
+                ' 原来这里是调试用的 Stop, 会把宏卡在断点模式而文档已经改了一半; 不在表格里的分页符后没有可安全插入"附件"的位置, 跳过
             End If
         End With
     End If
