@@ -416,7 +416,7 @@ End Function
 
 Function Inscribe()
 '落款
-    Dim doc As Document, r As Range, arr, TextSize&, Base!, lenUnit&, k&
+    Dim doc As Document, r As Range, arr, TextSize&, Base!, lenUnit&, k&, arrIdx&
 
     Set doc = ActiveDocument
 
@@ -516,7 +516,11 @@ Function Inscribe()
                 Else
                     arr = Array(1.2, 1.7, 7.85, 4.85, 2.75, 3.35, 8.55, 7.15, 5.15, 5.65, 6.25, 6.75, 7.15, 7.75, 8.35, 8.4, 9.3, 10.45, 11.35, 12.45, 13.45, 14.45, 15.45, 16.45)
                 End If
-                .ParagraphFormat.CharacterUnitFirstLineIndent = Base - arr(lenUnit - 2)
+                ' 长单位名(>25字)时 lenUnit-2 会越过 arr 的最后一个下标, 整个排版宏在半成品上中断, 所以先把下标夹在数组范围内
+                arrIdx = lenUnit - 2
+                If arrIdx < LBound(arr) Then arrIdx = LBound(arr)
+                If arrIdx > UBound(arr) Then arrIdx = UBound(arr)
+                .ParagraphFormat.CharacterUnitFirstLineIndent = Base - arr(arrIdx)
 
                 'date-indent
                 With .Next(4, 1).ParagraphFormat
