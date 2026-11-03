@@ -19,6 +19,7 @@ Sub 图片批量转PPT()
     Dim i As Integer
     Dim imagePath As String
     Dim savePath As String
+    Dim saveDir As String
     Dim slideWidth As Single
     Dim slideHeight As Single
     
@@ -76,6 +77,17 @@ Sub 图片批量转PPT()
             GoTo CleanUp
         End If
     End With
+
+    ' 此前幻灯片只留在 PowerPoint 窗口里、从不落盘(savePath 形同虚设), 用户一关窗口就全丢了
+    If i > 0 Then
+        imagePath = CStr(fd.SelectedItems(1))
+        saveDir = Left(imagePath, InStrRev(imagePath, "\") - 1)
+        savePath = saveDir & "\图片合集.pptx"
+        pptPres.SaveAs savePath, 24     ' 24 = ppSaveAsOpenXMLPresentation
+        MsgBox "已用 " & i & " 张图片生成幻灯片并保存到：" & vbCrLf & savePath, vbInformation
+    Else
+        MsgBox "没有成功添加任何图片。", vbExclamation
+    End If
     
 CleanUp:
     ' 清理对象
