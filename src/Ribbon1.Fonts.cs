@@ -239,12 +239,16 @@ namespace 公文排版
         {
             try
             {
-                WordApp.Selection.Find.ClearFormatting();
-                WordApp.Selection.Find.Font.NameFarEast = oldFont;
-                WordApp.Selection.Find.Replacement.ClearFormatting();
-                WordApp.Selection.Find.Replacement.Font.NameFarEast = newFont;
-                WordApp.Selection.Find.Execute("", false, false, false, false, false, true,
-                    MSWord.WdFindWrap.wdFindContinue, true, "", MSWord.WdReplace.wdReplaceAll);
+                // 全文替换字体一次涉及成百上千处，不进撤销记录用户只能一处一处回退
+                WithUndo("替换字体：" + oldFont + " → " + newFont, () =>
+                {
+                    WordApp.Selection.Find.ClearFormatting();
+                    WordApp.Selection.Find.Font.NameFarEast = oldFont;
+                    WordApp.Selection.Find.Replacement.ClearFormatting();
+                    WordApp.Selection.Find.Replacement.Font.NameFarEast = newFont;
+                    WordApp.Selection.Find.Execute("", false, false, false, false, false, true,
+                        MSWord.WdFindWrap.wdFindContinue, true, "", MSWord.WdReplace.wdReplaceAll);
+                });
                 WordApp.StatusBar = String.Format("字体{0}已替换为{1}.", oldFont, newFont);
             }
             catch (Exception ex)
