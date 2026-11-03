@@ -154,7 +154,9 @@ namespace 公文排版
                     using (var img = Image.FromStream(st))
                     using (var bmp = img.Width > img.Height ? new Bitmap(img, 1754, 1240) : new Bitmap(img, 1240, 1754))
                     {
-                        bmp.Save(string.Format(oldFile + "_{0}.png", i), ImageFormat.Png);
+                        // 文档名可以合法包含 '{' 或 '}'，把它们拼进格式串会让 string.Format
+                        // 抛 FormatException（"输入字符串的格式不正确"），整批导出中断
+                        bmp.Save(oldFile + "_" + i + ".png", ImageFormat.Png);
                     }
                 }
                 WordApp.StatusBar = "文字转图片已完成,请在打开的文件夹中查看";
@@ -196,7 +198,7 @@ namespace 公文排版
                                 g.Clear(Color.White);
                                 g.DrawImage(img, 0, 0, w, h);
                             }
-                            b.Save(string.Format(oldFile + "_{0}.jpg", i), ImageFormat.Jpeg);
+                            b.Save(oldFile + "_" + i + ".jpg", ImageFormat.Jpeg);
                         }
                     }
                 }
