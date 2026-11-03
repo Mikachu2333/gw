@@ -116,92 +116,6 @@ namespace 公文排版
             finally { WordApp.ScreenUpdating = true; }
         }
 
-        private void splitDocBySection()
-        {
-            MSWord.Document olddoc = WordApp.ActiveDocument;
-            if (olddoc.Sections.Count <= 1)
-            {
-                MessageBox.Show("拆分文档前请插入分节符!", "小恐龙公文排版助手:拆分文档",
-                    MessageBoxButtons.OK, MessageBoxIcon.Information);
-                return;
-            }
-            try
-            {
-                WordApp.CommandBars["Office Clipboard"].Visible = true;
-                WordApp.CommandBars["Office Clipboard"].Visible = false;
-            }
-            catch
-            {
-                MessageBox.Show("Office 功能不完整(比如精简版、绿色版）,拆分文档将无法继续!",
-                    "拆分文档遇到错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                return;
-            }
-            int j = olddoc.Sections.Count + 1;
-            for (int i = 1; i < j; i++)
-            {
-                olddoc.Sections[i].Range.Copy();
-                MSWord.Document newdoc = WordApp.Documents.Add();
-                newdoc.Content.PasteAndFormat(MSWord.WdRecoveryType.wdFormatOriginalFormatting);
-                newdoc.PageSetup = olddoc.Sections[i].PageSetup;
-                WordReplace(false, "^b", "");
-            }
-        }
-
-        private void SaveSelect()
-        {
-            using (var sfd = new SaveFileDialog())
-            {
-                sfd.AddExtension = true;
-                sfd.Title = "将所选内容保存为可编辑的新文档";
-                string fname = "新文档";
-                try
-                {
-                    fname = WordApp.Selection.Range.Paragraphs[1].Range.Text;
-                    fname = System.Text.RegularExpressions.Regex.Replace(fname, @"[^a-zA-Z0-9\u4e00-\u9fa5\s]", "");
-                    fname = fname.Replace("\n", "").Replace(" ", "").Replace("\t", "").Replace("\r", "")
-                        .Replace("\\", "").Replace("*", "").Replace("?", "").Replace(">", "")
-                        .Replace("/", "").Replace("<", "").Replace("|", "").Replace("\"", "").Replace(":", "");
-                    if (fname.Length > 20) fname = fname.Substring(0, 20);
-                }
-                finally { sfd.FileName = fname; }
-
-                sfd.DefaultExt = ".docx";
-                sfd.Filter = "Word文档(*.docx)|*.docx|标准 HTML 文档(*.htm)|*.htm|" +
-                    "单一 HTML 文档(*.mht)|*.mht|Word XML 文档(*.xml)|*.xml|文本文档(*.txt)|*.txt";
-                if (sfd.ShowDialog() != DialogResult.OK) return;
-
-                WordApp.StatusBar = "正在将所选内容存为可编辑的新文档... ";
-                int wf;
-                switch (sfd.FilterIndex)
-                {
-                    case 1: wf = 16; break;
-                    case 2: wf = 8; break;
-                    case 3: wf = 9; break;
-                    case 4: wf = 12; break;
-                    case 5: wf = 2; break;
-                    default: wf = 16; break;
-                }
-                try
-                {
-                    WordApp.Selection.Range.ExportFragment(sfd.FileName, (MSWord.WdSaveFormat)wf);
-                    WordApp.StatusBar = "所选内容已保存!";
-                    WordApp.Documents.Open(sfd.FileName);
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show(ex.Message + "\r\n" + ex.Source);
-                    WordApp.StatusBar = "";
-                }
-            }
-        }
-
-        private void SaveAsLongPic()
-        {
-            // 保留实验方法,不建议使用
-            MessageBox.Show("该功能不稳定,已停用.", "小恐龙公文排版助手",
-                MessageBoxButtons.OK, MessageBoxIcon.Information);
-        }
-
         private void BtnSelectSharp_Click(object sender, RibbonControlEventArgs e)
         {
             SelectShape();
@@ -237,7 +151,6 @@ namespace 公文排版
 
         private void btnSelectCurrentPage_Click(object sender, RibbonControlEventArgs e) => selectCurrentPage();
         private void BtnHeadDelete_Click(object sender, RibbonControlEventArgs e) => delPageHeader();
-        private void btnSplit_Click(object sender, RibbonControlEventArgs e) => splitDocBySection();
         private void btnSharp2Top_Click(object sender, RibbonControlEventArgs e) => ConverUnderShape();
         private void btnSharp2OnText_Click(object sender, RibbonControlEventArgs e) => ConverSharp();
         private void btnSharp2Wrapping_Click(object sender, RibbonControlEventArgs e) => ConverSharp(2);
