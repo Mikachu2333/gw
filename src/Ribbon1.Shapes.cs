@@ -247,28 +247,47 @@ namespace 公文排版
         {
             try
             {
-                if (!WordApp.ActiveDocument.Saved) return;
-                string docPath = WordApp.ActiveDocument.FullName;
+                MSWord.Document doc = WordApp.ActiveDocument;
+                // 判据是"有没有落盘位置"，不是"有没有改动"：改过内容的已保存文档同样 !Saved，
+                // 原先会被直接挡掉，而且一声不响。
+                if (string.IsNullOrEmpty(doc.Path))
+                {
+                    MessageBox.Show("文档还没有保存，没有可以定位的文件夹。", "打开文档所在文件夹",
+                        MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    return;
+                }
+                string docPath = doc.FullName;
                 var uriFile = new Uri(docPath);
                 if (uriFile.IsFile)
                 {
-                    Process.Start(@"explorer.exe", "/select,\"" + docPath + "\"");
+                    Process.Start("explorer.exe", "/select,\"" + docPath + "\"");
+                    return;
                 }
-                else
+
+                // 网上位置（OneDrive/SharePoint）：去掉 scheme、主机、账号段后映射到本地同步目录
+                string oneDriveRoot = Environment.GetEnvironmentVariable("OneDrive");
+                if (string.IsNullOrEmpty(oneDriveRoot))
                 {
-                    string shortName = docPath;
-                    for (int i = 0; i < 4; i++)
-                    {
-                        int index = shortName.IndexOf('/');
-                        if (index >= 0)
-                        {
-                            shortName = shortName.Substring(index + 1);
-                            docPath = Environment.GetEnvironmentVariable("OneDrive") + "/" + shortName;
-                            docPath = docPath.Replace("/", "\\");
-                        }
-                    }
-                    Process.Start(@"explorer.exe", "/select,\"" + docPath + "\"");
+                    MessageBox.Show("文档位于网上位置，但本机没有 OneDrive 同步目录，无法定位。\r\n" + docPath,
+                        "打开文档所在文件夹", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                    return;
                 }
+                string shortName = docPath;
+                for (int i = 0; i < 4; i++)
+                {
+                    int index = shortName.IndexOf('/');
+                    if (index < 0) break;
+                    shortName = shortName.Substring(index + 1);
+                }
+                string localPath = System.IO.Path.Combine(oneDriveRoot, shortName.Replace('/', '\\'));
+                // URL 层数与本地目录不是永远一一对应，对不上时说明清楚，别让资源管理器打开一个不相干的文件夹
+                if (!System.IO.File.Exists(localPath))
+                {
+                    MessageBox.Show("未能在本机 OneDrive 目录中找到该文档的本地副本，无法定位。\r\n" + localPath,
+                        "打开文档所在文件夹", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                    return;
+                }
+                Process.Start("explorer.exe", "/select,\"" + localPath + "\"");
             }
             catch (UriFormatException ex)
             {
