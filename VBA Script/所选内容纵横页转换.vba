@@ -30,4 +30,4 @@ Sub 所选内容纵横转换()
             If .Orientation = wdOrientPortrait Then .Orientation = wdOrientLandscape Else .Orientation = wdOrientPortrait
         End With
     End With
-End Function
+End Sub
