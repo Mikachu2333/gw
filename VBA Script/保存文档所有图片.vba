@@ -13,22 +13,19 @@
 '源脚本为QQ1722187970, 我做了简单修改.
 '将所有图片保存为文档同路径下 emf图片'
 
-Sub 保存所有图片()
-    
+Const adTypeBinary = 1     ' 二进制
+Const adSaveCreateOverWrite = 2   ' 覆盖写入
+
+Sub 保存所有图片()    
     
     On Error Resume Next
     
-    Const adTypeBinary = 1
-    '默认文本数据
-    Const adTypeText = 2
-    '指定保存到文件时不覆盖，只新建
-    Const adSaveCreateNotExist = 1
-    '指定保存到文件时覆盖原文件，没有则新建
-    Const adSaveCreateOverWrite = 2
     
     Dim oStream As Object
-    Dim arr() As Byte
     Set oStream = VBA.CreateObject("adodb.stream")
+    Dim i As Long
+    Dim nOK As Long
+    Dim nBad As Long
     i = 1
     Dim oDoc As Document
     Set oDoc = Word.ActiveDocument
@@ -47,28 +44,43 @@ Sub 保存所有图片()
     With oDoc
         For Each oSP In .Shapes
             oSP.Select
-            arr = Word.Selection.EnhMetaFileBits
-            With oStream
-                .Open
-                .Type = adTypeBinary
-                .Write arr
-                .SaveToFile sPath & i & ".emf", adSaveCreateOverWrite
-                .Close
-            End With
+            If 写EMF(oStream, Word.Selection.EnhMetaFileBits, sPath & i & ".emf") Then
+                nOK = nOK + 1
+            Else
+                nBad = nBad + 1
+            End If
             i = i + 1
         Next
         For Each oInLineSp In .InlineShapes
-            arr = oInLineSp.Range.EnhMetaFileBits
-            With oStream
-                .Open
-                .Type = adTypeBinary
-                .Write arr
-                .SaveToFile sPath & i & ".emf", adSaveCreateOverWrite
-                .Close
-            End With
+            If 写EMF(oStream, oInLineSp.Range.EnhMetaFileBits, sPath & i & ".emf") Then
+                nOK = nOK + 1
+            Else
+                nBad = nBad + 1
+            End If
             i = i + 1
         Next
     End With
-    Shell "explorer.exe " & oDoc.Path, vbMaximizedFocus
-    
+    Set oStream = Nothing
+    If nBad = 0 Then
+        MsgBox "已导出 " & nOK & " 个图形为 EMF。", vbInformation
+    Else
+        MsgBox "已导出 " & nOK & " 个图形，另有 " & nBad & " 个取不到图元，无法导出。", vbExclamation
+    End If
+    ' 路径含空格时不加引号会打开成别的目录
+    Shell "explorer.exe """ & oDoc.Path & """", vbMaximizedFocus    
 End Sub
+' 单个图形取不到 EMF 或写入失败时如实回报 False; 原来整段 On Error Resume Next 静默跳过, 用户只看到莫名少了几个文件
+Function 写EMF(oStream As Object, bits As Variant, fPath As String) As Boolean
+    On Error GoTo 写入失败
+    With oStream
+        .Open
+        .Type = adTypeBinary
+        .Write bits
+        .SaveToFile fPath, adSaveCreateOverWrite
+        .Close
+    End With
+    写EMF = True
+    Exit Function
+写入失败:
+    写EMF = False
+End Function
