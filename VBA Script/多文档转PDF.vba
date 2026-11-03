@@ -27,6 +27,7 @@ Sub 多文档转PDF()
     Dim fullPath As String          ' 完整文件路径
     Dim fileNameWithoutExt As String ' 不含扩展名的文件名
     Dim lastDotPos As Long          ' 最后一个"."的位置
+    Dim 失败清单 As String           ' 转换失败的文件及原因
     
     ' 设置文件选择框：仅选Word文件
     With fDialog
@@ -53,10 +54,16 @@ Sub 多文档转PDF()
                         End If
                         
                         ' 直接拼接.pdf，强制带扩展名
+                        Err.Clear
                         wdDoc.SaveAs _
                             FileName:=fileNameWithoutExt & ".pdf", _
                             FileFormat:=wdFormatPDF
-                        i = i + 1 ' 计数+1
+                        ' 这段跑在 On Error Resume Next 下: 转换失败也照样计数, 报出来的成功数是虚高的
+                        If Err.Number = 0 Then
+                            i = i + 1
+                        Else
+                            失败清单 = 失败清单 & vbCrLf & fullPath & "：" & Err.Description
+                        End If
                         
                         wdDoc.Close SaveChanges:=False ' 关闭文档不保存
                         Set wdDoc = Nothing ' 释放内存
@@ -73,6 +80,10 @@ Sub 多文档转PDF()
     Application.DisplayAlerts = True
     
     ' 提示结果
-    MsgBox i & "个文档已转换为PDF", vbInformation
+    If 失败清单 = "" Then
+        MsgBox i & "个文档已转换为PDF", vbInformation
+    Else
+        MsgBox "成功转换 " & i & " 个文档, 以下文档转换失败:" & vbCrLf & 失败清单, vbExclamation
+    End If
 End Sub
 
