@@ -201,8 +201,18 @@ namespace 公文排版
                     break;
                 default:
                     err = "错误代码:" + ex.ErrorCode + "\r\n错误信息:" + ex.Message;
-                    Clipboard.SetText(err);
-                    err += "\r\n\r\n[错误信息已复制到剪贴板]";
+                    // 剪贴板可能被其他进程占用（CLIPBRD_E_CANT_OPEN），而此处已在 catch 内部：
+                    // 同级的其它 catch 不会再接住它，异常会直接冲出功能区回调。
+                    try
+                    {
+                        Clipboard.SetText(err);
+                        err += "\r\n\r\n[错误信息已复制到剪贴板]";
+                    }
+                    catch (Exception clipEx)
+                    {
+                        Debug.WriteLine("复制 VBA 错误信息失败: " + clipEx.Message);
+                        err += "\r\n\r\n[复制到剪贴板失败，请手动选中复制]";
+                    }
                     break;
             }
             MessageBox.Show(err, "执行VBA代码出错", MessageBoxButtons.OK, MessageBoxIcon.Information);
