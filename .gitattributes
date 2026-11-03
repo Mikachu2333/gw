@@ -1,19 +1,24 @@
-# 行尾策略：仓库内统一存 LF，签出时按下面的规则还原本地换行。
-# 不加这个文件的话，core.autocrlf=input 会让每个被工具改过的 .cs 在提交时
-# 悄悄把 CRLF 规范成 LF，制造与改动无关的整文件 diff。
+# 行尾策略：完全交给文件系统，禁止 git 做任何行尾转换。
+#
+# 原因：本仓库的历史 blob 本身就是 CRLF/LF 混合（初始上传提交未经过规范化），
+# 一旦启用 text=auto 或 eol=crlf，git 会在"下次触碰"某个文件时把整个文件换行重写，
+# 于是每次真实改动都附带几百行纯行尾 diff —— 实测已发生过一次
+# （一次约 40 行的改动在 git show --stat 里显示为 268 增 / 242 删）。
+# 用 -text 关掉规范化后，工作区字节与仓库字节一致，diff 只反映真实改动。
 
-*.cs        text eol=crlf
-*.csproj    text eol=crlf
-*.sln       text eol=crlf
-*.resx      text eol=crlf
-*.config    text eol=crlf
-*.settings  text eol=crlf
-*.xml       text eol=crlf
-*.ps1       text eol=crlf
-*.md        text eol=lf
+*.cs        -text
+*.csproj    -text
+*.sln       -text
+*.resx      -text
+*.config    -text
+*.settings  -text
+*.xml       -text
+*.ps1       -text
+*.md        -text
+*.txt       -text
 
-# VBA 脚本是 GB2312/ANSI 编码（加载项的编码门禁要求如此），
-# 绝不能被行尾或编码规范化改动 —— 一律按二进制处理。
+# 二进制资源：VBA 脚本必须是 GB2312/ANSI 且行尾由 VBA 读取，
+# 任何行尾/编码规范化都会改变 AddFromFile 实际读到的内容。
 *.vba       binary
 *.bas       binary
 *.dotx      binary
@@ -21,4 +26,4 @@
 *.png       binary
 *.gif       binary
 *.jpg       binary
-*.svg       text
+*.svg       -text
