@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Diagnostics;
 using System.IO;
@@ -223,25 +224,54 @@ namespace 公文排版
             {
                 MSWord.Document doc = WordApp.ActiveDocument;
                 VBComponents vbcs = doc.VBProject.VBComponents;
+
+                // VBProject 的改动不进 Word 撤销栈，删掉的宏无法找回，
+                // 所以必须先列清单、经用户确认，再动手。
+                var removeComponents = new List<VBComponent>();
+                var wipeModules = new List<VBComponent>();
                 var names = new StringBuilder();
 
                 for (int i = vbcs.Count; i >= 1; i--)
                 {
                     VBComponent vbc = vbcs.Item(i);
-                    names.AppendLine(vbc.Name);
+                    int lineCount = vbc.CodeModule.CountOfLines;
                     switch (vbc.Type)
                     {
                         case vbext_ComponentType.vbext_ct_StdModule:
                         case vbext_ComponentType.vbext_ct_ClassModule:
                         case vbext_ComponentType.vbext_ct_MSForm:
-                            vbcs.Remove(vbc);
+                            removeComponents.Add(vbc);
+                            names.AppendLine("· " + vbc.Name + "（整个组件，" + lineCount + " 行）");
                             break;
-                        case vbext_ComponentType.vbext_ct_ActiveXDesigner:
                         case vbext_ComponentType.vbext_ct_Document:
-                            vbc.CodeModule.DeleteLines(1, vbc.CodeModule.CountOfLines);
+                        case vbext_ComponentType.vbext_ct_ActiveXDesigner:
+                            if (lineCount > 0)
+                            {
+                                wipeModules.Add(vbc);
+                                names.AppendLine("· " + vbc.Name + "（清空 " + lineCount + " 行代码）");
+                            }
                             break;
                     }
                 }
+
+                if (removeComponents.Count == 0 && wipeModules.Count == 0)
+                {
+                    MessageBox.Show("当前文档没有可清理的 VBA 代码。", "清理VBA代码",
+                        MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    return;
+                }
+
+                var confirm = MessageBox.Show(
+                    "即将清理文档“" + doc.Name + "”中的以下 VBA 内容：\r\n\r\n" + names +
+                    "\r\n此操作无法撤销，且文档会被标记为已修改。\r\n建议先另存一份副本。确定继续吗?",
+                    "清理VBA代码", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning);
+                if (confirm != DialogResult.OK) return;
+
+                foreach (VBComponent vbc in wipeModules)
+                    vbc.CodeModule.DeleteLines(1, vbc.CodeModule.CountOfLines);
+                foreach (VBComponent vbc in removeComponents)
+                    vbcs.Remove(vbc);
+
                 MessageBox.Show("当前文档中:\r\n" + names + "已清理", "清理VBA代码",
                     MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
