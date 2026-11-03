@@ -9,14 +9,16 @@
 '====================================================================
 '作者: 小恐龙
 '日期: 2026年7月14日
-'功能：直接将word文档转为扫描版pdf,需要用户自行下载 make-look-scanned,并修改112行代码来指定程序路径.
+'功能：直接将word文档转为扫描版pdf,需要用户自行下载 make-look-scanned.
+'       默认程序路径不存在时会弹出文件选择框, 由用户指定 make-look-scanned.exe.
 '下载地址: https://github.com/overflowy/make-look-scanned
 
 
+Option Explicit    '强制声明变量, 避免把拼错的变量名当成新变量
 Sub ConvertCurrentDocToScannedPDF()
     On Error GoTo ErrorHandler
 
-    Dim docPath As String, docDir As String, docBaseName As String
+    Dim docDir As String, docBaseName As String
     Dim tempPDF As String, outputPDF As String
     Dim exePath As String
     Dim wsh As Object
@@ -24,7 +26,6 @@ Sub ConvertCurrentDocToScannedPDF()
     Dim skew As String, noise As String, grayscale As String, paperTone As String
     Dim blur As String, edgeShadow As String, jpegQuality As String, dpi As String
     Dim cmd As String
-    Dim saveAsDialog As FileDialog
 
     ' ----- 1. 确保当前文档已保存 -----
     If ActiveDocument.Path = "" Then
@@ -42,33 +43,33 @@ Sub ConvertCurrentDocToScannedPDF()
     End If
 
     ' 获取文档信息
-    docPath = ActiveDocument.FullName
     docDir = ActiveDocument.Path
     docBaseName = Left(ActiveDocument.Name, InStrRev(ActiveDocument.Name, ".") - 1)
 
     ' ----- 2. 用户输入各参数（默认值保持不变）-----
-    skew = InputBox("请输入倾斜度 (skew)，默认 0.6：", "参数设置", "0.6")
+    ' 这些值会被原样拼进命令行, 带空格或 & 的输入会把参数拆断甚至再执行一条命令, 所以只收数字和 true/false
+    skew = AskNumber("请输入倾斜度 (skew)，默认 0.6：", "0.6")
     If skew = "" Then Exit Sub
 
-    noise = InputBox("请输入噪点强度 (noise)，默认 0.08：", "参数设置", "0.08")
+    noise = AskNumber("请输入噪点强度 (noise)，默认 0.08：", "0.08")
     If noise = "" Then Exit Sub
 
-    grayscale = InputBox("是否灰度化 (grayscale) true / false，默认 false：", "参数设置", "false")
+    grayscale = AskBool("是否灰度化 (grayscale) true / false，默认 false：")
     If grayscale = "" Then Exit Sub
 
-    paperTone = InputBox("请输入纸张色调 (paper-tone)，默认 0：", "参数设置", "0")
+    paperTone = AskNumber("请输入纸张色调 (paper-tone)，默认 0：", "0")
     If paperTone = "" Then Exit Sub
 
-    blur = InputBox("请输入模糊程度 (blur)，默认 0.1：", "参数设置", "0.1")
+    blur = AskNumber("请输入模糊程度 (blur)，默认 0.1：", "0.1")
     If blur = "" Then Exit Sub
 
-    edgeShadow = InputBox("请输入边缘阴影 (edge-shadow)，默认 0.05：", "参数设置", "0.05")
+    edgeShadow = AskNumber("请输入边缘阴影 (edge-shadow)，默认 0.05：", "0.05")
     If edgeShadow = "" Then Exit Sub
 
-    jpegQuality = InputBox("请输入 JPEG 质量 (jpeg-quality)，默认 80：", "参数设置", "80")
+    jpegQuality = AskNumber("请输入 JPEG 质量 (jpeg-quality)，默认 80：", "80")
     If jpegQuality = "" Then Exit Sub
 
-    dpi = InputBox("请输入分辨率 (dpi)，默认 300：", "参数设置", "300")
+    dpi = AskNumber("请输入分辨率 (dpi)，默认 300：", "300")
     If dpi = "" Then Exit Sub
 
     ' ----- 3. 指定输出 PDF 路径（可自定义，留空则自动生成）-----
@@ -152,7 +153,7 @@ Sub ConvertCurrentDocToScannedPDF()
         wsh.Run """" & outputPDF & """", 1, False
         MsgBox "转换完成！已打开生成的扫描版 PDF。", vbInformation
     Else
-        MsgBox "转换完成，但未找到输出文件：" & outputPDF & vbCrLf & "请手动检查。", vbWarning
+        MsgBox "转换完成，但未找到输出文件：" & outputPDF & vbCrLf & "请手动检查。", vbExclamation
     End If
 
 CleanUp:
@@ -166,3 +167,29 @@ ErrorHandler:
     MsgBox "发生错误：" & vbCrLf & Err.Description, vbCritical
     Resume CleanUp
 End Sub
+
+Function AskNumber(prompt As String, defaultValue As String) As String
+    Dim answer As String
+    answer = InputBox(prompt, "参数设置", defaultValue)
+    If answer = "" Then
+        AskNumber = ""
+    ElseIf Not IsNumeric(answer) Then
+        MsgBox "这里只能填数字，您输入的是：" & answer, vbExclamation, "参数设置"
+        AskNumber = ""
+    Else
+        AskNumber = answer
+    End If
+End Function
+
+Function AskBool(prompt As String) As String
+    Dim answer As String
+    answer = InputBox(prompt, "参数设置", "false")
+    If LCase(answer) = "true" Then
+        AskBool = "true"
+    ElseIf LCase(answer) = "false" Then
+        AskBool = "false"
+    ElseIf answer <> "" Then
+        MsgBox "这里只能填 true 或 false，您输入的是：" & answer, vbExclamation, "参数设置"
+        AskBool = ""
+    End If
+End Function
