@@ -146,6 +146,7 @@ namespace 公文排版
         private void btnSaveAsPic_Click(object sender, RibbonControlEventArgs e)
         {
             if (!EnsureDocumentSaved("生成PNG副本提示")) return;
+            int done = 0;
             try
             {
                 string fp = WordApp.ActiveDocument.Path;
@@ -164,6 +165,7 @@ namespace 公文排版
                         // 文档名可以合法包含 '{' 或 '}'，把它们拼进格式串会让 string.Format
                         // 抛 FormatException（"输入字符串的格式不正确"），整批导出中断
                         bmp.Save(oldFile + "_" + i + ".png", ImageFormat.Png);
+                        done++;
                     }
                 }
                 WordApp.StatusBar = "文字转图片已完成,请在打开的文件夹中查看";
@@ -171,7 +173,11 @@ namespace 公文排版
             }
             catch (Exception ex)
             {
-                WordApp.StatusBar = ex.Message;
+                // 原先只把错误写进状态栏：状态栏会被后续操作覆盖，
+                // 用户往往以为整批完成了，实际只导出了一部分页面
+                MessageBox.Show(ex.Message + Environment.NewLine + Environment.NewLine +
+                    "已导出 " + done + " 页，本次转换中断。",
+                    "文字转图片失败", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
             }
         }
 
@@ -181,6 +187,7 @@ namespace 公文排版
             try { dpi = Properties.Settings.Default.DPI; } catch { }
 
             if (!EnsureDocumentSaved("生成JPG副本提示")) return;
+            int done = 0;
             try
             {
                 string fp = WordApp.ActiveDocument.Path;
@@ -206,6 +213,7 @@ namespace 公文排版
                                 g.DrawImage(img, 0, 0, w, h);
                             }
                             b.Save(oldFile + "_" + i + ".jpg", ImageFormat.Jpeg);
+                            done++;
                         }
                     }
                 }
@@ -214,7 +222,11 @@ namespace 公文排版
             }
             catch (Exception ex)
             {
-                WordApp.StatusBar = ex.Message;
+                // 原先只把错误写进状态栏：状态栏会被后续操作覆盖，
+                // 用户往往以为整批完成了，实际只导出了一部分页面
+                MessageBox.Show(ex.Message + Environment.NewLine + Environment.NewLine +
+                    "已导出 " + done + " 页，本次转换中断。",
+                    "文字转图片失败", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
             }
         }
 
