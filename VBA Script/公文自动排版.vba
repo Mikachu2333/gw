@@ -568,14 +568,17 @@ Function Inscribe()
         If .Found = True Then
             With .Parent
                 .MoveStart
-                Do
+                ' 逐段扩张直到遇见空段落; 原来用 Do...Loop Until 没有边界, 文档里没有空段时 .MoveEnd 走到头就不再前进, 循环永远不满足, Word 直接卡死
+                Do While .End < doc.Content.End And InStr(.Text, vbCr & vbCr) = 0
                     .MoveEnd 4
-                Loop Until .Text Like "*" & vbCr & vbCr
-                .MoveEnd 1, -1
-                .InsertParagraphBefore
-                .MoveStart
-                oBefore = 1
-                Set myRange = r
+                Loop
+                If InStr(.Text, vbCr & vbCr) > 0 Then
+                    .MoveEnd 1, -1
+                    .InsertParagraphBefore
+                    .MoveStart
+                    oBefore = 1
+                    Set myRange = r
+                End If
             End With
         End If
     End With
