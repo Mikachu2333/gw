@@ -53,9 +53,7 @@ namespace 公文排版
         {
             bool s;
             if (!TryGetScope("断句重排", out s)) return;
-            WordApp.ScreenUpdating = false;
-            WordReplace(true, "([!。：！？])^13@", "\\1", s);
-            WordApp.ScreenUpdating = true;
+            WithUndo("断句重排", () => WordReplace(true, "([!。：！？])^13@", "\\1", s), suspendScreen: true);
         }
 
         private void btnFormatDelEmptyLine_Click(object sender, RibbonControlEventArgs e)
@@ -131,28 +129,25 @@ namespace 公文排版
         {
             bool s;
             if (!TryGetScope("删除空白", out s)) return;
-            WordApp.ScreenUpdating = false;
-            WordReplace(false, "^w", "", s);
-            WordReplace(false, "　", "", s);
-            WordApp.ScreenUpdating = true;
+            WithUndo("删除空白", () =>
+            {
+                WordReplace(false, "^w", "", s);
+                WordReplace(false, "　", "", s);
+            }, suspendScreen: true);
         }
 
         private void btnFormatR2N_Click(object sender, RibbonControlEventArgs e)
         {
             bool s;
             if (!TryGetScope("换行符转回车", out s)) return;
-            WordApp.ScreenUpdating = false;
-            WordReplace(false, "^l", "^p", s);
-            WordApp.ScreenUpdating = true;
+            WithUndo("换行符转回车", () => WordReplace(false, "^l", "^p", s), suspendScreen: true);
         }
 
         private void btnFormatDelGraphic_Click(object sender, RibbonControlEventArgs e)
         {
             bool s;
             if (!TryGetScope("删除图形", out s)) return;
-            WordApp.ScreenUpdating = false;
-            WordReplace(false, "^g", "", s);
-            WordApp.ScreenUpdating = true;
+            WithUndo("删除图形", () => WordReplace(false, "^g", "", s), suspendScreen: true);
         }
 
         private void btnFormatRemoveURL_Click(object sender, RibbonControlEventArgs e)
@@ -174,67 +169,85 @@ namespace 公文排版
         {
             bool s;
             if (!TryGetScope("删除半角空格", out s)) return;
-            WordApp.ScreenUpdating = false;
-            WordReplace(false, " ", "", s);
-            WordApp.ScreenUpdating = true;
+            WithUndo("删除半角空格", () => WordReplace(false, " ", "", s), suspendScreen: true);
         }
 
         private void btnFormatAddSpace_Click(object sender, RibbonControlEventArgs e)
         {
             bool s;
             if (!TryGetScope("中英文之间加空格", out s)) return;
-            WordApp.ScreenUpdating = false;
-            WordReplace(true, "([A-Za-z])([㐀-﨩])", "\\1 \\2", s);
-            WordReplace(true, "([㐀-﨩])([A-Za-z])", "\\1 \\2", s);
-            WordApp.ScreenUpdating = true;
+            WithUndo("中英文之间加空格", () =>
+            {
+                WordReplace(true, "([A-Za-z])([㐀-﨩])", "\\1 \\2", s);
+                WordReplace(true, "([㐀-﨩])([A-Za-z])", "\\1 \\2", s);
+            }, suspendScreen: true);
         }
 
         private void btnFormatE2C_Click(object sender, RibbonControlEventArgs e)
         {
             bool s;
             if (!TryGetScope("标点符号(英转中)", out s)) return;
-            WordApp.ScreenUpdating = false;
-
-            string strFind = "([!0-9])\\.([!0-9])";
-            string strRep = "\\1。\\2";
-            WordReplace(true, strFind, strRep, s);
-
-            string[] eArray = { ",", ";", ":", "?", "!", "-", "~", "(", ")", "[", "]" };
-            string[] cArray = { "，", "；", "：", "？", "！", "—", "～", "（", "）", "［", "］" };
-            for (int i = 0; i < eArray.Length; i++)
-                WordReplace(false, eArray[i], cArray[i], s);
-
-            if (!IsWps)
+            WithUndo("标点符号(英转中)", () =>
             {
-                strFind = "\"(*)\"";
-                strRep = "“\\1”";
+                string strFind = "([!0-9])\\.([!0-9])";
+                string strRep = "\\1。\\2";
                 WordReplace(true, strFind, strRep, s);
-            }
-            WordApp.ScreenUpdating = true;
+
+                string[] eArray = { ",", ";", ":", "?", "!", "-", "~", "(", ")", "[", "]" };
+                string[] cArray = { "，", "；", "：", "？", "！", "—", "～", "（", "）", "［", "］" };
+                for (int i = 0; i < eArray.Length; i++)
+                    WordReplace(false, eArray[i], cArray[i], s);
+
+                // WPS 的查找替换对成对引号处理不同，跳过以免误替换
+                if (!IsWps)
+                {
+                    strFind = "\"(*)\"";
+                    strRep = "“\\1”";
+                    WordReplace(true, strFind, strRep, s);
+                }
+            }, suspendScreen: true);
         }
 
         private void btnFormatC2E_Click(object sender, RibbonControlEventArgs e)
         {
+            // 临时关闭的自动更正选项必须在转换结束后恢复，否则用户的全局设置被永久改掉
+            bool quotesChanged = false;
             if (WordApp.Options.AutoFormatAsYouTypeReplaceQuotes)
             {
                 string text = "Word自动更正选项中,已开启输入直引号自动更正为弯引号." +
                     "\r\n此功能将影响中文引号的转换.要关闭此选项并开始转换吗?" +
-                    "\r\n\r\n点击\"是\"将关闭该自动更正选项并转换.\r\n点击\"否\"将直接转换,引号可能被Word自动更正." +
+                    "\r\n\r\n点击\"是\"将临时关闭该自动更正选项并转换,转换完成后自动恢复.\r\n点击\"否\"将直接转换,引号可能被Word自动更正." +
                     "\r\n点击\"取消\"退出该操作.";
                 var dr = MessageBox.Show(text, "中文标点符号转为英文", MessageBoxButtons.YesNoCancel, MessageBoxIcon.Question);
-                if (dr == DialogResult.Yes) WordApp.Options.AutoFormatAsYouTypeReplaceQuotes = false;
+                if (dr == DialogResult.Yes)
+                {
+                    WordApp.Options.AutoFormatAsYouTypeReplaceQuotes = false;
+                    quotesChanged = true;
+                }
                 else if (dr == DialogResult.Cancel) return;
             }
 
             bool s;
-            if (!TryGetScope("标点符号(中转英)", out s)) return;
-            WordApp.ScreenUpdating = false;
+            if (!TryGetScope("标点符号(中转英)", out s))
+            {
+                if (quotesChanged) WordApp.Options.AutoFormatAsYouTypeReplaceQuotes = true;
+                return;
+            }
 
-            string[] cArray = { "。", "，", "；", "：", "？", "！", "—", "～", "（", "）", "［", "］", "“", "”", "‘", "’" };
-            string[] eArray = { ".", ",", ";", ":", "?", "!", "-", "~", "(", ")", "[", "]", "\"", "\"", "'", "'" };
-            for (int i = 0; i < cArray.Length; i++)
-                WordReplace(false, cArray[i], eArray[i], s);
-            WordApp.ScreenUpdating = true;
+            try
+            {
+                WithUndo("标点符号(中转英)", () =>
+                {
+                    string[] cArray = { "。", "，", "；", "：", "？", "！", "—", "～", "（", "）", "［", "］", "“", "”", "‘", "’" };
+                    string[] eArray = { ".", ",", ";", ":", "?", "!", "-", "~", "(", ")", "[", "]", "\"", "\"", "'", "'" };
+                    for (int i = 0; i < cArray.Length; i++)
+                        WordReplace(false, cArray[i], eArray[i], s);
+                }, suspendScreen: true);
+            }
+            finally
+            {
+                if (quotesChanged) WordApp.Options.AutoFormatAsYouTypeReplaceQuotes = true;
+            }
         }
 
         private void btnFormatFrame2txt_Click(object sender, RibbonControlEventArgs e) => Frame2txt();
@@ -246,9 +259,13 @@ namespace 公文排版
                 if (WordApp.Selection.ShapeRange.Count > 0)
                 {
                     MSWord.Shape sh = WordApp.Selection.ShapeRange[1];
-                    string t = sh.TextFrame.TextRange.Text;
-                    sh.Delete();
-                    WordApp.Selection.TypeText(t);
+                    // 线条、图片等形状没有文字，直接读 TextRange 会抛错
+                    if (sh.TextFrame != null && sh.TextFrame.HasText != 0)
+                    {
+                        string t = sh.TextFrame.TextRange.Text;
+                        sh.Delete();
+                        WordApp.Selection.TypeText(t);
+                    }
                 }
             });
         }
@@ -258,8 +275,9 @@ namespace 公文排版
             try { WordApp.Run("ParaPageBreakBefore"); }
             catch (Exception ex)
             {
-                MessageBox.Show(ex.Message + "\r\n\r\n" + ex.Source, "所选段落另起一页",
-                    MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                MessageBox.Show(ex.Message + "\r\n\r\n" + ex.Source +
+                    "\r\n\r\n本插件不自带 ParaPageBreakBefore 宏，请先在文档中定义该宏。",
+                    "所选段落另起一页", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
             }
         }
     }
