@@ -32,36 +32,63 @@ namespace 公文排版
         {
             try
             {
-                MSWord.ListTemplate myTemplate = WordApp.ActiveDocument.ListTemplates.Add();
-                myTemplate.ListLevels[1].TrailingCharacter = MSWord.WdTrailingCharacter.wdTrailingNone;
-                myTemplate.ListLevels[1].TextPosition = 0;
-                myTemplate.ListLevels[1].NumberPosition = 0;
-
                 int at = Convert.ToInt32(((RibbonButton)sender).Tag);
                 if (at <= 0) at = 1;
-                myTemplate.ListLevels[1].StartAt = at;
 
+                string numberFormat;
+                MSWord.WdListNumberStyle numberStyle;
+                MSWord.WdOutlineLevel outlineLevel;
                 switch (index)
                 {
-                    case 1:
-                        myTemplate.ListLevels[1].NumberStyle = MSWord.WdListNumberStyle.wdListNumberStyleSimpChinNum3;
-                        myTemplate.ListLevels[1].NumberFormat = "%1、";
-                        WordApp.Selection.ParagraphFormat.OutlineLevel = MSWord.WdOutlineLevel.wdOutlineLevel1;
-                        break;
                     case 2:
-                        myTemplate.ListLevels[1].NumberStyle = MSWord.WdListNumberStyle.wdListNumberStyleSimpChinNum3;
-                        myTemplate.ListLevels[1].NumberFormat = "（%1）";
-                        WordApp.Selection.ParagraphFormat.OutlineLevel = MSWord.WdOutlineLevel.wdOutlineLevel2;
+                        numberStyle = MSWord.WdListNumberStyle.wdListNumberStyleSimpChinNum3;
+                        numberFormat = "（%1）";
+                        outlineLevel = MSWord.WdOutlineLevel.wdOutlineLevel2;
                         break;
                     case 3:
-                        myTemplate.ListLevels[1].NumberFormat = "%1．";
-                        WordApp.Selection.ParagraphFormat.OutlineLevel = MSWord.WdOutlineLevel.wdOutlineLevel3;
+                        numberStyle = MSWord.WdListNumberStyle.wdListNumberStyleArabic;
+                        numberFormat = "%1．";
+                        outlineLevel = MSWord.WdOutlineLevel.wdOutlineLevel3;
                         break;
                     case 4:
-                        myTemplate.ListLevels[1].NumberFormat = "（%1）";
-                        WordApp.Selection.ParagraphFormat.OutlineLevel = MSWord.WdOutlineLevel.wdOutlineLevel4;
+                        numberStyle = MSWord.WdListNumberStyle.wdListNumberStyleArabic;
+                        numberFormat = "（%1）";
+                        outlineLevel = MSWord.WdOutlineLevel.wdOutlineLevel4;
+                        break;
+                    default:
+                        numberStyle = MSWord.WdListNumberStyle.wdListNumberStyleSimpChinNum3;
+                        numberFormat = "%1、";
+                        outlineLevel = MSWord.WdOutlineLevel.wdOutlineLevel1;
                         break;
                 }
+
+                // 原先每次点击都 ListTemplates.Add()：文档里的列表模板只增不减，
+                // 反复编号几十次后文件明显变大。定义相同的模板直接复用。
+                MSWord.ListTemplate myTemplate = null;
+                foreach (MSWord.ListTemplate t in WordApp.ActiveDocument.ListTemplates)
+                {
+                    MSWord.ListLevel lvl = t.ListLevels[1];
+                    if (lvl.NumberFormat == numberFormat && lvl.StartAt == at && lvl.NumberStyle == numberStyle &&
+                        lvl.TrailingCharacter == MSWord.WdTrailingCharacter.wdTrailingNone &&
+                        lvl.TextPosition == 0 && lvl.NumberPosition == 0)
+                    {
+                        myTemplate = t;
+                        break;
+                    }
+                }
+
+                if (myTemplate == null)
+                {
+                    myTemplate = WordApp.ActiveDocument.ListTemplates.Add();
+                    myTemplate.ListLevels[1].TrailingCharacter = MSWord.WdTrailingCharacter.wdTrailingNone;
+                    myTemplate.ListLevels[1].TextPosition = 0;
+                    myTemplate.ListLevels[1].NumberPosition = 0;
+                    myTemplate.ListLevels[1].StartAt = at;
+                    myTemplate.ListLevels[1].NumberStyle = numberStyle;
+                    myTemplate.ListLevels[1].NumberFormat = numberFormat;
+                }
+
+                WordApp.Selection.ParagraphFormat.OutlineLevel = outlineLevel;
                 WordApp.Selection.Range.ListFormat.ApplyListTemplate(myTemplate);
             }
             catch (Exception ex)
@@ -112,10 +139,12 @@ namespace 公文排版
             try
             {
                 WithUndo("所选文字设为公文:正文", () => SetFont(iniNormal));
-                WithUndo("所选文字取消编号和大纲级别", () =>
+                WithUndo("所选文字取消编号、大纲级别并首行缩进2字符", () =>
                 {
                     WordApp.Selection.Range.ListFormat.RemoveNumbers(MSWord.WdNumberType.wdNumberAllNumbers);
                     WordApp.Selection.ParagraphFormat.OutlineLevel = MSWord.WdOutlineLevel.wdOutlineLevelBodyText;
+                    // 公文正文规范：首行缩进 2 字符
+                    WordApp.Selection.ParagraphFormat.CharacterUnitFirstLineIndent = 2;
                 });
             }
             catch (Exception ex) { MessageBox.Show(ex.Message); }
@@ -231,14 +260,51 @@ namespace 公文排版
         {
             FontSwitch("方正小标宋_GBK", "黑体");
             FontSwitch("方正小标宋简体", "黑体");
+            FontSwitch("方正小标宋", "黑体");
         }
 
         private void btnFontHT2BS_Click(object sender, RibbonControlEventArgs e) => FontSwitch("黑体", "方正小标宋_GBK");
+
+        /// <summary>方正小标宋(简体) → 方正小标宋_GBK</summary>
+        private void btnFontBS2GBK_Click(object sender, RibbonControlEventArgs e)
+        {
+            // 不同来源的文档里该字体可能写作"方正小标宋简体"或"方正小标宋"，两种都要替换
+            FontSwitch("方正小标宋简体", "方正小标宋_GBK");
+            FontSwitch("方正小标宋", "方正小标宋_GBK");
+        }
+
+        /// <summary>方正小标宋_GBK → 方正小标宋(简体)</summary>
+        private void btnFontGBK2BS_Click(object sender, RibbonControlEventArgs e)
+        {
+            FontSwitch("方正小标宋_GBK", "方正小标宋简体");
+            FontSwitch("方正小标宋GBK", "方正小标宋简体");
+        }
+
+        private static System.Collections.Generic.HashSet<string> installedFontNames;
+
+        /// <summary>字体是否已安装（枚举字体集合较慢，结果缓存）</summary>
+        private static bool IsFontInstalled(string fontName)
+        {
+            if (installedFontNames == null)
+            {
+                var names = new System.Collections.Generic.HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                using (var collection = new System.Drawing.Text.InstalledFontCollection())
+                {
+                    foreach (System.Drawing.FontFamily family in collection.Families)
+                        names.Add(family.Name);
+                }
+                installedFontNames = names;
+            }
+            return installedFontNames.Contains(fontName);
+        }
 
         private void FontSwitch(string oldFont, string newFont)
         {
             try
             {
+                // Find.Execute 找不到目标时返回 false 且不报错，
+                // 原先无条件提示“已替换”，用户会以为字体改过了
+                bool replaced = false;
                 // 全文替换字体一次涉及成百上千处，不进撤销记录用户只能一处一处回退
                 WithUndo("替换字体：" + oldFont + " → " + newFont, () =>
                 {
@@ -246,9 +312,20 @@ namespace 公文排版
                     WordApp.Selection.Find.Font.NameFarEast = oldFont;
                     WordApp.Selection.Find.Replacement.ClearFormatting();
                     WordApp.Selection.Find.Replacement.Font.NameFarEast = newFont;
-                    WordApp.Selection.Find.Execute("", false, false, false, false, false, true,
+                    replaced = WordApp.Selection.Find.Execute("", false, false, false, false, false, true,
                         MSWord.WdFindWrap.wdFindContinue, true, "", MSWord.WdReplace.wdReplaceAll);
                 });
+
+                if (!replaced)
+                {
+                    WordApp.StatusBar = String.Format("文档中未找到字体{0},未做替换.", oldFont);
+                    return;
+                }
+                if (!IsFontInstalled(newFont))
+                {
+                    WordApp.StatusBar = String.Format("字体{0}已替换为{1},但本机未安装该字体,显示会回退到其它字体.", oldFont, newFont);
+                    return;
+                }
                 WordApp.StatusBar = String.Format("字体{0}已替换为{1}.", oldFont, newFont);
             }
             catch (Exception ex)

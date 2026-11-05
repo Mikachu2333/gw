@@ -122,6 +122,8 @@ namespace 公文排版
             this.btnFontFS = this.Factory.CreateRibbonButton();
             this.btnFontKTgb2312 = this.Factory.CreateRibbonButton();
             this.btnFontKT = this.Factory.CreateRibbonButton();
+            this.btnFontBS2GBK = this.Factory.CreateRibbonButton();
+            this.btnFontGBK2BS = this.Factory.CreateRibbonButton();
             this.btnFontBS2HT = this.Factory.CreateRibbonButton();
             this.btnFontHT2BS = this.Factory.CreateRibbonButton();
             this.btnFontChangeDialog = this.Factory.CreateRibbonButton();
@@ -597,6 +599,8 @@ namespace 公文排版
             this.glyFont.Buttons.Add(this.btnFontFS);
             this.glyFont.Buttons.Add(this.btnFontKTgb2312);
             this.glyFont.Buttons.Add(this.btnFontKT);
+            this.glyFont.Buttons.Add(this.btnFontBS2GBK);
+            this.glyFont.Buttons.Add(this.btnFontGBK2BS);
             this.glyFont.Buttons.Add(this.btnFontBS2HT);
             this.glyFont.Buttons.Add(this.btnFontHT2BS);
             this.glyFont.Buttons.Add(this.btnFontChangeDialog);
@@ -608,42 +612,56 @@ namespace 公文排版
             // 
             // btnFontFSgb2312
             // 
-            this.btnFontFSgb2312.Label = "仿宋GB2312=>仿宋";
+            this.btnFontFSgb2312.Label = "仿宋GB2312→仿宋";
             this.btnFontFSgb2312.Name = "btnFontFSgb2312";
             this.btnFontFSgb2312.ScreenTip = "仅适用中文字符的替换, 如果要替换所有字符或者字母数字请选择\"指定字体更改...\"";
             this.btnFontFSgb2312.Click += new Microsoft.Office.Tools.Ribbon.RibbonControlEventHandler(this.btnFontFSgb2312_Click);
             // 
             // btnFontFS
             // 
-            this.btnFontFS.Label = "仿宋=>仿宋GB2312";
+            this.btnFontFS.Label = "仿宋→仿宋GB2312";
             this.btnFontFS.Name = "btnFontFS";
             this.btnFontFS.ScreenTip = "仅适用中文字符的替换, 如果要替换所有字符或者字母数字请选择\"指定字体更改...\"";
             this.btnFontFS.Click += new Microsoft.Office.Tools.Ribbon.RibbonControlEventHandler(this.btnFontFS_Click);
             // 
             // btnFontKTgb2312
             // 
-            this.btnFontKTgb2312.Label = "楷体GB2312=>楷体";
+            this.btnFontKTgb2312.Label = "楷体GB2312→楷体";
             this.btnFontKTgb2312.Name = "btnFontKTgb2312";
             this.btnFontKTgb2312.ScreenTip = "仅适用中文字符的替换, 如果要替换所有字符或者字母数字请选择\"指定字体更改...\"";
             this.btnFontKTgb2312.Click += new Microsoft.Office.Tools.Ribbon.RibbonControlEventHandler(this.btnFontKTgb2312_Click);
             // 
             // btnFontKT
             // 
-            this.btnFontKT.Label = "楷体=>楷体GB2312";
+            this.btnFontKT.Label = "楷体→楷体GB2312";
             this.btnFontKT.Name = "btnFontKT";
             this.btnFontKT.ScreenTip = "仅适用中文字符的替换, 如果要替换所有字符或者字母数字请选择\"指定字体更改...\"";
             this.btnFontKT.Click += new Microsoft.Office.Tools.Ribbon.RibbonControlEventHandler(this.btnFontKT_Click);
             // 
+            // btnFontBS2GBK
+            // 
+            this.btnFontBS2GBK.Label = "方正小标宋简体→方正小标宋_GBK";
+            this.btnFontBS2GBK.Name = "btnFontBS2GBK";
+            this.btnFontBS2GBK.ScreenTip = "仅适用中文字符的替换, 如果要替换所有字符或者字母数字请选择\"指定字体更改...\"";
+            this.btnFontBS2GBK.Click += new Microsoft.Office.Tools.Ribbon.RibbonControlEventHandler(this.btnFontBS2GBK_Click);
+            // 
+            // btnFontGBK2BS
+            // 
+            this.btnFontGBK2BS.Label = "方正小标宋_GBK→方正小标宋简体";
+            this.btnFontGBK2BS.Name = "btnFontGBK2BS";
+            this.btnFontGBK2BS.ScreenTip = "仅适用中文字符的替换, 如果要替换所有字符或者字母数字请选择\"指定字体更改...\"";
+            this.btnFontGBK2BS.Click += new Microsoft.Office.Tools.Ribbon.RibbonControlEventHandler(this.btnFontGBK2BS_Click);
+            // 
             // btnFontBS2HT
             // 
-            this.btnFontBS2HT.Label = "方正小标宋=>黑体";
+            this.btnFontBS2HT.Label = "方正小标宋→黑体";
             this.btnFontBS2HT.Name = "btnFontBS2HT";
             this.btnFontBS2HT.ScreenTip = "仅适用中文字符的替换, 如果要替换所有字符或者字母数字请选择\"指定字体更改...\"";
             this.btnFontBS2HT.Click += new Microsoft.Office.Tools.Ribbon.RibbonControlEventHandler(this.btnFontBS2HT_Click);
             // 
             // btnFontHT2BS
             // 
-            this.btnFontHT2BS.Label = "黑体=>方正小标宋_GBK";
+            this.btnFontHT2BS.Label = "黑体→方正小标宋_GBK";
             this.btnFontHT2BS.Name = "btnFontHT2BS";
             this.btnFontHT2BS.ScreenTip = "仅适用中文字符的替换, 如果要替换所有字符或者字母数字请选择\"指定字体更改...\"";
             this.btnFontHT2BS.Click += new Microsoft.Office.Tools.Ribbon.RibbonControlEventHandler(this.btnFontHT2BS_Click);
@@ -1607,6 +1625,8 @@ namespace 公文排版
         private Microsoft.Office.Tools.Ribbon.RibbonButton btnFontFS;
         private Microsoft.Office.Tools.Ribbon.RibbonButton btnFontKTgb2312;
         private Microsoft.Office.Tools.Ribbon.RibbonButton btnFontKT;
+        private Microsoft.Office.Tools.Ribbon.RibbonButton btnFontBS2GBK;
+        private Microsoft.Office.Tools.Ribbon.RibbonButton btnFontGBK2BS;
         private Microsoft.Office.Tools.Ribbon.RibbonButton btnFontBS2HT;
         private Microsoft.Office.Tools.Ribbon.RibbonButton btnFontHT2BS;
         internal Microsoft.Office.Tools.Ribbon.RibbonButton btnHelp;
