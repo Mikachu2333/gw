@@ -67,9 +67,13 @@ Compression=lzma2/max
 SolidCompression=yes
 WizardStyle=modern
 SetupLogging=yes
-ArchitecturesAllowed=x64compatible arm64
+ArchitecturesAllowed=x86 x64compatible arm64
 ArchitecturesInstallIn64BitMode=x64compatible arm64
-SetupArchitecture=x64
+; setup.exe 本体编成 32 位：同一个包既能跑在 32 位 Windows 上，也能在 64 位 Windows 上
+; 进入 64 位安装模式（{autopf} 落到真正的 Program Files，{sys} 落到真正的 System32，
+; 这两点是 Inno 在 64-bit install mode 下自己保证的，不是靠 exe 位数）。
+; 插件本体保持 AnyCPU：编成 x86 会让 64 位 Word/WPS 直接拒绝加载。
+SetupArchitecture=x86
 PrivilegesRequired=admin
 ; 插件 dll 在 Word/WPS 运行期间一直被占用，不先处理就复制必然失败。交给 Inno 的
 ; 重启管理器（默认过滤器已包含 *.dll）礼貌请求宿主退出，用户可以保存文档 —— 这里
@@ -123,16 +127,18 @@ Source: "redist\vstor_redist.exe"; Flags: dontcopy
 ; ---- 加载项注册 ----
 ; 同一个 ID 写三处：HKCU 保证当前用户 + WPS 一定看得到（WPS 只被证实读 HKCU），
 ; HKLM 的 64/32 两个视图覆盖本机其他用户以及 32 位 Office（32 位 Office 只读 WOW6432Node）。
+; HKLM64 那四行带 Check: Is64BitInstallMode：setup.exe 现在是 32 位的，在真正的 32 位 Windows
+; 上跑时这个根不可用，不守卫就会在装到一半时报错。
 ; Office 按加载项 ID 合并各视图，不会加载两次；反过来 HKCU 里残留的 LoadBehavior=2/0
 ; （用户曾手动禁用过）会压过 HKLM 的 3，所以三处都显式写 3。
 Root: HKCU; Subkey: "Software\Microsoft\Office\Word\Addins\{#MyAddinId}"; ValueType: string; ValueName: "FriendlyName"; ValueData: "{#MyAppName}"; Flags: uninsdeletekey
 Root: HKCU; Subkey: "Software\Microsoft\Office\Word\Addins\{#MyAddinId}"; ValueType: string; ValueName: "Description"; ValueData: "{#MyAppName} for Word/WPS（GB/T 9704—2012）"
 Root: HKCU; Subkey: "Software\Microsoft\Office\Word\Addins\{#MyAddinId}"; ValueType: dword; ValueName: "LoadBehavior"; ValueData: "3"
 Root: HKCU; Subkey: "Software\Microsoft\Office\Word\Addins\{#MyAddinId}"; ValueType: string; ValueName: "Manifest"; ValueData: "file:///{app}\{#MyVstoFile}|vstolocal"
-Root: HKLM64; Subkey: "Software\Microsoft\Office\Word\Addins\{#MyAddinId}"; ValueType: string; ValueName: "FriendlyName"; ValueData: "{#MyAppName}"; Flags: uninsdeletekey
-Root: HKLM64; Subkey: "Software\Microsoft\Office\Word\Addins\{#MyAddinId}"; ValueType: string; ValueName: "Description"; ValueData: "{#MyAppName} for Word/WPS（GB/T 9704—2012）"
-Root: HKLM64; Subkey: "Software\Microsoft\Office\Word\Addins\{#MyAddinId}"; ValueType: dword; ValueName: "LoadBehavior"; ValueData: "3"
-Root: HKLM64; Subkey: "Software\Microsoft\Office\Word\Addins\{#MyAddinId}"; ValueType: string; ValueName: "Manifest"; ValueData: "file:///{app}\{#MyVstoFile}|vstolocal"
+Root: HKLM64; Subkey: "Software\Microsoft\Office\Word\Addins\{#MyAddinId}"; ValueType: string; ValueName: "FriendlyName"; ValueData: "{#MyAppName}"; Flags: uninsdeletekey; Check: Is64BitInstallMode
+Root: HKLM64; Subkey: "Software\Microsoft\Office\Word\Addins\{#MyAddinId}"; ValueType: string; ValueName: "Description"; ValueData: "{#MyAppName} for Word/WPS（GB/T 9704—2012）"; Check: Is64BitInstallMode
+Root: HKLM64; Subkey: "Software\Microsoft\Office\Word\Addins\{#MyAddinId}"; ValueType: dword; ValueName: "LoadBehavior"; ValueData: "3"; Check: Is64BitInstallMode
+Root: HKLM64; Subkey: "Software\Microsoft\Office\Word\Addins\{#MyAddinId}"; ValueType: string; ValueName: "Manifest"; ValueData: "file:///{app}\{#MyVstoFile}|vstolocal"; Check: Is64BitInstallMode
 Root: HKLM32; Subkey: "Software\Microsoft\Office\Word\Addins\{#MyAddinId}"; ValueType: string; ValueName: "FriendlyName"; ValueData: "{#MyAppName}"; Flags: uninsdeletekey
 Root: HKLM32; Subkey: "Software\Microsoft\Office\Word\Addins\{#MyAddinId}"; ValueType: string; ValueName: "Description"; ValueData: "{#MyAppName} for Word/WPS（GB/T 9704—2012）"
 Root: HKLM32; Subkey: "Software\Microsoft\Office\Word\Addins\{#MyAddinId}"; ValueType: dword; ValueName: "LoadBehavior"; ValueData: "3"
@@ -152,9 +158,9 @@ Root: HKCU; Subkey: "Software\Kingsoft\Office\WPS\AddinsWL"; ValueType: string; 
 
 ; ---- 安装信息 ----
 ; 卸载器靠这几条标记判断"证书、WPS 白名单是不是本安装包写的"，避免删掉别人手工导入的东西。
-Root: HKLM64; Subkey: "Software\{#MyAppPublisher}\{#MyProductId}"; ValueType: string; ValueName: "Version"; ValueData: "{#AppVersion}"; Flags: uninsdeletekey
-Root: HKLM64; Subkey: "Software\{#MyAppPublisher}\{#MyProductId}"; ValueType: string; ValueName: "InstallPath"; ValueData: "{app}"; Flags: uninsdeletekey
-Root: HKLM64; Subkey: "Software\{#MyAppPublisher}\{#MyProductId}"; ValueType: string; ValueName: "CertThumbprint"; ValueData: "{#CertThumbprint}"; Flags: uninsdeletekey
+Root: HKLM; Subkey: "Software\{#MyAppPublisher}\{#MyProductId}"; ValueType: string; ValueName: "Version"; ValueData: "{#AppVersion}"; Flags: uninsdeletekey
+Root: HKLM; Subkey: "Software\{#MyAppPublisher}\{#MyProductId}"; ValueType: string; ValueName: "InstallPath"; ValueData: "{app}"; Flags: uninsdeletekey
+Root: HKLM; Subkey: "Software\{#MyAppPublisher}\{#MyProductId}"; ValueType: string; ValueName: "CertThumbprint"; ValueData: "{#CertThumbprint}"; Flags: uninsdeletekey
 
 [Code]
 var
@@ -348,7 +354,7 @@ begin
   if Verified then
   begin
     Log('证书已导入本机受信任根与受信任发布者。');
-    RegWriteStringValue(HKLM64, InfoRegKey, 'CertInstalled', '1');
+    RegWriteStringValue(HKLM, InfoRegKey, 'CertInstalled', '1');
   end
   else if RootOk or PublisherOk then
     MsgBox(FmtMessage(CustomMessage('CertPartial'), [CertThumbprint]), mbError, MB_OK)
@@ -396,7 +402,7 @@ var
 begin
   if CurUninstallStep = usUninstall then
   begin
-    if not RegQueryStringValue(HKLM64, InfoRegKey, 'CertInstalled', UninstallCertInstalled) then
+    if not RegQueryStringValue(HKLM, InfoRegKey, 'CertInstalled', UninstallCertInstalled) then
       UninstallCertInstalled := '';
   end;
 
