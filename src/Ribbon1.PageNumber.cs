@@ -17,8 +17,8 @@ namespace 公文排版
                 {
                     WordApp.ActiveWindow.ActivePane.View.Type = MSWord.WdViewType.wdPrintView;
                 }
-                WordApp.ScreenUpdating = false;
-
+                // 屏幕刷新由调用方的 WithUndo(..., suspendScreen: true) 统一开关，
+                // 这里不再自己置位：两处都管会在异常路径上互相覆盖。
                 switch (position)
                 {
                     case 0:
@@ -28,10 +28,15 @@ namespace 公文排版
                             s.Footers[MSWord.WdHeaderFooterIndex.wdHeaderFooterPrimary].Range.ParagraphFormat.Alignment = MSWord.WdParagraphAlignment.wdAlignParagraphCenter;
                             s.Footers[MSWord.WdHeaderFooterIndex.wdHeaderFooterEvenPages].Range.ParagraphFormat.Alignment = MSWord.WdParagraphAlignment.wdAlignParagraphCenter;
                             s.Footers[MSWord.WdHeaderFooterIndex.wdHeaderFooterFirstPage].Range.ParagraphFormat.Alignment = MSWord.WdParagraphAlignment.wdAlignParagraphCenter;
+
+                            // 只写第 1 节和断开链接的节，链接到前一节的页脚与前一节共用内容，
+                            // 逐节重复写会在同一份页脚里叠加多个页码
+                            MSWord.HeaderFooter primary = s.Footers[MSWord.WdHeaderFooterIndex.wdHeaderFooterPrimary];
+                            if (s.Index == 1 || !primary.LinkToPrevious)
+                                AppendPageNumber(primary, MSWord.WdParagraphAlignment.wdAlignParagraphCenter);
+                            if (s.PageSetup.DifferentFirstPageHeaderFooter != 0)
+                                AppendPageNumber(s.Footers[MSWord.WdHeaderFooterIndex.wdHeaderFooterFirstPage], MSWord.WdParagraphAlignment.wdAlignParagraphCenter);
                         }
-                        WordApp.ActiveWindow.ActivePane.View.SeekView = MSWord.WdSeekView.wdSeekCurrentPageFooter;
-                        InsertNumber();
-                        WordApp.ActiveWindow.ActivePane.View.SeekView = MSWord.WdSeekView.wdSeekMainDocument;
                         break;
 
                     case 1:
@@ -67,6 +72,10 @@ namespace 公文排版
                             {
                                 s.PageSetup.OddAndEvenPagesHeaderFooter = -1;
                                 MSWord.Range r;
+
+                                // 链接到前一节的页脚与前一节共用内容，跳过以免叠加
+                                if (s.Index > 1 && s.Footers[MSWord.WdHeaderFooterIndex.wdHeaderFooterPrimary].LinkToPrevious)
+                                    continue;
 
                                 r = s.Footers[MSWord.WdHeaderFooterIndex.wdHeaderFooterPrimary].Range;
                                 r.Font.Size = (float)Math.Round(iniPageNumber.SizeInPoints, 1);
@@ -106,10 +115,13 @@ namespace 公文排版
                             s.Footers[MSWord.WdHeaderFooterIndex.wdHeaderFooterPrimary].Range.ParagraphFormat.Alignment = MSWord.WdParagraphAlignment.wdAlignParagraphRight;
                             s.Footers[MSWord.WdHeaderFooterIndex.wdHeaderFooterEvenPages].Range.ParagraphFormat.Alignment = MSWord.WdParagraphAlignment.wdAlignParagraphRight;
                             s.Footers[MSWord.WdHeaderFooterIndex.wdHeaderFooterFirstPage].Range.ParagraphFormat.Alignment = MSWord.WdParagraphAlignment.wdAlignParagraphRight;
+
+                            MSWord.HeaderFooter primary = s.Footers[MSWord.WdHeaderFooterIndex.wdHeaderFooterPrimary];
+                            if (s.Index == 1 || !primary.LinkToPrevious)
+                                AppendPageNumber(primary, MSWord.WdParagraphAlignment.wdAlignParagraphRight);
+                            if (s.PageSetup.DifferentFirstPageHeaderFooter != 0)
+                                AppendPageNumber(s.Footers[MSWord.WdHeaderFooterIndex.wdHeaderFooterFirstPage], MSWord.WdParagraphAlignment.wdAlignParagraphRight);
                         }
-                        WordApp.ActiveWindow.ActivePane.View.SeekView = MSWord.WdSeekView.wdSeekCurrentPageFooter;
-                        InsertNumber();
-                        WordApp.ActiveWindow.ActivePane.View.SeekView = MSWord.WdSeekView.wdSeekMainDocument;
                         break;
                 }
             }
@@ -117,7 +129,6 @@ namespace 公文排版
             {
                 MessageBox.Show(ex.Message, "PageNumberAligment 方法出错");
             }
-            finally { WordApp.ScreenUpdating = true; }
         }
 
         // 外侧页码用 Range.Text 整段替换页脚，页脚里原有的文字会被直接抹掉，
@@ -139,6 +150,28 @@ namespace 公文排版
                 }
             }
             return false;
+        }
+
+        /// <summary>在页脚末尾追加 “— 1 —” 形式的页码，页脚已有内容则跳过</summary>
+        private void AppendPageNumber(MSWord.HeaderFooter footer, MSWord.WdParagraphAlignment alignment)
+        {
+            MSWord.Range r = footer.Range;
+            // 页脚末尾总带一个段落标记，去掉后才是真正的内容
+            string text = r.Text ?? "";
+            if (text.Trim('\r', '\n', '\a', '\t', ' ').Length > 0 || r.Fields.Count > 0)
+                return;
+
+            r.Font.Size = (float)Math.Round(iniPageNumber.SizeInPoints, 1);
+            r.Font.Name = iniPageNumber.Name;
+            r.Font.Bold = iniPageNumber.Bold ? 1 : 0;
+            r.Font.Italic = iniPageNumber.Italic ? 1 : 0;
+            r.ParagraphFormat.Alignment = alignment;
+            r.Text = "— ";
+            r.Collapse(MSWord.WdCollapseDirection.wdCollapseEnd);
+            r.Fields.Add(r, MSWord.WdFieldType.wdFieldEmpty, "PAGE \\* Arabic");
+            r = footer.Range;
+            r.Collapse(MSWord.WdCollapseDirection.wdCollapseEnd);
+            r.Text = " —";
         }
 
         /// <summary>插入页码,格式为 — 1 —</summary>
@@ -165,7 +198,7 @@ namespace 公文排版
             WithUndo("插入居中页码", () =>
             {
                 PageNumberAligment(0);
-            });
+            }, suspendScreen: true);
         }
 
         private void BtnNumberRight_Click(object sender, RibbonControlEventArgs e)
@@ -173,7 +206,7 @@ namespace 公文排版
             WithUndo("插入右侧页码", () =>
             {
                 PageNumberAligment(2);
-            });
+            }, suspendScreen: true);
         }
 
         private void btnNumberOutside_Click(object sender, RibbonControlEventArgs e)
@@ -181,7 +214,7 @@ namespace 公文排版
             WithUndo("插入外侧页码", () =>
             {
                 PageNumberAligment(1);
-            });
+            }, suspendScreen: true);
         }
 
         private void BtnNumberOnLocation_Click(object sender, RibbonControlEventArgs e)
@@ -189,7 +222,7 @@ namespace 公文排版
             WithUndo("光标处插入页码", () =>
             {
                 InsertNumber();
-            });
+            }, suspendScreen: true);
         }
     }
 }
