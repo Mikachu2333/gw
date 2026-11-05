@@ -94,26 +94,43 @@ namespace 公文排版
             {
                 WithUndo("删除页眉", () =>
                 {
-                    WordApp.ScreenUpdating = false;
-                    if (WordApp.ActiveWindow.ActivePane.View.SeekView != MSWord.WdSeekView.wdSeekCurrentPageHeader)
-                                        WordApp.ActiveWindow.ActivePane.View.SeekView = MSWord.WdSeekView.wdSeekCurrentPageHeader;
-                    WordApp.Selection.WholeStory();
-                    WordApp.Selection.Delete();
-                    WordApp.Selection.ClearFormatting();
+                    var view = WordApp.ActiveWindow.ActivePane.View;
+                    bool enteredHeader = view.SeekView != MSWord.WdSeekView.wdSeekCurrentPageHeader;
+                    try
+                    {
+                        if (enteredHeader)
+                            view.SeekView = MSWord.WdSeekView.wdSeekCurrentPageHeader;
 
-                    var style = WordApp.ActiveDocument.Styles.Add("公文:页眉", MSWord.WdStyleType.wdStyleTypeParagraph);
-                    style.set_BaseStyle("");
-                    WordApp.Selection.set_Style(style);
+                        WordApp.Selection.WholeStory();
+                        WordApp.Selection.Delete();
+                        WordApp.Selection.ClearFormatting();
 
-                    WordApp.ActiveWindow.ActivePane.View.SeekView = MSWord.WdSeekView.wdSeekMainDocument;
-                });
+                        // 重复点击时样式已经存在，直接 Add 会抛“样式已存在”，
+                        // 导致页眉已被清空却卡在报错上
+                        MSWord.Style style = FindStyle("公文:页眉");
+                        if (style == null)
+                        {
+                            style = WordApp.ActiveDocument.Styles.Add("公文:页眉", MSWord.WdStyleType.wdStyleTypeParagraph);
+                            style.set_BaseStyle("");
+                        }
+                        WordApp.Selection.set_Style(style);
+                    }
+                    finally
+                    {
+                        // 中途抛异常时也必须离开页眉视图，否则用户会停在页眉里继续编辑
+                        if (enteredHeader && view.SeekView != MSWord.WdSeekView.wdSeekMainDocument)
+                        {
+                            try { view.SeekView = MSWord.WdSeekView.wdSeekMainDocument; }
+                            catch (Exception ex) { System.Diagnostics.Debug.WriteLine("恢复主文档视图失败: " + ex.Message); }
+                        }
+                    }
+                }, suspendScreen: true);
             }
             catch (Exception ex)
             {
                 MessageBox.Show(ex.Message + "\r\n\r\n" + ex.Source, "删除页面横线失败",
                     MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
             }
-            finally { WordApp.ScreenUpdating = true; }
         }
 
         private void BtnSelectSharp_Click(object sender, RibbonControlEventArgs e)
