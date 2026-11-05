@@ -133,7 +133,7 @@ keys, the whitelist value, and only the certificate this package recorded as imp
   `Ribbon1_Close` cancels, unsubscribes, then disposes in that order.
 - VBA: scripts load from `VBA Script\` next to the DLL (fallback `VBA脚本\`) or from
   `Settings.VBA路径`; `RunVbaFile` adds a module to the active document's VBA project.
-  Scripts must be ANSI/GB2312 for `CheckVbaEncoding`; the history menu is rebuilt from
+  Scripts must be cp936/GBK (see Editing conventions) for `CheckVbaEncoding`; the history menu is rebuilt from
   `VBA历史` entries formatted `label|path`.
 
 ## Configuration and persisted state
@@ -177,8 +177,13 @@ keys, the whitelist value, and only the certificate this package recorded as imp
   and some do not. Editors/scripts that silently drop the BOM rewrite the whole file.
 - `.gitattributes` sets `-text` on text files: never enable `text=auto`/`eol=` and never
   normalize line endings repo-wide (history has mixed CRLF/LF by design).
-- `*.vba` / `*.bas` are marked binary and must stay GB2312/ANSI with CRLF; VBA
-  `AddFromFile` reads the bytes as-is.
+- `*.vba` / `*.bas` are marked binary and must stay **cp936/GBK** with CRLF; VBA
+  `AddFromFile` reads the bytes as-is. "GB2312" is what the in-script comments say, but it is
+  really cp936: `公文自动排版.vba` and `公文自动排版2026.vba` use `〇`(A9 96) and `﨩`(FE 4F),
+  which are outside strict GB2312, so a strict cp20936 round-trip would corrupt them. Any
+  validator must therefore use codepage 936, not 20936. All 42 scripts also assume codepage 936
+  is the ANSI codepage — 24 of them declare Chinese identifiers, so on a non-zh-CN machine the
+  code itself mis-decodes, and `CheckVbaEncoding` cannot detect that.
 - Do not add NuGet packages, change the target framework, or restructure the VSTO
   project without explicit approval.
 - Commit only when asked. Do not commit `*.user`, `*.pfx`, `*.snk`.
