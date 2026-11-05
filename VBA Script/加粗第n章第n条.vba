@@ -11,30 +11,43 @@
 '日期: 2026年8月9日
 
 Sub 加粗第n章第n条()
+    Dim pat As Variant
+    Dim rng As Range
+    Dim hitCount As Long
+
+    If ActiveDocument.ProtectionType <> wdNoProtection Then
+        MsgBox "文档已限制编辑, 请先取消保护再运行。", vbExclamation
+        Exit Sub
+    End If
+
     Application.ScreenUpdating = False
-    
-    With ActiveDocument.Content.Find
-        .ClearFormatting
-        .Replacement.ClearFormatting
-        .Replacement.Font.Bold = True
-        .MatchWildcards = True
-        
-        ' 第X章（后面不是中文标点）
-        .Text = "第[0-9一二三四五六七八九十]@章[！，。、；：？！‘’“”（）《》【】]"
-        .Execute Replace:=wdReplaceAll
-        
-        ' 第X条（后面不是中文标点）
-        .Text = "第[0-9一二三四五六七八九十]@条[！，。、；：？！‘’“”（）《》【】]"
-        .Execute Replace:=wdReplaceAll
-        
-        ' 最后一个字符是章节/条的情况
-        .Text = "第[0-9一二三四五六七八九十]@章"
-        .Execute Replace:=wdReplaceAll
-        
-        .Text = "第[0-9一二三四五六七八九十]@条"
-        .Execute Replace:=wdReplaceAll
-    End With
-    
+    On Error GoTo 收尾
+
+    ' 定位命中范围后直接给它加粗。原先写成 .Replacement.Font.Bold = True 配
+    ' Replace:=wdReplaceAll, 却没给 .Replacement.Text 赋 "^&", Word 的语义是
+    ' "替换成空", 结果整段匹配文字被删除而不是加粗。
+    For Each pat In Array("第[0-9一二三四五六七八九十]@章", "第[0-9一二三四五六七八九十]@条")
+        Set rng = ActiveDocument.Content
+        With rng.Find
+            .ClearFormatting
+            .MatchWildcards = True
+            .Forward = True
+            .Wrap = wdFindStop
+            .Text = pat
+            Do While .Execute
+                rng.Font.Bold = True
+                hitCount = hitCount + 1
+                rng.Collapse wdCollapseEnd
+                rng.End = ActiveDocument.Content.End
+            Loop
+        End With
+    Next pat
+
+收尾:
     Application.ScreenUpdating = True
-    MsgBox "精准加粗完成！", vbInformation
+    If Err.Number <> 0 Then
+        MsgBox "加粗过程中出错: " & Err.Description, vbCritical
+        Exit Sub
+    End If
+    MsgBox "加粗完成, 共处理 " & hitCount & " 处。", vbInformation
 End Sub
