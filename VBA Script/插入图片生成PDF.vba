@@ -46,21 +46,36 @@ Sub 创建图片PDF()
     For Each 文件名 In 筛选器.SelectedItems
         
         Set pic = Selection.InlineShapes.AddPicture(文件名)
+        ' 高宽都硬设成 A4 边长会把图片拉变形: 锁住比例, 按页高缩放
+        pic.LockAspectRatio = msoTrue
         pic.Height = doc.PageSetup.PageHeight
-        pic.Width = doc.PageSetup.PageWidth
         
     Next
     
   
     
     
+    Dim 导出文件 As String
     With Application.FileDialog(msoFileDialogSaveAs)
         .InitialFileName = 筛选器.SelectedItems.Item(1)
-        .FilterIndex = 7   '7为pdf,个别版本会有不同,请自行调整'
+        ' 原先写死 .FilterIndex = 7 当作 PDF, 但过滤器列表按宿主和版本排序不同,
+        ' WPS 上第 7 项未必是 PDF, 结果"成功"存出来一个别的格式。
+        ' 现在不猜序号, 执行完按实际落盘的后缀判断并如实告知。
         If (.Show = -1) Then
             .Execute
-            doc.Close (False)
+            导出文件 = CStr(.SelectedItems.Item(1))
+            If LCase(Right(导出文件, 4)) = ".pdf" Then
+                MsgBox "已生成 PDF:" & vbCrLf & 导出文件, vbInformation
+            Else
+                MsgBox "注意: 保存对话框里选中的不是 PDF 格式, 实际存为" & vbCrLf & 导出文件 _
+                    & vbCrLf & "请在“保存类型”里选 PDF 后重新运行。", vbExclamation
+            End If
+        Else
+            MsgBox "已取消导出, 临时文档不保存。", vbInformation
         End If
+        ' 取消时也必须关掉: 这是脚本自己 Documents.Add 出来的临时文档,
+        ' 原先只在保存成功那支里 Close, 取消就留一个塞满图片的窗口给用户收拾
+        doc.Close (False)
     End With
     
     
