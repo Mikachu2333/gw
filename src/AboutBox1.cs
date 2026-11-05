@@ -210,7 +210,12 @@ namespace 公文排版
                     "用户自定义配置文件已保存！\r\n注意：Word 更新后用户配置文件可能被重置。",
                     this.Text, MessageBoxButtons.OK, MessageBoxIcon.Information);
 
-                ShowAdvancedPanel(false);
+                // 校验不过时上面已经 return，窗体保持打开；能走到这里说明保存成功，
+                // 必须显式给出 OK：btnOK 的 DialogResult 是 Cancel，而调用方
+                // Ribbon1.btnAbout_Click 只在返回 OK 时才 ReadSetting() 重建功能区字体，
+                // 不返回 OK 用户刚存的设置在本次会话里根本不生效。
+                DialogResult = DialogResult.OK;
+                Close();
             }
             catch (Exception ex)
             {
