@@ -11,6 +11,12 @@ namespace 公文排版
     {
         private readonly ToolTip _tip = new ToolTip();
 
+        // 本窗体替按钮持有的 Font。设置提供者每读一次就新建一个 Font，字体对话框返回的也是
+        // 新实例，而 WinForms 不接管控件 Font 的所有权：换字体时上一个实例没人 Dispose，
+        // GDI 字体句柄只能等终结器回收（和 Ribbon1.ReadSetting 里修掉的是同一类问题）。
+        private readonly System.Collections.Generic.Dictionary<Button, Font> ownedFonts
+            = new System.Collections.Generic.Dictionary<Button, Font>();
+
         public AboutBox1()
         {
             InitializeComponent();
@@ -18,6 +24,18 @@ namespace 公文排版
             string ver = Assembly.GetExecutingAssembly().GetName().Version.ToString();
             this.Text = "关于" + name + ver;
             this.Height = this.MinimumSize.Height;
+
+            // 窗体是按次 new 出来再 using 释放的（Ribbon1.btnAbout_Click），_tip 和这些
+            // Font 都不在 components 里，设计器生成的 Dispose 碰不到它们。
+            this.Disposed += (s, e) =>
+            {
+                _tip.Dispose();
+                foreach (Font f in ownedFonts.Values)
+                {
+                    if (f != null) f.Dispose();
+                }
+                ownedFonts.Clear();
+            };
         }
 
         private void LoadFont(ComboBox combo)
@@ -93,7 +111,9 @@ namespace 公文排版
         {
             if (show)
             {
-                this.Height = 400;
+                // 400 是设计器在 96dpi 下量的设备像素：AutoScaleMode 是 Dpi，子控件会跟着
+                // 缩放而这个常数不会，125%/150% 下面板里 11 行只剩几十像素高。
+                this.Height = 400 * this.DeviceDpi / 96;
                 panel1.Visible = false;
                 lblTip.Visible = true;
                 lblTip.Text = "用户设置，双击恢复默认.";
@@ -135,7 +155,7 @@ namespace 公文排版
                     if (fd.ShowDialog(this) == DialogResult.OK)
                     {
                         btn.Text = fd.Font.Name;
-                        btn.Font = fd.Font;
+                        SetButtonFont(btn, fd.Font);
                     }
                 }
             }
@@ -146,11 +166,26 @@ namespace 公文排版
             }
         }
 
-        private static void ApplyFont(Button btn, Font font)
+        private void ApplyFont(Button btn, Font font)
         {
             if (btn == null || font == null) return;
-            btn.Font = font;
             btn.Text = font.Name;
+            SetButtonFont(btn, font);
+        }
+
+        /// <summary>给按钮换字体，并把上一个由本窗体持有的 Font 释放掉。</summary>
+        private void SetButtonFont(Button btn, Font font)
+        {
+            if (btn == null || font == null) return;
+            Font previous;
+            // 字体对话框在用户没改动时会把我们给它的那个实例原样还回来，
+            // 这种情况绝不能先释放再赋回去。
+            if (ownedFonts.TryGetValue(btn, out previous) && !ReferenceEquals(previous, font))
+            {
+                previous.Dispose();
+            }
+            ownedFonts[btn] = font;
+            btn.Font = font;
         }
 
         private void GetFont()
