@@ -34,6 +34,25 @@ namespace 公文排版
             }
         }
 
+        /// <summary>
+        /// 让功能区重新按当前文档的保护状态取用控件。
+        /// Word 没有"保护状态变化"事件，所以任何在功能区里就地改变保护状态的操作
+        /// （比如"限制编辑"对话框）结束后必须手动补一次，否则所有改动型按钮会一直
+        /// 停在启用状态，用户点下去才吃到 COM 报错，文档也可能已经被改了一半。
+        /// </summary>
+        internal void RefreshControlEnable()
+        {
+            try
+            {
+                ControlEnable(this.Application.ActiveDocument.ProtectionType
+                    == MSWord.WdProtectionType.wdNoProtection);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("RefreshControlEnable: " + ex.Message);
+            }
+        }
+
         private void ThisAddIn_Shutdown(object sender, System.EventArgs e)
         {
             try

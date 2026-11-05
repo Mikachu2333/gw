@@ -17,6 +17,28 @@ namespace 公文排版
             try
             {
                 MSWord.Document doc = WordApp.ActiveDocument;
+
+                // 原先不判断文档到底有没有口令：没设口令时赋值是空操作，却照样报告
+                // "已被清除"，还要用户去保存一个根本没改过的文件。
+                // 注意 PIA 把 HasPassword 投影成了无参 Boolean（只反映打开口令），
+                // 所以只能在这条分支上用它；修改密码那条改用 ReadOnly 兜住真实的失败点。
+                if (openPassword && !doc.HasPassword)
+                {
+                    MessageBox.Show("本文档未设置“" + which + "”，无需清除。", "文档加密",
+                        MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    return;
+                }
+
+                // 只读打开时改动只存在于内存，后面的 Save() 必然失败，先把话说在前面，
+                // 免得用户以为文件里的口令已经去掉。受保护视图不用重复判断：
+                // ThisAddIn 在那种状态下已经把这两个按钮禁掉了。
+                if (doc.ReadOnly)
+                {
+                    MessageBox.Show("文档是以只读方式打开的，清除" + which + "前请先另存为可写副本。",
+                        "文档加密", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                    return;
+                }
+
                 if (openPassword) doc.Password = "";
                 else doc.WritePassword = "";
                 WordApp.StatusBar = "警告:文档" + which + "已被清除!";
@@ -43,7 +65,13 @@ namespace 公文排版
                 {
                     WordApp.Dialogs[MSWord.WdWordDialog.wdDialogToolsProtectDocument].Show();
                 }
-                btnProtectDoc.Checked = false;
+
+                // Word 不提供"保护状态变化"事件，用户在对话框里点完"确定"后必须自己补一次评估：
+                // 否则所有改动型按钮仍停在启用状态，用户接着点正文/页码才会吃到 COM 报错，
+                // 文档也可能已经被改了一半。按钮的勾选态同样只能按实际保护状态回读。
+                MSWord.WdProtectionType protection = WordApp.ActiveDocument.ProtectionType;
+                btnProtectDoc.Checked = protection != MSWord.WdProtectionType.wdNoProtection;
+                Globals.ThisAddIn.RefreshControlEnable();
             }
             catch (Exception ex)
             {
@@ -59,11 +87,8 @@ namespace 公文排版
             }
             catch (Exception ex)
             {
-                if (IsWps)
-                {
-                    MessageBox.Show("对不起,您的WPS暂时还不兼容这一调用内置对话框的方法!", "打开内置对话框时出错");
-                    btnSetPW.Enabled = false;
-                }
+                // 这里原先还有一段 IsWps 分支：ApplyWpsImages() 已经把 btnSetPW 整个隐藏，
+                // WPS 下点不到这个按钮，那段分支永远不会执行，所以删掉。
                 MessageBox.Show(ex.Message);
             }
         }
