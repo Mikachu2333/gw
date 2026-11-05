@@ -46,7 +46,10 @@ Sub xkonglong_按页拆分文档()
             With oDocTemp.Application.Selection
                 .Paste
             End With
-            oDocTemp.SaveAs2 sPath & "\" & oDoc.Name & "_" & i & ".docx"
+            ' 同上：先去掉扩展名再拼，并用两代宿主都有的 SaveAs
+        Dim 主名 As String
+        主名 = Left(oDoc.Name, InStrRev(oDoc.Name, ".") - 1)
+        oDocTemp.SaveAs sPath & "\" & 主名 & "_" & i & ".docx", wdFormatXMLDocument
             oDocTemp.Close
         Next i
     End With

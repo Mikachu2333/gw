@@ -72,7 +72,8 @@ Sub User_根据分页符拆分文档()
                 Dim baseName As String
                 baseName = Left(oDoc.Name, InStrRev(oDoc.Name, ".") - 1)
                 If baseName = "" Then baseName = "未命名文档"
-                nDoc.SaveAs2 sPath & "\" & baseName & "_" & i & ".docx"
+                ' SaveAs2 只在 Word 2010 及以上存在，2007 与部分 WPS 上会报成员不存在
+        nDoc.SaveAs sPath & "\" & baseName & "_" & i & ".docx", wdFormatXMLDocument
                 nDoc.Close
                 i = i + 1
             End If
@@ -94,7 +95,7 @@ Sub User_根据分页符拆分文档()
         Dim baseName2 As String
         baseName2 = Left(oDoc.Name, InStrRev(oDoc.Name, ".") - 1)
         If baseName2 = "" Then baseName2 = "未命名文档"
-        nDoc.SaveAs2 sPath & "\" & baseName2 & "_" & i & ".docx"
+        nDoc.SaveAs sPath & "\" & baseName2 & "_" & i & ".docx", wdFormatXMLDocument
         nDoc.Close
         i = i + 1
     End If

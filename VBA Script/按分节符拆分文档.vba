@@ -45,7 +45,12 @@ Sub xkonglong_根据分节符拆分文档()
         nDoc.Content.PasteAndFormat (wdFormatOriginalFormatting) '按源格式粘贴到新文档
         nDoc.PageSetup = oDoc.Sections(i).PageSetup   '复制原文档页面设置
         Call 删除分节符
-        nDoc.SaveAs2 sPath & "\" & oDoc.Name & "_" & i & ".docx"   '保存
+        ' 原先用 oDoc.Name 直接拼，名字里还带着 .docx，存出来是"报告.docx_1.docx"
+        Dim 主名 As String
+        主名 = Left(oDoc.Name, InStrRev(oDoc.Name, ".") - 1)
+        ' SaveAs2 是 Word 2010 起才有的方法，2007 上调用直接报成员不存在；
+        ' SaveAs 两代都有、参数顺序一致，用它就够了
+        nDoc.SaveAs sPath & "\" & 主名 & "_" & i & ".docx", wdFormatXMLDocument   '保存
         nDoc.Close   '关闭新文档'
     Next
 End Sub
