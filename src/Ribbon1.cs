@@ -270,18 +270,19 @@ namespace 公文排版
             iniPageNumber = Track(FormatFontSize(Properties.Settings.Default.页码));
 
             btnTitleHei.SuperTip = "设置公文大标题,规范为二号,小标宋.\r\n\r\n当前字体为:" + (iniTitle?.Name ?? "未设置");
-            btnNormal.SuperTip = "设置所选文字为正文格式,规范为三号,仿宋.\r\n\r\n当前字体为:" + (iniNormal?.Name ?? "未设置");
+            btnNormal.SuperTip = "设置所选文字为正文格式,规范为三号,仿宋,首行缩进2字符.\r\n\r\n当前字体为:" + (iniNormal?.Name ?? "未设置");
             btnHead.ScreenTip = "设置所选文字为: " + (iniHead?.Name ?? "?") + " " + (iniHead?.Size ?? 0) + "pt";
             btnName.ScreenTip = "设置所选文字为: " + (iniName?.Name ?? "?") + " " + (iniName?.Size ?? 0) + "pt";
             btnFoot.ScreenTip = "设置所选文字为: " + (iniFoot?.Name ?? "?") + " " + (iniFoot?.Size ?? 0) + "pt";
 
             mnuScript.Items.Clear();
-            if (Properties.Settings.Default.VBA历史 == null)
+            var vbaHistory = Properties.Settings.Default.VBA历史;
+            if (vbaHistory == null || vbaHistory.Count == 0)
             {
                 mnuScript.Visible = false;
                 return;
             }
-            foreach (string item in Properties.Settings.Default.VBA历史)
+            foreach (string item in vbaHistory)
             {
                 string[] it = item.Split('|');
                 if (it.Length < 2) continue;
@@ -291,6 +292,9 @@ namespace 公文排版
                 btnVBAlist.Click += BtnVBAlist_Click;
                 mnuScript.Items.Add(btnVBAlist);
             }
+            // 原先只在为空时置 false、非空时从不置 true：用户清空历史后再产生历史，
+            // 菜单会一直隐藏到重启宿主
+            mnuScript.Visible = mnuScript.Items.Count > 0;
         }
 
         private Font FormatFontSize(Font font)
@@ -306,6 +310,12 @@ namespace 公文排版
 
         internal string GetDllPath()
         {
+            // Assembly.CodeBase 在 .NET 5+ 已弃用，且要求 Uri 解析；Location 对磁盘上的
+            // 程序集直接给出路径，单文件/内存加载时为空，故保留 CodeBase 作为兜底
+            string location = System.Reflection.Assembly.GetExecutingAssembly().Location;
+            if (!string.IsNullOrEmpty(location))
+                return Path.GetDirectoryName(location);
+
             string codeBase = System.Reflection.Assembly.GetExecutingAssembly().CodeBase;
             string fullPath = Uri.UnescapeDataString(new UriBuilder(codeBase).Path);
             return Path.GetDirectoryName(fullPath);
@@ -389,44 +399,13 @@ namespace 公文排版
         private void ApplyWpsImages()
         {
             mnuTitle1.OfficeImageId = "_1";
-            btnPaper.OfficeImageId = "FileServerTransferDatabase";
-            btnInsert2.OfficeImageId = "IndentIncrease";
-            glyFormat.OfficeImageId = "AccessFormWizard";
-            btnFormatFullLine.OfficeImageId = "DiagramReverseClassic";
-            btnFormatR2N.OfficeImageId = "EastAsianEditingMarks";
-            btnFormatFrame2txt.OfficeImageId = "EditQuery";
-            btnFormatParaPage.OfficeImageId = "CrossReferenceInsert";
-            btnNormal.OfficeImageId = "OtherActionsMenu";
-            btnFontChangeDialog.OfficeImageId = "QuickStyleSets";
-            btnNum2Txt.OfficeImageId = "FileWorkflowTasks";
-            btnHead.OfficeImageId = "FieldInsert";
-            btnFoot.OfficeImageId = "AttachFile";
-            btnFootDouble.OfficeImageId = btnFootSingle.OfficeImageId;
-            btnDate.OfficeImageId = "ViewAllProposals";
-            btnInsertPaper.OfficeImageId = "PageOrientationGallery";
-            glyFoot.OfficeImageId = "PageNambersInFooterInsertGallery";
-            glySymbol.OfficeImageId = "EncodingMenu";
-            btnNumberOnLocation.OfficeImageId = "FormControlEditBox";
-            btnInsertSignPicSave.OfficeImageId = "SignatureShow";
-            btnSaveAsPicAt.OfficeImageId = "PictureStylesGallery";
-            glyPassword.OfficeImageId = "AdpPrimaryKey";
-            btnClearOpenPW.OfficeImageId = "CoverPageRemove";
-            btnClearProtectPW.OfficeImageId = "InkDeleteAllInk";
-            btnSpeak.OfficeImageId = "AnimationAudio";
-            btnSpeakOption.OfficeImageId = "ConditionalFormattingHighlightEqualTo";
-            mnuSelect.OfficeImageId = "SelectionPane";
-            btnSelectObject.OfficeImageId = "SnapToObjects";
-            mnuConvert.OfficeImageId = "ArrangeByRecurrence";
-            btnAI.OfficeImageId = "GroupTextBreak";
 
-            btnTitleHei.Image = Properties.Resources.TableCellAlignTop;
             btnInsertSignPic.Image = Properties.Resources.StampTool;
 
             btnPaper.OfficeImageId = "PrintPreviewMargins";
             btnInsert2.OfficeImageId = "ParagraphIndent2Spaces";
             btnLeft.OfficeImageId = "DecreaseIndent";
             glyFormat.OfficeImageId = "SmartRearrange";
-            btnFormatAddSpace.OfficeImageId = "TextOnFormField";
             btnNormal.OfficeImageId = "CellAlignment_6";
             btnTitleHei.Image = null;
             btnTitleHei.OfficeImageId = "CellAlignment_1";
