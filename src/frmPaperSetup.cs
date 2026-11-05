@@ -16,20 +16,32 @@ namespace 公文排版
 
         #region 函数区
 
+        /// <summary>
+        /// 把持久化值夹进控件自己的取值范围。user.config 可能来自旧版本（那时行数/字数
+        /// 还允许 0）或被手工改过，越界值直接赋给 NumericUpDown 会抛
+        /// ArgumentOutOfRangeException，整个"页面设置"窗体就打不开了。
+        /// </summary>
+        private static decimal ClampValue(NumericUpDown nud, decimal value)
+        {
+            if (value < nud.Minimum) return nud.Minimum;
+            if (value > nud.Maximum) return nud.Maximum;
+            return value;
+        }
+
         private void ReadSetting()
         {
-            nudTop.Value = (decimal)Properties.Settings.Default.上边距;
-            nudBottom.Value = (decimal)Properties.Settings.Default.下边距;
-            nudLeft.Value = (decimal)Properties.Settings.Default.左边距;
-            nudRight.Value = (decimal)Properties.Settings.Default.右边距;
-            nudFoot.Value = (decimal)Properties.Settings.Default.页脚边距;
+            nudTop.Value = ClampValue(nudTop, (decimal)Properties.Settings.Default.上边距);
+            nudBottom.Value = ClampValue(nudBottom, (decimal)Properties.Settings.Default.下边距);
+            nudLeft.Value = ClampValue(nudLeft, (decimal)Properties.Settings.Default.左边距);
+            nudRight.Value = ClampValue(nudRight, (decimal)Properties.Settings.Default.右边距);
+            nudFoot.Value = ClampValue(nudFoot, (decimal)Properties.Settings.Default.页脚边距);
 
-            nudLine.Value = Properties.Settings.Default.行数;
-            nudLetters.Value = Properties.Settings.Default.字数;
+            nudLine.Value = ClampValue(nudLine, Properties.Settings.Default.行数);
+            nudLetters.Value = ClampValue(nudLetters, Properties.Settings.Default.字数);
 
             chkGW.Checked = Properties.Settings.Default.公文版式;
             chkLineSpacing.Checked = Properties.Settings.Default.允许行间距;
-            nudLineSpacing.Value = (decimal)Properties.Settings.Default.行间距;
+            nudLineSpacing.Value = ClampValue(nudLineSpacing, (decimal)Properties.Settings.Default.行间距);
         }
 
         private void WriteSetting()

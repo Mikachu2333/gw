@@ -135,6 +135,8 @@
             65536});
             this.nudFoot.Location = new System.Drawing.Point(169, 151);
             this.nudFoot.Name = "nudFoot";
+            this.nudFoot.Minimum = 0;
+            this.nudFoot.Maximum = 30;
             this.nudFoot.Size = new System.Drawing.Size(58, 21);
             this.nudFoot.TabIndex = 5;
             this.nudFoot.Value = new decimal(new int[] {
@@ -161,6 +163,8 @@
             65536});
             this.nudTop.Location = new System.Drawing.Point(169, 27);
             this.nudTop.Name = "nudTop";
+            this.nudTop.Minimum = 0;
+            this.nudTop.Maximum = 100;
             this.nudTop.Size = new System.Drawing.Size(58, 21);
             this.nudTop.TabIndex = 1;
             this.nudTop.Value = new decimal(new int[] {
@@ -187,6 +191,8 @@
             65536});
             this.nudBottom.Location = new System.Drawing.Point(169, 113);
             this.nudBottom.Name = "nudBottom";
+            this.nudBottom.Minimum = 0;
+            this.nudBottom.Maximum = 100;
             this.nudBottom.Size = new System.Drawing.Size(58, 21);
             this.nudBottom.TabIndex = 2;
             this.nudBottom.Value = new decimal(new int[] {
@@ -213,6 +219,8 @@
             65536});
             this.nudLeft.Location = new System.Drawing.Point(107, 69);
             this.nudLeft.Name = "nudLeft";
+            this.nudLeft.Minimum = 0;
+            this.nudLeft.Maximum = 100;
             this.nudLeft.Size = new System.Drawing.Size(58, 21);
             this.nudLeft.TabIndex = 3;
             this.nudLeft.Value = new decimal(new int[] {
@@ -239,6 +247,8 @@
             65536});
             this.nudRight.Location = new System.Drawing.Point(278, 69);
             this.nudRight.Name = "nudRight";
+            this.nudRight.Minimum = 0;
+            this.nudRight.Maximum = 100;
             this.nudRight.Size = new System.Drawing.Size(58, 21);
             this.nudRight.TabIndex = 4;
             this.nudRight.Value = new decimal(new int[] {
@@ -313,6 +323,8 @@
             65536});
             this.nudLineSpacing.Location = new System.Drawing.Point(187, 50);
             this.nudLineSpacing.Name = "nudLineSpacing";
+            this.nudLineSpacing.Minimum = 1;
+            this.nudLineSpacing.Maximum = 100;
             this.nudLineSpacing.Size = new System.Drawing.Size(74, 21);
             this.nudLineSpacing.TabIndex = 9;
             this.nudLineSpacing.Value = new decimal(new int[] {
@@ -325,6 +337,8 @@
             // 
             this.nudLetters.Location = new System.Drawing.Point(261, 20);
             this.nudLetters.Name = "nudLetters";
+            this.nudLetters.Minimum = 1;
+            this.nudLetters.Maximum = 200;
             this.nudLetters.Size = new System.Drawing.Size(58, 21);
             this.nudLetters.TabIndex = 7;
             this.nudLetters.Value = new decimal(new int[] {
@@ -357,6 +371,8 @@
             // 
             this.nudLine.Location = new System.Drawing.Point(138, 20);
             this.nudLine.Name = "nudLine";
+            this.nudLine.Minimum = 1;
+            this.nudLine.Maximum = 200;
             this.nudLine.Size = new System.Drawing.Size(58, 21);
             this.nudLine.TabIndex = 6;
             this.nudLine.Value = new decimal(new int[] {
