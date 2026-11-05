@@ -12,26 +12,71 @@
 '用法: 选中文件夹即可''
 
 Sub Doc批量转Docx()
-
     Dim xDlg As FileDialog
-    Dim xFolder As Variant
+    Dim xFolder As String
     Dim xFileName As String
-    Application.ScreenUpdating = False
+    Dim baseName As String
+    Dim target As String
+    Dim okCount As Long
+    Dim skipCount As Long
+    Dim failList As String
+
     Set xDlg = Application.FileDialog(msoFileDialogFolderPicker)
     If xDlg.Show <> -1 Then Exit Sub
-    xFolder = xDlg.SelectedItems(1) + "\"
+    xFolder = xDlg.SelectedItems(1) & "\"
+
+    Application.ScreenUpdating = False
     xFileName = Dir(xFolder & "*.doc", vbNormal)
-    While xFileName <> ""
-        Documents.Open FileName:=xFolder & xFileName, _
-            ConfirmConversions:=False, ReadOnly:=False, AddToRecentFiles:=False, _
-            PasswordDocument:="", PasswordTemplate:="", Revert:=False, _
-            WritePasswordDocument:="", WritePasswordTemplate:="", Format:= _
-            wdOpenFormatAuto, XMLTransform:=""
-        ActiveDocument.SaveAs xFolder & Replace(xFileName, "doc", "docx"), wdFormatDocumentDefault
-        ActiveDocument.Close
+    Do While xFileName <> ""
+        ' Dir 的 "*.doc" 会把 .docx 也匹配进来, 必须自己按扩展名再筛一遍
+        If LCase(Right(xFileName, 4)) = ".doc" Then
+            baseName = Left(xFileName, InStrRev(xFileName, ".") - 1)
+            target = xFolder & baseName & ".docx"
+            If Dir(target) <> "" Then
+                ' 同名 .docx 已存在时覆盖会毁掉用户已有的文件, 跳过并计数
+                skipCount = skipCount + 1
+            ElseIf 转换单个(xFolder & xFileName, target) Then
+                okCount = okCount + 1
+            Else
+                failList = failList & vbCrLf & xFileName
+            End If
+        End If
         xFileName = Dir()
     Wend
+
     Application.ScreenUpdating = True
-    Shell "explorer.exe " & xFolder, 1
+    Shell "explorer.exe """ & xFolder & """"
+    If failList = "" Then
+        MsgBox "转换完成: 成功 " & okCount & " 个, 因同名跳过 " & skipCount & " 个。", vbInformation
+    Else
+        MsgBox "成功 " & okCount & " 个, 跳过 " & skipCount & " 个。" & vbCrLf & _
+               "以下文件转换失败(多为被占用或已损坏):" & failList, vbExclamation
+    End If
 End Sub
 
+Function 转换单个(ByVal 源文件 As String, ByVal 目标文件 As String) As Boolean
+    Dim docBefore As Long
+    Dim doc As Document
+
+    docBefore = Documents.Count
+    On Error GoTo 失败
+    ' 用 Open 的返回值操作, 不要用 ActiveDocument: Open 失败时 ActiveDocument 是用户
+    ' 原本就开着的那份文档, 拿它去 Close 会连带关掉用户的工作。
+    Set doc = Documents.Open(FileName:=源文件, ConfirmConversions:=False, _
+        ReadOnly:=False, AddToRecentFiles:=False, PasswordDocument:="", _
+        PasswordTemplate:="", Revert:=False, WritePasswordDocument:="", _
+        WritePasswordTemplate:="", Format:=wdOpenFormatAuto, XMLTransform:="")
+    ' 目标名用 InStrRev 截出的主干拼接, 不能用 Replace(名字, "doc", "docx"):
+    ' 那是整串替换, document.doc 会变成 docxument.docx
+    doc.SaveAs 目标文件, wdFormatDocumentDefault
+    doc.Close SaveChanges:=wdDoNotSaveChanges
+    转换单个 = True
+    Exit Function
+
+失败:
+    转换单个 = False
+    If Documents.Count > docBefore Then
+        On Error Resume Next
+        ActiveDocument.Close SaveChanges:=wdDoNotSaveChanges
+    End If
+End Function
