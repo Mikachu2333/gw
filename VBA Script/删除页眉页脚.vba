@@ -15,25 +15,54 @@
 
 Option Explicit    '强制声明变量是个好习惯, 可以提高代码速度,减少bug
 Sub xkonglong_删除页眉页脚()
-    On Error Resume Next
     Dim oSec As Section
-    Dim i As Long
-    Dim n As Long
-    
+    Dim okCount As Long
+    Dim failCount As Long
+
     Application.ScreenUpdating = False
     With ActiveDocument
         .ActiveWindow.View.Type = wdPrintView
-        For Each oSec In .Sections '文档的节中循环(原文用从未 Set 的 mydoc,整段循环被 On Error Resume Next 吞掉,其实什么都没删)
-            For i = 9 To 10
-                .ActiveWindow.View.SeekView = i '9-wdSeekCurrentPageHeader,10-wdSeekCurrentPageFooter
-                .Application.Selection.WholeStory
-                .Application.Selection.Delete
-                .ActiveWindow.View.SeekView = 0 ' wdSeekMainDocument
-                .Styles("页眉").ParagraphFormat.Borders(wdBorderBottom).LineStyle = wdLineStyleNone  '删除页眉横线
-            Next
-            n = n + 1
+        For Each oSec In .Sections
+            If 删除单节页眉页脚(oSec) Then
+                okCount = okCount + 1
+            Else
+                failCount = failCount + 1
+            End If
         Next
     End With
     Application.ScreenUpdating = True
-    MsgBox "页眉页脚删除完毕,共处理 " & n & " 节！"
+
+    ' 原来整段 On Error Resume Next、节数无条件累加: 文档限制编辑、页脚链接到前一节
+    ' 或 SeekView 失败时什么都没删掉, 却照样报"删除完毕, 共处理 N 节"
+    If failCount = 0 Then
+        MsgBox "页眉页脚删除完毕, 共处理 " & okCount & " 节！", vbInformation
+    Else
+        MsgBox "成功处理 " & okCount & " 节, 另有 " & failCount & " 节失败" _
+            & "(多为文档限制了编辑或页眉页脚链接到前一节)。", vbExclamation
+    End If
 End Sub
+
+Function 删除单节页眉页脚(oSec As Section) As Boolean
+    Dim i As Long
+
+    On Error GoTo 失败
+    With oSec.Document
+        For i = wdSeekCurrentPageHeader To wdSeekCurrentPageFooter
+            .ActiveWindow.View.SeekView = i
+            .Application.Selection.WholeStory
+            .Application.Selection.Delete
+        Next
+        .ActiveWindow.View.SeekView = wdSeekMainDocument
+        ' 内置样式必须用常量: 原先写 .Styles("页眉") 这种本地化名字, 在非中文界面的
+        ' Word 上取不到样式, 页眉横线就静默留着
+        .Styles(wdStyleHeader).ParagraphFormat.Borders(wdBorderBottom).LineStyle = wdLineStyleNone
+    End With
+    删除单节页眉页脚 = True
+    Exit Function
+
+失败:
+    ' 出错时可能正停在页眉或页脚视图里, 必须把用户带回正文
+    On Error Resume Next
+    oSec.Document.ActiveWindow.View.SeekView = wdSeekMainDocument
+    删除单节页眉页脚 = False
+End Function

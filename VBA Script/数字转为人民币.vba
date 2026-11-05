@@ -12,13 +12,34 @@
 '用法: 选中数字后执行本脚本即可''
 
 Sub 转换成人民币()
-
-'将所选数字转为人民币大写
+    '将所选数字转为人民币大写。
+    '原先 mychange 用返回值表达失败（"输入有误：数字过大"），调用方不区分，
+    '直接把这句话用 Selection.Text 覆盖进文档；光标没选中内容时还会插进"零元零分"。
+    Dim 原文 As String
+    Dim 数值 As Double
     Dim rmb As String
-    rmb = mychange(Selection.Text)
-    
-    Selection.Text = rmb
 
+    原文 = Trim$(Selection.Text)
+    ' 千分位逗号会让 Val 在逗号处截断（"1,234.56" 只读到 1），先去逗号再判数值
+    原文 = Replace(原文, ",", "")
+    If Not IsNumeric(原文) Then
+        MsgBox "请先选中一个数字。", vbExclamation, "人民币大写"
+        Exit Sub
+    End If
+
+    数值 = Val(原文)
+    ' mychange 内部按"分"放大 100 倍后限到 99999999999, 对应原值上限 999999999.99
+    If Abs(数值) > 999999999.99# Then
+        MsgBox "数字过大, 无法转换为人民币大写。", vbExclamation, "人民币大写"
+        Exit Sub
+    End If
+
+    rmb = mychange(CStr(数值))
+    If Left$(rmb, 4) = "输入有误" Then
+        MsgBox rmb, vbExclamation, "人民币大写"
+        Exit Sub
+    End If
+    Selection.Text = rmb
 End Sub
 
 Function mychange(ByVal Myinput)
