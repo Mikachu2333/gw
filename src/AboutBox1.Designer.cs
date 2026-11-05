@@ -455,7 +455,10 @@
             // 
             // btnSave
             // 
-            this.btnSave.DialogResult = System.Windows.Forms.DialogResult.OK;
+            // DialogResult 必须是 None：设成 OK 的话，WinForms 会在 Click 处理器返回后
+            // 无条件关掉窗体，"未指定默认西文字体"那条校验 return 也就形同虚设 ——
+            // 用户看到警告、窗体消失、刚才改的几项字体设置全部丢失。
+            this.btnSave.DialogResult = System.Windows.Forms.DialogResult.None;
             this.btnSave.Location = new System.Drawing.Point(236, 5);
             this.btnSave.Name = "btnSave";
             this.btnSave.Size = new System.Drawing.Size(80, 23);
