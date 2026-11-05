@@ -48,7 +48,8 @@ Sub ExtractBookmarksInADoc()
     End With
     xSavedAs = xDoc.Path & "\" & "书签在 " & xDoc.Name
     xBookMarkDoc.SaveAs xSavedAs
-    xBookMarkDoc.PrintOut
+    ' 必须等打印排完才能关文档, 否则后台任务拿到的是一个已关闭的 Document
+    xBookMarkDoc.PrintOut Background:=False
     xBookMarkDoc.Close SaveChanges:=False
     ' 原来 Kill 的是目录而不是文件, 且文档关闭后取 Path 会报错并被 On Error Resume Next 咽掉, 清单就一直留在目录里
     If Dir(xSavedAs) <> "" Then Kill xSavedAs

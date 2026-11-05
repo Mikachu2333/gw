@@ -59,7 +59,9 @@ Function 打印一个文档(fname As String, 份数 As Long) As Boolean
     最近错误 = ""
     On Error GoTo 打印失败
     Set 文件 = Documents.Open(FileName:=fname, AddToRecentFiles:=False)
-    文件.PrintOut , , , , , , , 份数
+    ' 前面七个逗号等于省略 Background, Word 会按 Options.PrintBackground 默认走后台打印,
+    ' 下一行就 Close 文档, spooler 还没渲染完就已经没有文档了 —— 一份都打不出来但计数是成功的。
+    文件.PrintOut Background:=False, Copies:=份数
     文件.Close False
     打印一个文档 = True
     Exit Function
