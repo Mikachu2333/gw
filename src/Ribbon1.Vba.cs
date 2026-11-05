@@ -27,48 +27,56 @@ namespace 公文排版
 
             VBComponents vbc = WordApp.ActiveDocument.VBProject.VBComponents;
             VBComponent vbm = vbc.Add(vbext_ComponentType.vbext_ct_StdModule);
+            // 注入、取过程名、执行这三步都可能抛异常，模块的移除必须放在最外层 finally：
+            // 原先 AddFromFile 在 try 之外，文件读失败时注入的空模块会留在用户文档里，
+            // 被随文档保存并分发出去。
             try
             {
-                // 文档里可能已有同名组件，改名失败时沿用 VBIDE 给的默认名，不影响执行
-                vbm.Name = VbaModuleName;
-            }
-            catch (Exception ex) { Debug.WriteLine("VBA 模块改名失败: " + ex.Message); }
+                try
+                {
+                    // 文档里可能已有同名组件，改名失败时沿用 VBIDE 给的默认名，不影响执行
+                    vbm.Name = VbaModuleName;
+                }
+                catch (Exception ex) { Debug.WriteLine("VBA 模块改名失败: " + ex.Message); }
 
-            CodeModule module = vbm.CodeModule;
-            module.AddFromFile(vbaFile);
+                CodeModule module = vbm.CodeModule;
+                module.AddFromFile(vbaFile);
 
-            vbext_ProcKind procKind;
-            // 声明段与首个过程之间的空行也归入 CountOfDeclarationLines，只探一行可能落在空白行上取到空名字，故逐个往后找
-            string macroName = "";
-            int firstLine = module.CountOfDeclarationLines + 1;
-            for (int line = firstLine; line <= module.CountOfLines && string.IsNullOrWhiteSpace(macroName); line++)
-                macroName = module.get_ProcOfLine(line, out procKind);
-            if (string.IsNullOrWhiteSpace(macroName))
-                throw new InvalidDataException(
-                    "所选文件里没有可执行的过程。\r\n请保留一个公共 Sub 作为入口（其他过程用 Function）。");
+                vbext_ProcKind procKind;
+                // 声明段与首个过程之间的空行也归入 CountOfDeclarationLines，只探一行可能落在空白行上取到空名字，故逐个往后找
+                string macroName = "";
+                int firstLine = module.CountOfDeclarationLines + 1;
+                for (int line = firstLine; line <= module.CountOfLines && string.IsNullOrWhiteSpace(macroName); line++)
+                    macroName = module.get_ProcOfLine(line, out procKind);
+                if (string.IsNullOrWhiteSpace(macroName))
+                    throw new InvalidDataException(
+                        "所选文件里没有可执行的过程。\r\n请保留一个公共 Sub 作为入口（其他过程用 Function）。");
 
-            MSWord.UndoRecord undo = WordApp.UndoRecord;
-            bool recording = false;
-            try
-            {
-                undo.StartCustomRecord("运行VBA:" + macroName);
-                recording = true;
-                WordApp.Run(macroName);
+                MSWord.UndoRecord undo = WordApp.UndoRecord;
+                bool recording = false;
+                try
+                {
+                    undo.StartCustomRecord("运行VBA:" + macroName);
+                    recording = true;
+                    // 限定到刚注入的模块：裸过程名会先命中宿主文档里的同名宏，
+                    // 文档自带的宏因此可以被按钮间接调用
+                    WordApp.Run(vbm.Name + "." + macroName);
+                }
+                finally
+                {
+                    if (recording)
+                    {
+                        try { undo.EndCustomRecord(); }
+                        catch (Exception ex) { Debug.WriteLine("EndCustomRecord 失败: " + ex.Message); }
+                    }
+                }
+                return true;
             }
             finally
             {
-                // 两步清理必须彼此独立：原先写在同一个 finally 里，
-                // EndCustomRecord 一旦抛异常，vbc.Remove 就不会执行，
-                // 注入的模块会留在用户文档里被保存并随文档分发出去。
-                if (recording)
-                {
-                    try { undo.EndCustomRecord(); }
-                    catch (Exception ex) { Debug.WriteLine("EndCustomRecord 失败: " + ex.Message); }
-                }
                 try { vbc.Remove(vbm); }
                 catch (Exception ex) { Debug.WriteLine("移除注入的 VBA 模块失败: " + ex.Message); }
             }
-            return true;
         }
 
         private void OpenVba()
