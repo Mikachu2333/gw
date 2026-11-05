@@ -25,6 +25,50 @@ namespace 公文排版
             WordApp.KeyBindings.Add(MSWord.WdKeyCategory.wdKeyCategoryStyle, styleName, key);
         }
 
+        /// <summary>按名称查找样式，找不到返回 null。</summary>
+        private MSWord.Style FindStyle(string name)
+        {
+            foreach (MSWord.Style s in WordApp.ActiveDocument.Styles)
+            {
+                if (string.Equals(s.NameLocal, name, StringComparison.Ordinal)) return s;
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// 把字体设置写进已存在的公文样式。新建分支只处理缺失的样式；
+        /// 被正文引用、删不掉的旧样式不会进入新建分支，需要这里统一刷新。
+        /// </summary>
+        private void ApplyStyle(string name, System.Drawing.Font font,
+            MSWord.WdOutlineLevel? outline = null,
+            MSWord.WdParagraphAlignment? alignment = null,
+            bool firstLineIndent2 = false)
+        {
+            if (font == null) return;
+            MSWord.Style style = FindStyle(name);
+            if (style == null) return;
+
+            style.Font.NameFarEast = font.Name;
+            style.Font.Size = font.SizeInPoints;
+            style.Font.Bold = font.Bold ? 1 : 0;
+            style.Font.Italic = font.Italic ? 1 : 0;
+            if (outline.HasValue) style.ParagraphFormat.OutlineLevel = outline.Value;
+            if (alignment.HasValue) style.ParagraphFormat.Alignment = alignment.Value;
+            if (firstLineIndent2) style.ParagraphFormat.CharacterUnitFirstLineIndent = 2;
+        }
+
+        /// <summary>按当前设置刷新 7 个公文样式；样式不存在时跳过。</summary>
+        private void ApplyStyleSettings()
+        {
+            ApplyStyle("公文:4级标题", iniTitle4, MSWord.WdOutlineLevel.wdOutlineLevel4);
+            ApplyStyle("公文:3级标题", iniTitle3, MSWord.WdOutlineLevel.wdOutlineLevel3);
+            ApplyStyle("公文:2级标题", iniTitle2, MSWord.WdOutlineLevel.wdOutlineLevel2);
+            ApplyStyle("公文:1级标题", iniTitle1, MSWord.WdOutlineLevel.wdOutlineLevel1);
+            ApplyStyle("公文:正文", iniNormal);
+            ApplyStyle("公文:正文(缩进)", iniNormal, null, null, true);
+            ApplyStyle("公文:标题", iniTitle, null, MSWord.WdParagraphAlignment.wdAlignParagraphCenter);
+        }
+
         private void clearCustomStyles()
         {
             try
@@ -45,7 +89,7 @@ namespace 公文排版
                     catch { failed++; }
                 }
                 if (failed > 0)
-                    WordApp.StatusBar = "有 " + failed + " 个自定义样式正被内容引用，未能删除";
+                    WordApp.StatusBar = "有 " + failed + " 个自定义样式正被内容引用，已保留，稍后按当前设置更新";
 
                 // 样式删掉后，指向它的键位必须一起清掉：否则用户按下快捷键时
                 // Word 会报"命令不可用"。键位集合是实时集合，先快照再移除。
@@ -83,9 +127,12 @@ namespace 公文排版
                         case "公文:正文(缩进)": ts = true; break;
                     }
                 }
+                // 样式都存在时不再直接返回：字体设置可能刚被用户改过，
+                // 必须就地刷新，否则点“创建/恢复公文样式”看起来什么也没发生
                 if ((t4 & t3 & t2 & t1 & t & th & ts) == true)
                 {
-                    System.Diagnostics.Debug.WriteLine("公文样式已存在!");
+                    System.Diagnostics.Debug.WriteLine("公文样式已存在，按当前设置刷新");
+                    ApplyStyleSettings();
                     return;
                 }
 
@@ -206,6 +253,10 @@ namespace 公文排版
                     syTh.ParagraphFormat.Alignment = MSWord.WdParagraphAlignment.wdAlignParagraphCenter;
                     syTh.set_BaseStyle(MSWord.WdBuiltinStyle.wdStyleNormal);
                 }
+
+                // 新建分支只覆盖缺失的样式；被正文引用而删不掉的旧样式在这里统一刷新，
+                // 否则“恢复公文样式”会留下仍用旧字体的样式
+                ApplyStyleSettings();
             }
             catch (Exception ex)
             {
