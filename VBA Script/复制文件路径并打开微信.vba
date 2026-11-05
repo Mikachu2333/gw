@@ -13,30 +13,67 @@
 
 Option Explicit    '强制声明变量是个好习惯, 可以提高代码速度,减少bug
 
+
 Sub 复制文件路径并打开微信()
-    
-    On Error Resume Next
-    
     Dim doc As Document
-    Set doc = ActiveDocument
-    
-    If Not doc.Saved Then
-        doc.Save  '如果文件未保存, 先保存 '
-    End If
-    
     Dim path As String
-    
-    path = doc.FullName  '获取文件路径'
-    
-    '剪贴板操作
     Dim RR
-    Set RR = CreateObject("new:{1C3B4210-F441-11CE-B9EA-00AA006B1A69}")   'Forms 2.0 Object Library
+    Dim 微信路径 As String
+
+    Set doc = ActiveDocument
+
+    ' 原先是 If Not doc.Saved Then doc.Save：把用户可能并不想留下的改动直接写进磁盘,
+    ' 从没命名过的文档还会弹一个另存为。未保存的文档没有路径可复制, 只提示不代做决定。
+    If Not doc.Saved Then
+        MsgBox "文档尚未保存, 没有可复制的文件路径。请先保存后再运行。", vbExclamation
+        Exit Sub
+    End If
+    path = doc.FullName
+
+    ' 剪贴板组件(Forms 2.0 数据对象)在新装机器上可能不存在。
+    ' 原先整段 On Error Resume Next, 复制失败也照样往下走并报"成功"。
+    On Error Resume Next
+    Set RR = CreateObject("new:{1C3B4210-F441-11CE-B9EA-00AA006B1A69}")
+    If RR Is Nothing Then
+        On Error GoTo 0
+        MsgBox "本机没有可用的剪贴板组件, 无法自动复制。请手工复制这一行:" & vbCrLf & path, _
+            vbExclamation
+        Exit Sub
+    End If
     RR.SetText path
-    RR.PutInClipboard  '复制文件路径到剪贴板
-    
-    
-    '打开微信, 路径以你自己的微信路径为准
-    Shell "D:\Tools\WeChat\WeChat.exe"   '
-    
-    
+    RR.PutInClipboard
+    On Error GoTo 0
+
+    ' 原先 Shell "D:\Tools\WeChat\WeChat.exe" 是作者自己机器上的路径, 换一台必然失败,
+    ' 又被 On Error Resume Next 咽掉, 用户以为微信打开了其实什么都没有。
+    微信路径 = 查询微信路径()
+    If 微信路径 = "" Then
+        MsgBox "路径已复制到剪贴板, 但注册表里找不到微信(WeChat/Weixin), 请手动打开后粘贴。", _
+            vbInformation
+    Else
+        Shell """" & 微信路径 & """"
+    End If
 End Sub
+
+Function 查询微信路径() As String
+    Dim sh, 候选, k, 值
+
+    查询微信路径 = ""
+    Set sh = CreateObject("WScript.Shell")
+    ' App Paths 是 Windows 登记可执行文件位置的标准位置, 64/32 位视图和新版改名都覆盖
+    候选 = Array( _
+        "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\Weixin.exe", _
+        "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\WeChat.exe", _
+        "HKLM\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\App Paths\WeChat.exe")
+    For Each k In 候选
+        值 = ""
+        On Error Resume Next
+        值 = sh.RegRead(CStr(k))
+        On Error GoTo 0
+        If 值 <> "" Then
+            ' App Paths 的默认值常带引号, Shell 需要干净的路径
+            查询微信路径 = Replace(CStr(值), """", "")
+            Exit Function
+        End If
+    Next
+End Function

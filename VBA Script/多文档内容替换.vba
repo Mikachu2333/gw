@@ -20,43 +20,79 @@
 Option Explicit    '强制声明变量是个好习惯, 可以提高代码速度,减少bug
 Dim strF As String
 Dim strR As String
+Dim 最近错误 As String
 
 Sub xkonglong_批量替换()
+    Dim 筛选器 As FileDialog
+    Dim 文件名 As Variant
+    Dim 成功数 As Long
+    Dim 失败清单 As String
 
-    Dim 筛选器 As FileDialog, 文件名, 文件 As Document, pd, 计数 As Integer
     Set 筛选器 = Application.FileDialog(msoFileDialogFilePicker)
     With 筛选器
         .AllowMultiSelect = True
         .Title = "请选择要批量替换的文档,可多选"
-        .Show
+        ' 原先不看 .Show 的返回值: 点取消之后继续读 SelectedItems 直接报错
+        If .Show <> -1 Then Exit Sub
     End With
-    
-    
+
     strF = InputBox("请输入要查找的内容,支持通配符,默认是查找下划线_", , "([_]{1,})")
+    If strF = "" Then Exit Sub
     strR = InputBox("请输入替换文本,支持通配符,默认是给查找内容加()", , "(\1)")
-    
+    If strR = "" Then Exit Sub
+
+    ' 这个脚本就地改写并保存原文件, 中途失败会留下改了一半的文档, 必须先让用户确认
+    If MsgBox("将直接修改并保存选中的 " & 筛选器.SelectedItems.Count & " 个文件, 不生成副本。" _
+        & vbCrLf & "建议先备份。确定继续吗?", vbYesNo + vbExclamation, "批量替换") <> vbYes Then Exit Sub
+
     For Each 文件名 In 筛选器.SelectedItems
-        If Not Right(文件名, Len(文件名) - InStrRev(文件名, ".")) Like "doc*" Then GoTo 结束
-        Set 文件 = Documents.Open(文件名)
-        With 文件.Content.find
-            .ClearFormatting
-            .MatchWildcards = True    '支持通配符
-            .Wrap = wdFindStop
-            .Text = strF           '要查找的内容'
-            With .Replacement
-                .ClearFormatting
-                .Text = strR        '替换后的内容'
-            End With
-            .Execute Replace:=wdReplaceAll   '替换所有'
-        End With
-        文件.Close wdSaveChanges     '保存文件'
-        Debug.Print 文件名 & " 已处理完成！"
-        计数 = 计数 + 1
-        Set 文件 = Nothing
-结束:  Next
+        If Right(文件名, Len(文件名) - InStrRev(文件名, ".")) Like "doc*" Then
+            If 替换一个文档(CStr(文件名)) Then
+                成功数 = 成功数 + 1
+            Else
+                失败清单 = 失败清单 & vbCrLf & 文件名 & "：" & 最近错误
+            End If
+        End If
+    Next
     Set 筛选器 = Nothing
-    MsgBox "已完成！共处理了" & 计数 & "个文件。"
+
+    ' 原先整段没有任何错误处理: 第 3 个文件打不开就中断整个 Sub, 却已经把前 2 个存盘了,
+    ' 而那两句 MsgBox 根本走不到, 用户不知道还剩多少没处理
+    If 失败清单 = "" Then
+        MsgBox "已完成！成功处理 " & 成功数 & " 个文件。", vbInformation
+    Else
+        MsgBox "成功 " & 成功数 & " 个; 以下文件未处理:" & vbCrLf & 失败清单, vbExclamation
+    End If
 End Sub
 
+Function 替换一个文档(fname As String) As Boolean
+    Dim 文件 As Document
 
+    最近错误 = ""
+    On Error GoTo 失败
+    Set 文件 = Documents.Open(fname)
+    With 文件.Content.find
+        .ClearFormatting
+        .MatchWildcards = True    '支持通配符
+        .Wrap = wdFindStop
+        .Text = strF           '要查找的内容
+        With .Replacement
+            .ClearFormatting
+            .Text = strR        '替换后的内容
+        End With
+        .Execute Replace:=wdReplaceAll   '替换所有
+    End With
+    文件.Close wdSaveChanges     '保存文件
+    替换一个文档 = True
+    Exit Function
 
+失败:
+    最近错误 = Err.Description
+    替换一个文档 = False
+    If Not 文件 Is Nothing Then
+        ' 打开成功但替换/保存失败时文档已脏, 明确按"不保存"关掉,
+        ' 免得留下一个状态不明的窗口
+        On Error Resume Next
+        文件.Close wdDoNotSaveChanges
+    End If
+End Function
