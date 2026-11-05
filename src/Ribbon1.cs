@@ -237,7 +237,10 @@ namespace 公文排版
                 btnUnderDot.Checked = Sel.Range.Font.EmphasisMark == MSWord.WdEmphasisMark.wdEmphasisMarkUnderSolidCircle;
                 btnHideFont.Checked = Sel.Range.Font.Hidden != 0;
 
-                bool hasSelection = Sel.Type == MSWord.WdSelectionType.wdSelectionNormal && Sel.Text.Length > 1;
+                // 必须同时看保护状态：这个处理器每次移动光标都会跑，只看有没有选区的话，
+                // 受保护文档里 ControlEnable(false) 刚禁用的这两个改动型按钮会被立刻重新点亮。
+                bool editable = Sel.Document.ProtectionType == MSWord.WdProtectionType.wdNoProtection;
+                bool hasSelection = editable && Sel.Type == MSWord.WdSelectionType.wdSelectionNormal && Sel.Text.Length > 1;
                 btnFormatDelSelectSpace.Enabled = hasSelection;
                 btnFormatDelSelectEmptyLine.Enabled = hasSelection;
             }
