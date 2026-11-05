@@ -138,6 +138,8 @@ namespace 公文排版
             // 切换文档就会把一个必然失败的按钮重新打开
             rb.btnSpeak.Enabled = enable && rb.sp != null;
             rb.btnStyle.Enabled = enable;
+            // 恢复样式会删掉全部自定义样式，受保护文档下必须一并禁用
+            rb.btnStyleR.Enabled = enable;
 
             rb.mnuTitle1.Enabled = enable;
             rb.mnuTitle2.Enabled = enable;
@@ -161,7 +163,7 @@ namespace 公文排版
 
             // VBA 注入不受文档保护约束：注入的宏可以调用 Document.Unprotect（无口令保护时
             // 直接成功），等于绕过"只读/限制编辑"。受保护或只读文档必须一并关掉这些入口。
-            // 按控件包含关系核对过：其余改动型控件都已被上面某个容器覆盖，只有这四处是漏网。
+            // 其余改动型控件都已在上面逐项列出，这四处是仅剩的 VBA 入口，不能靠容器覆盖。
             rb.btnVBA.Enabled = enable;
             rb.btnClearVBA.Enabled = enable;
             rb.mnuVBA.Enabled = enable;
