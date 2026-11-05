@@ -11,8 +11,33 @@ namespace 公文排版
     public partial class Ribbon1
     {
         /// <summary>插入版记线</summary>
+        /// <summary>
+        /// 插入类命令只允许在正文里执行。用户停在页眉/页脚时 Selection 指向的就是页眉故事，
+        /// 表格、公文部件、印章图片会全部插进页眉，而且人还留在页眉视图里。
+        /// </summary>
+        private bool EnsureMainDocumentView()
+        {
+            try
+            {
+                if (WordApp.ActiveWindow.ActivePane.View.SeekView
+                        == MSWord.WdSeekView.wdSeekMainDocument)
+                    return true;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("读取 SeekView 失败: " + ex.Message);
+                return true;   // 读不到就别拦住用户，正文里本来就能用
+            }
+            MessageBox.Show("请先退出页眉/页脚编辑状态，再使用插入功能。", "当前正在编辑页眉页脚",
+                MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+            return false;
+        }
+
+        private MSWord.AddIn dotAddIn;   // 公文部件.dotx 的会话级加载项，见 InsertHead
+
         private void InsertLine(int LineNumber = 1)
         {
+            if (!EnsureMainDocumentView()) return;
             if (LineNumber < 1) LineNumber = 1;
             MSWord.Document WordDoc = WordApp.ActiveDocument;
             MSWord.Table newTable = WordDoc.Tables.Add(WordApp.Selection.Range, LineNumber, 1);
@@ -43,6 +68,7 @@ namespace 公文排版
         /// <summary>插入版头</summary>
         private void InsertHead(string autoText)
         {
+            if (!EnsureMainDocumentView()) return;
             string startPath = GetDllPath();
             string dotFilename = Path.Combine(startPath ?? string.Empty, "Resources", "公文部件.dotx");
             if (!File.Exists(dotFilename))
@@ -56,7 +82,13 @@ namespace 公文排版
                 // AddIns.Add(..., Install: true) 会把模板永久登记进用户的 Word 启动项
                 // （写注册表 AddIns），每次插入版头都调用一次就是在反复改用户的 Word 配置，
                 // 卸载插件后仍残留。这里只需要它本次会话可用，取其中的公文部件即可。
-                WordApp.AddIns.Add(dotFilename, Install: false);
+                // 同一个模板重复 AddIns.Add 会在 Word 的加载项集合里堆出多个条目，
+                // 而且文件一直被占用，插件更新或卸载时删不动它。整个会话只加一次，
+                // 退出时由 Ribbon1_Close 调 UnloadDotTemplate 释放。
+                if (dotAddIn == null)
+                {
+                    dotAddIn = WordApp.AddIns.Add(dotFilename, Install: false);
+                }
             }
             catch (Exception ex)
             {
@@ -74,7 +106,23 @@ namespace 公文排版
                         MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
                     return;
                 }
-                template.BuildingBlockEntries.Item(autoText).Insert(Where: WordApp.Selection.Range);
+                // 真正的失败原因是"少了这一个具名部件"，而不是集合为空；原先直接
+                // Item(autoText)，用户只看到一串 COM 英文报错。
+                // BuildingBlockEntries 没有 GetEnumerator，只能按 1..Count 取
+                MSWord.BuildingBlock entry = null;
+                for (int i = 1; i <= template.BuildingBlockEntries.Count; i++)
+                {
+                    MSWord.BuildingBlock bb = template.BuildingBlockEntries.Item(i);
+                    if (string.Equals(bb.Name, autoText, StringComparison.Ordinal)) { entry = bb; break; }
+                }
+                if (entry == null)
+                {
+                    MessageBox.Show("公文部件里找不到名为「" + autoText + "」的部件，"
+                        + "请确认 Resources 目录下的 公文部件.dotx 完整。", "插入版头时出错",
+                        MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                    return;
+                }
+                entry.Insert(Where: WordApp.Selection.Range);
             }
             catch (Exception ex)
             {
@@ -294,6 +342,7 @@ namespace 公文排版
 
         private void InsertSignPic(string FileName, bool LinkToFile = true)
         {
+            if (!EnsureMainDocumentView()) return;
             MSWord.InlineShape pic = WordApp.Selection.Range.InlineShapes.AddPicture(FileName, LinkToFile, !LinkToFile);
             MSWord.Shape sPic = pic.ConvertToShape();
             sPic.ZOrder(MSOffice.MsoZOrderCmd.msoBringInFrontOfText);

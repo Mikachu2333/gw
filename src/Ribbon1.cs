@@ -215,6 +215,11 @@ namespace 公文排版
                     sp = null;
                 }
                 if (fp != null) { if (!fp.IsDisposed) fp.Dispose(); fp = null; }
+                // 公文部件模板是会话级加载项：不摘掉的话 dotx 一直被占用，
+                // 插件更新/卸载时删不动这个文件。
+                try { dotAddIn?.Delete(); }   // AddIn 上的方法叫 Delete，不是 Remove
+                catch (Exception ex) { Debug.WriteLine("卸载公文部件模板失败: " + ex.Message); }
+                dotAddIn = null;
                 foreach (Font f in ownedFonts)
                 {
                     try { f.Dispose(); } catch { }
