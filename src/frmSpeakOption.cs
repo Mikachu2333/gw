@@ -11,12 +11,18 @@ namespace 公文排版
         private SpeechSynthesizer synth;
         // 填充音色列表期间置为 true：此时 SelectedIndexChanged 只是初始化，不该反过来改动共享合成器
         private bool loadingVoices;
+        // 本次朗读是否由本窗体发起：合成器与功能区共用，关闭窗体时不能顺手停掉
+        // 用户在功能区点“朗读”开始的那一段
+        private bool startedHere;
         private Microsoft.Office.Interop.Word.Application WordApp;
         private Point mPoint;
 
         public frmSpeakOption()
         {
             InitializeComponent();
+            // 无边框窗体没有系统关闭按钮，必须自己接 Esc
+            KeyPreview = true;
+            KeyDown += FrmSpeakOption_KeyDown;
         }
 
         private void FrmSpeakOption_Load(object sender, EventArgs e)
@@ -43,6 +49,7 @@ namespace 公文排版
             try
             {
                 synth.SpeakAsyncCancelAll();
+                startedHere = true;
                 if (WordApp.Selection.Text.Length > 1)
                 {
                     synth.SpeakAsync(WordApp.Selection.Text);
@@ -67,6 +74,7 @@ namespace 公文排版
             if (synth == null) return;
             try { synth.SpeakAsyncCancelAll(); }
             catch (Exception ex) { Debug.WriteLine("BtnStop: " + ex.Message); }
+            startedHere = false;
             trackBar1.Enabled = true;
             cobVoiceName.Enabled = true;
         }
@@ -143,6 +151,7 @@ namespace 公文排版
             try
             {
                 if (this.IsDisposed) return;
+                startedHere = false;
                 if (this.InvokeRequired)
                 {
                     this.BeginInvoke(new Action(() =>
@@ -166,17 +175,32 @@ namespace 公文排版
             this.Close();
         }
 
-        // 合成器归功能区所有，关闭窗体只能取消订阅，Dispose 会连带废掉"朗读"按钮
+        // 合成器归功能区所有，关闭窗体只能取消订阅，Dispose 会连带废掉"朗读"按钮。
+        // 取消朗读也只限本窗体发起的那一段，否则用户正在功能区听的内容会被打断。
         private void UnhookSynth()
         {
             if (synth == null) return;
             try
             {
-                synth.SpeakAsyncCancelAll();
+                if (startedHere) synth.SpeakAsyncCancelAll();
                 synth.SpeakCompleted -= Synth_SpeakCompleted;
             }
             catch (Exception ex) { Debug.WriteLine(ex.Message); }
-            finally { synth = null; }
+            finally
+            {
+                startedHere = false;
+                synth = null;
+            }
+        }
+
+        private void FrmSpeakOption_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.Escape)
+            {
+                e.Handled = true;
+                UnhookSynth();
+                this.Close();
+            }
         }
 
         private void FrmSpeakOption_FormClosing(object sender, FormClosingEventArgs e)
