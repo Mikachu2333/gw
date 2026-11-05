@@ -24,6 +24,8 @@ namespace 公文排版
                 if (fp == null || fp.IsDisposed)
                 {
                     fp = new frmPaperSetup();
+                    // 用户点窗体右上角关闭时不会经过 btnPaper_Click，不订阅就会一直显示“按下”
+                    fp.FormClosed += (s, args) => btnPaper.Checked = false;
                     var clsWinWrap = new ClsWinWrap(WordApp.ActiveWindow.Hwnd);
                     clsWinWrap.Show(fp);
                     btnPaper.Checked = true;
@@ -87,25 +89,31 @@ namespace 公文排版
             {
                 WithUndo("删除页眉横线", () =>
                 {
-                    WordApp.ScreenUpdating = false;
+                    var view = WordApp.ActiveWindow.ActivePane.View;
+                    bool enteredHeader = view.SeekView != MSWord.WdSeekView.wdSeekCurrentPageHeader;
+                    try
+                    {
+                        if (enteredHeader)
+                            view.SeekView = MSWord.WdSeekView.wdSeekCurrentPageHeader;
 
-                    if (WordApp.ActiveWindow.ActivePane.View.SeekView != MSWord.WdSeekView.wdSeekCurrentPageHeader)
-                                        WordApp.ActiveWindow.ActivePane.View.SeekView = MSWord.WdSeekView.wdSeekCurrentPageHeader;
-
-                    WordApp.Selection.WholeStory();
-                    WordApp.Selection.Borders[MSWord.WdBorderType.wdBorderBottom].LineStyle = MSWord.WdLineStyle.wdLineStyleNone;
-
-                    WordApp.ActiveWindow.ActivePane.View.SeekView = MSWord.WdSeekView.wdSeekMainDocument;
-                });
+                        WordApp.Selection.WholeStory();
+                        WordApp.Selection.Borders[MSWord.WdBorderType.wdBorderBottom].LineStyle = MSWord.WdLineStyle.wdLineStyleNone;
+                    }
+                    finally
+                    {
+                        // 中途抛异常时也必须离开页眉视图，否则用户会停在页眉里继续编辑
+                        if (enteredHeader && view.SeekView != MSWord.WdSeekView.wdSeekMainDocument)
+                        {
+                            try { view.SeekView = MSWord.WdSeekView.wdSeekMainDocument; }
+                            catch (Exception ex) { System.Diagnostics.Debug.WriteLine("恢复主文档视图失败: " + ex.Message); }
+                        }
+                    }
+                }, suspendScreen: true);
             }
             catch (Exception ex)
             {
                 MessageBox.Show(ex.Message + "\r\n\r\n" + ex.Source, "删除页眉横线失败",
                     MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
-            }
-            finally
-            {
-                WordApp.ScreenUpdating = true;
             }
         }
 
