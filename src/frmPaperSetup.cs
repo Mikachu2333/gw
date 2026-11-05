@@ -69,8 +69,11 @@ namespace 公文排版
 
         void SetGWPage()
         {
+            // ActiveDocument 在没有打开任何文档时是直接抛 COMException，不会返回 null，
+            // 所以原先的 if (doc == null) 永远走不到，用户只能看到 Word 的原始报错。
+            if (WordApp.Documents.Count == 0)
+                throw new InvalidOperationException("没有打开的文档");
             var doc = ActiveDoc;
-            if (doc == null) throw new InvalidOperationException("没有打开的文档");
 
             float top = WordApp.CentimetersToPoints((float)nudTop.Value / 10);
             float bottom = WordApp.CentimetersToPoints((float)nudBottom.Value / 10);
@@ -138,6 +141,7 @@ namespace 公文排版
             {
                 var doc = ActiveDoc;
                 if (doc == null) return;
+                if (doc.EmbedTrueTypeFonts == embed) return;   // 状态没变就不碰文档
                 doc.EmbedTrueTypeFonts = embed;
                 doc.SaveSubsetFonts = embed;
             }
@@ -177,6 +181,11 @@ namespace 公文排版
             nudLineSpacing.Enabled = chkLineSpacing.Checked;
             nudLetters.Enabled = chkGW.Checked;
             nudLine.Enabled = chkGW.Checked;
+            // 复选框原先从不回填文档现状，而确定/应用总会写一次：打开一份已经嵌入字体的
+            // 公文、什么都不动直接点确定，嵌入和子集化就被关掉了，文件换到没装这些字体的
+            // 机器上会跑版。所以先把文档的真实状态读进界面。
+            try { chkIncludeFonts.Checked = ActiveDoc.EmbedTrueTypeFonts; }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine("读取嵌入字体状态失败: " + ex.Message); }
         }
 
         private void BtnReset_Click(object sender, EventArgs e)
@@ -187,7 +196,7 @@ namespace 公文排版
 
             try
             {
-                // 同上：Reset() 会连带清空字体设置与 VBA 历史
+                // 不能用 Reset()：它清空的是全部用户设置，连带抹掉 VBA 运行历史和脚本路径
                 Properties.Settings.Default.ResetNames(
                     "上边距", "下边距", "左边距", "右边距", "页脚边距",
                     "行数", "字数", "行间距", "允许行间距", "公文版式");
@@ -204,10 +213,9 @@ namespace 公文排版
         {
             try
             {
-                Microsoft.Office.Interop.Word.UndoRecord undo = WordApp.UndoRecord;
-                undo.StartCustomRecord("公文页面设置");
-                try { SetGWPage(); }
-                finally { undo.EndCustomRecord(); }
+                // 手写 StartCustomRecord/EndCustomRecord 绕开了 WithUndo 的屏幕刷新恢复，
+                // 而这里是整篇改每节的页面设置，不挂 ScreenUpdating 会一路重排多次。
+                Globals.Ribbons.Ribbon1.WithUndo("公文页面设置", SetGWPage, suspendScreen: true);
                 return true;
             }
             catch (System.Runtime.InteropServices.COMException ex)
@@ -234,7 +242,7 @@ namespace 公文排版
             }
             catch (Exception ex)
             {
-                MessageBox.Show(ex.Message + "\r\n请重置 Word 默认模板后再尝试!",
+                MessageBox.Show(ex.Message + "\r\n\r\n写入用户配置文件失败（user.config 可能被占用或已损坏）。",
                     "保存设置时出错", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
             }
         }
@@ -269,7 +277,7 @@ namespace 公文排版
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show(ex.Message + "\r\n请重置 Word 默认模板后再尝试!",
+                    MessageBox.Show(ex.Message + "\r\n\r\n写入用户配置文件失败（user.config 可能被占用或已损坏）。",
                         "保存设置时出错", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
                     return;
                 }
