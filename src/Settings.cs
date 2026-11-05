@@ -19,7 +19,15 @@
             {
                 var prop = this.Properties[name];
                 if (prop == null) continue;
-                this[name] = prop.DefaultValue;
+                // DefaultValue 一律以字符串形态存着（来自 app.config 的 DefaultSettingValue），
+                // 而 this[name] 会按 PropertyType 校验：直接把字符串塞给 float/int/bool/Font
+                // 设置会抛 SettingsPropertyWrongTypeException，导致重置功能整体失效。
+                object dv = prop.DefaultValue;
+                string s = dv as string;
+                if (s != null && prop.PropertyType != typeof(string))
+                    dv = System.ComponentModel.TypeDescriptor.GetConverter(prop.PropertyType)
+                            .ConvertFrom(null, System.Globalization.CultureInfo.InvariantCulture, s);
+                this[name] = dv;
             }
             this.Save();
         }
