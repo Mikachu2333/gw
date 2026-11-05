@@ -30,18 +30,15 @@ Sub 图片批量转PPT()
         Set pptApp = CreateObject("PowerPoint.Application")
     End If
     On Error GoTo 0
+    ' GetObject 和 CreateObject 都在 On Error Resume Next 下跑过: 没装 PowerPoint 时
+    ' pptApp 仍是 Nothing, 原先下一行直接取 .Visible 会抛错误 91 的 VBA 中断框
+    If pptApp Is Nothing Then
+        MsgBox "本机没有可用的 PowerPoint, 无法生成 PPTX。", vbExclamation
+        Exit Sub
+    End If
     
     ' 让PowerPoint可见（可选）
     pptApp.Visible = True
-    
-    ' 创建新的演示文稿
-    Set pptPres = pptApp.Presentations.Add
-    
-    ' 获取幻灯片尺寸
-    With pptPres.PageSetup
-        slideWidth = .slideWidth
-        slideHeight = .slideHeight
-    End With
     
     ' 选择图片文件
     Set fd = Application.FileDialog(msoFileDialogFilePicker)
@@ -52,6 +49,14 @@ Sub 图片批量转PPT()
         .Filters.Add "图片文件", "*.jpg;*.jpeg;*.png;*.bmp;*.gif;*.tif;*.tiff"
         
         If .Show = -1 Then ' 用户选择了文件
+            ' 演示文稿改到确认选完文件之后再建: 原先在选文件之前就 Add, 用户一点取消
+            ' 就留下一个空演示文稿挂在 PowerPoint 里
+            Set pptPres = pptApp.Presentations.Add
+            With pptPres.PageSetup
+                slideWidth = .slideWidth
+                slideHeight = .slideHeight
+            End With
+
             i = 0
             For Each fileItem In .SelectedItems
                 imagePath = CStr(fileItem)
@@ -83,6 +88,14 @@ Sub 图片批量转PPT()
         imagePath = CStr(fd.SelectedItems(1))
         saveDir = Left(imagePath, InStrRev(imagePath, "\") - 1)
         savePath = saveDir & "\图片合集.pptx"
+        If Dir(savePath) <> "" Then
+            ' 同名文件默认覆盖, 用户上一批图片生成的合集会被这一批无声换掉
+            If MsgBox("目标文件已存在:" & vbCrLf & savePath & vbCrLf & "确定覆盖吗?", _
+                vbYesNo + vbQuestion) <> vbYes Then
+                MsgBox "已取消保存, 幻灯片仍留在 PowerPoint 窗口里。", vbInformation
+                GoTo CleanUp
+            End If
+        End If
         pptPres.SaveAs savePath, 24     ' 24 = ppSaveAsOpenXMLPresentation
         MsgBox "已用 " & i & " 张图片生成幻灯片并保存到：" & vbCrLf & savePath, vbInformation
     Else
