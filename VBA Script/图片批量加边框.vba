@@ -15,6 +15,7 @@ Option Explicit    '强制声明变量是个好习惯, 可以提高代码速度,减少bug
 
 
 Sub 图片批量加边框()
+    On Error GoTo 清理
     Application.ScreenUpdating = False
     
 
@@ -42,4 +43,10 @@ Sub 图片批量加边框()
     Next
     
     Application.ScreenUpdating = True
+    Exit Sub
+
+清理:
+    ' myPic.Select 在限制编辑的文档里会抛错, 原先没有任何处理, Word 就停在不重绘状态
+    Application.ScreenUpdating = True
+    MsgBox "加边框过程中出错: " & Err.Description, vbCritical
 End Sub

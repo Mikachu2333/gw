@@ -16,6 +16,9 @@ Option Explicit
 
 Sub 多文档转PDF()
     ' 关闭弹窗和屏幕刷新，提升效率
+    Dim 原提示 As Boolean
+    原提示 = Application.DisplayAlerts
+    On Error GoTo 清理
     Application.DisplayAlerts = False
     Application.ScreenUpdating = False
     
@@ -77,7 +80,7 @@ Sub 多文档转PDF()
     ' 清理并恢复Word设置
     Set fDialog = Nothing
     Application.ScreenUpdating = True
-    Application.DisplayAlerts = True
+    Application.DisplayAlerts = 原提示
     
     ' 提示结果
     If 失败清单 = "" Then
@@ -85,5 +88,13 @@ Sub 多文档转PDF()
     Else
         MsgBox "成功转换 " & i & " 个文档, 以下文档转换失败:" & vbCrLf & 失败清单, vbExclamation
     End If
+    Exit Sub
+
+清理:
+    ' 原先两个全局标志只在正常走完时恢复, 中途报错就留下一个既不重绘也不弹提示的 Word;
+    ' DisplayAlerts 还被硬写回 True, 把宿主本来关着的提示一并打开了
+    Application.ScreenUpdating = True
+    Application.DisplayAlerts = 原提示
+    MsgBox "转换过程中出错: " & Err.Description & vbCrLf & "已完成 " & i & " 个; Word 的刷新与提示设置已恢复。", vbCritical
 End Sub
 

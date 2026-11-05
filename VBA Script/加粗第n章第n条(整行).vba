@@ -11,6 +11,7 @@
 '日期: 2026年8月9日
 
 Sub 加粗第n章第n条()
+    On Error GoTo 清理
     Application.ScreenUpdating = False
     
     Dim rng As Range
@@ -38,4 +39,10 @@ Sub 加粗第n章第n条()
     
     Application.ScreenUpdating = True
     MsgBox "加粗完成！", vbInformation
+    Exit Sub
+
+清理:
+    ' 原先完全没有错误处理: 文档限制编辑等情况下中途抛错, Word 会永久留在不重绘的状态
+    Application.ScreenUpdating = True
+    MsgBox "加粗过程中出错: " & Err.Description, vbCritical
 End Sub
