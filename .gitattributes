@@ -17,6 +17,12 @@
 *.md        -text
 *.txt       -text
 
+# 打包脚本同样是 Windows 产物：make.bat 由 cmd.exe 解析，installer.iss 由 ISCC 解析
+# 且带 UTF-8 BOM（没 BOM 时 ISCC 按 ANSI 读，中文提示会花）。两者都必须按字节存，
+# 否则 core.autocrlf=input 会在 add 时把 CRLF 悄悄改成 LF。
+*.bat       -text
+*.iss       -text
+
 # 二进制资源：VBA 脚本必须是 GB2312/ANSI 且行尾由 VBA 读取，
 # 任何行尾/编码规范化都会改变 AddFromFile 实际读到的内容。
 *.vba       binary
