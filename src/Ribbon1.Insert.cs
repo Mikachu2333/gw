@@ -168,15 +168,21 @@ namespace 公文排版
             catch (Exception ex) { MessageBox.Show(ex.Message); }
         }
 
+        // 这两个符号替换各跑两次 WordReplace，而 WordReplace 自己不记撤销单元：
+        // 不包进 WithUndo 就会留下两条独立撤销记录，用户按一次 Ctrl+Z 只回退后半段，
+        // 文档停在"半角已转、全角没转"的混合状态。
         private void btnSymbol_zkh_Click(object sender, RibbonControlEventArgs e)
         {
-            WordReplace(true, @"\[([0-9]{1,4})\]", @"〔\1〕");
-            WordReplace(true, "［([0-9]{1,4})］", @"〔\1〕");
+            WithUndo("中括号转六角括号", () =>
+            {
+                WordReplace(true, @"\[([0-9]{1,4})\]", @"〔\1〕");
+                WordReplace(true, "［([0-9]{1,4})］", @"〔\1〕");
+            }, suspendScreen: true);
         }
 
         private void btnSymbol_hkh_Click(object sender, RibbonControlEventArgs e)
         {
-            WordReplace(true, "【([0-9]{1,4})】", @"〔\1〕");
+            WithUndo("方头括号转六角括号", () => WordReplace(true, "【([0-9]{1,4})】", @"〔\1〕"), suspendScreen: true);
         }
 
         private void BtnSymbol_index_Click(object sender, RibbonControlEventArgs e)
@@ -190,7 +196,9 @@ namespace 公文排版
                     MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
-            if (at > 20)
+            // 原先只在 >20 时拦，<=0 被放进撤销段里悄悄改成 1：提示写着"1-20"，
+            // 选中 0 或负数却照样得到 ①，用户不知道自己输入的东西被换掉了。
+            if (at < 1 || at > 20)
             {
                 MessageBox.Show("带圈序号最大只能到20", "数字转换为带圈序号",
                     MessageBoxButtons.OK, MessageBoxIcon.Warning);
@@ -199,14 +207,32 @@ namespace 公文排版
 
             WithUndo("带圈数字序列", () =>
             {
-                MSWord.ListTemplate myTemplate2 = WordApp.ActiveDocument.ListTemplates.Add();
-                myTemplate2.ListLevels[1].NumberFormat = "%1";
-                myTemplate2.ListLevels[1].NumberStyle = MSWord.WdListNumberStyle.wdListNumberStyleNumberInCircle;
-                myTemplate2.ListLevels[1].TrailingCharacter = MSWord.WdTrailingCharacter.wdTrailingNone;
-                myTemplate2.ListLevels[1].TextPosition = 0;
-                myTemplate2.ListLevels[1].NumberPosition = 0;
-                if (at <= 0) at = 1;
-                myTemplate2.ListLevels[1].StartAt = at;
+                // 同 SetTitle：每次 Add() 会往文档里堆一个永不删除的列表模板，
+                // 反复用几十次后文件明显变大，定义相同的模板直接复用。
+                MSWord.ListTemplate myTemplate2 = null;
+                foreach (MSWord.ListTemplate t in WordApp.ActiveDocument.ListTemplates)
+                {
+                    MSWord.ListLevel lvl = t.ListLevels[1];
+                    if (lvl.NumberFormat == "%1" && lvl.StartAt == at &&
+                        lvl.NumberStyle == MSWord.WdListNumberStyle.wdListNumberStyleNumberInCircle &&
+                        lvl.TrailingCharacter == MSWord.WdTrailingCharacter.wdTrailingNone &&
+                        lvl.TextPosition == 0 && lvl.NumberPosition == 0)
+                    {
+                        myTemplate2 = t;
+                        break;
+                    }
+                }
+
+                if (myTemplate2 == null)
+                {
+                    myTemplate2 = WordApp.ActiveDocument.ListTemplates.Add();
+                    myTemplate2.ListLevels[1].NumberFormat = "%1";
+                    myTemplate2.ListLevels[1].NumberStyle = MSWord.WdListNumberStyle.wdListNumberStyleNumberInCircle;
+                    myTemplate2.ListLevels[1].TrailingCharacter = MSWord.WdTrailingCharacter.wdTrailingNone;
+                    myTemplate2.ListLevels[1].TextPosition = 0;
+                    myTemplate2.ListLevels[1].NumberPosition = 0;
+                    myTemplate2.ListLevels[1].StartAt = at;
+                }
                 WordApp.Selection.Range.ListFormat.ApplyListTemplate(myTemplate2);
             });
         }
