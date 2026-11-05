@@ -9,6 +9,7 @@ Sub 中文数字重新编号
     Dim regEx As Object
     Dim matches As Object
     Dim match As Object
+    Dim 超出上限 As Boolean
 
     ' 检查是否有选中内容
     If Selection.Type = wdSelectionIP Then
@@ -19,7 +20,8 @@ Sub 中文数字重新编号
     Set rng = Selection.Range
     Set regEx = CreateObject("VBScript.RegExp")
     regEx.Global = False          ' 仅匹配每段第一个编号
-    regEx.Pattern = "（[一二三四五六七八九十]+）"   ' 匹配中文括号内中文数字（一~十、十一等）
+    ' 必须锚定在段首：原先不限位置，正文里"根据（三）的规定"这种句子也会被当成编号改掉
+    regEx.Pattern = "^[ 　]*(（[一二三四五六七八九十]+）)"   ' 匹配段首中文括号编号（含全角空格缩进）
 
     i = 1
     ' 遍历选中区域内的所有段落
@@ -28,13 +30,23 @@ Sub 中文数字重新编号
         If matches.Count > 0 Then
             Set match = matches(0)
             
-            ' 计算匹配文本在段落中的位置
+            ' 计算匹配文本在段落中的位置。
+            ' 位置必须取捕获组(编号本身)而不是整个 match：match 现在含段首缩进，
+            ' 直接拿它的首尾去替换会把缩进一起吃掉，公文段落的首部空格就没了。
             Dim matchRange As Range
+            Dim 编号 As Object
+            Set 编号 = match.SubMatches(0)
             Set matchRange = para.Range
-            matchRange.Start = para.Range.Start + match.FirstIndex
-            matchRange.End = matchRange.Start + match.Length
+            matchRange.Start = para.Range.Start + match.FirstIndex + 编号.FirstIndex
+            matchRange.End = matchRange.Start + 编号.Length
             
             ' 替换为新的连续编号（调用转换函数）
+            ' 辅助函数只支持到 99，原先超过 99 会返回 "(100)"，外面又包一层中文括号，
+            ' 结果写出"（(100)）"这种四不像；现在直接停下来告诉用户到哪为止
+            If i > 99 Then
+                超出上限 = True
+                Exit For
+            End If
             matchRange.Text = "（" & 数字转中文(i) & "）"
             i = i + 1
         End If
@@ -45,7 +57,11 @@ Sub 中文数字重新编号
     Set matchRange = Nothing
     Set rng = Nothing
 
-    MsgBox "重新编号完成！共处理 " & (i - 1) & " 个编号。", vbInformation, "完成"
+    If 超出上限 Then
+        MsgBox "编号超过 99 个，已停止。共重新编号 " & (i - 1) & " 个。", vbExclamation, "完成"
+    Else
+        MsgBox "重新编号完成！共处理 " & (i - 1) & " 个编号。", vbInformation, "完成"
+    End If
 End Sub
 
 ' ------------------------------------------------------------
@@ -75,7 +91,8 @@ Function 数字转中文(ByVal num As Integer) As String
             数字转中文 = 数字转中文 & Mid(digits, ge, 1)
         End If
     Else
-        ' 若编号超过99，简单显示为阿拉伯数字（可自行扩展）
-        数字转中文 = "(" & num & ")"   ' 此处可改为其他处理
+        ' 超过 99 时只回阿拉伯数字本身：括号由调用方统一加，
+        ' 原先在这里再包一层英文括号会拼出"（(100)）"
+        数字转中文 = CStr(num)
     End If
 End Function
