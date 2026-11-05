@@ -48,6 +48,16 @@ namespace 公文排版
             WordApp.StatusBar = "已生成 PDF 格式副本:" + fileName;
         }
 
+        /// <summary>
+        /// SaveAs2 是 Word 2010 才加进来的成员，Word 2007 上调用会抛“成员不存在”。
+        /// 参数顺序两代一致，按宿主版本二选一。
+        /// </summary>
+        private void SaveAsCompat(MSWord.Document doc, string fileName, MSWord.WdSaveFormat format)
+        {
+            if (hostVersion.StartsWith("12.")) doc.SaveAs(fileName, format);
+            else doc.SaveAs2(fileName, format);
+        }
+
         private void SaveDoc(string fileName, string oldFile)
         {
             WordApp.StatusBar = "正在生成 Word97-2003 格式副本...";
@@ -56,9 +66,24 @@ namespace 公文排版
             // Windows 集合是 1 基的，w-1 取到的是倒数第二个窗口而不是刚打开的原文档，
             // 于是用户以为自己在原文档上继续编辑，实际一直在 .doc 副本上改。
             MSWord.Document copyDoc = WordApp.ActiveDocument;
-            copyDoc.SaveAs2(fileName, MSWord.WdSaveFormat.wdFormatDocument97);
+            SaveAsCompat(copyDoc, fileName, MSWord.WdSaveFormat.wdFormatDocument97);
 
-            MSWord.Document original = WordApp.Documents.Open(oldFile);
+            // 副本已经落盘，接下来只负责把原文档重新打开并激活。
+            // 打开失败时绝不能关掉副本：那是用户此刻唯一还开着的窗口。
+            MSWord.Document original;
+            try
+            {
+                original = WordApp.Documents.Open(oldFile);
+            }
+            catch (Exception ex)
+            {
+                WordApp.StatusBar = "副本已生成,但原文档未能重新打开:" + fileName;
+                MessageBox.Show("已生成 Word97-2003 格式副本:\r\n" + fileName +
+                    "\r\n\r\n原文档未能重新打开,当前窗口是副本,请自行另存。\r\n\r\n" +
+                    ex.Message, "原文档打开失败", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
             copyDoc.Close(false);       // 副本已落盘，不必留在编辑器里占着一个窗口
             original.Activate();
 
@@ -114,6 +139,11 @@ namespace 公文排版
                 string baseName = Path.GetFileNameWithoutExtension(fn);
                 string outFile = Path.Combine(fp, baseName + ".doc");
 
+                // 源文档本身就是 .doc 时，outFile 与 oldFile 是同一个文件：
+                // SaveAs2 会就地改写它，之后再 Open(oldFile) 打开的已经是转换后的副本。
+                if (string.Equals(outFile, oldFile, StringComparison.OrdinalIgnoreCase))
+                    outFile = Path.Combine(fp, baseName + "_副本.doc");
+
                 if (File.Exists(outFile))
                 {
                     var drr = MessageBox.Show(
@@ -150,8 +180,7 @@ namespace 公文排版
             try
             {
                 string fp = WordApp.ActiveDocument.Path;
-                string fn = WordApp.ActiveDocument.Name;
-                string oldFile = Path.Combine(fp, fn);
+                string baseName = Path.GetFileNameWithoutExtension(WordApp.ActiveDocument.Name);
                 MSWord.Pages pages = WordApp.ActiveDocument.ActiveWindow.ActivePane.Pages;
 
                 for (int i = 1; i <= pages.Count; i++)
@@ -162,9 +191,8 @@ namespace 公文排版
                     using (var img = Image.FromStream(st))
                     using (var bmp = img.Width > img.Height ? new Bitmap(img, 1754, 1240) : new Bitmap(img, 1240, 1754))
                     {
-                        // 文档名可以合法包含 '{' 或 '}'，把它们拼进格式串会让 string.Format
-                        // 抛 FormatException（"输入字符串的格式不正确"），整批导出中断
-                        bmp.Save(oldFile + "_" + i + ".png", ImageFormat.Png);
+                        // 用不含扩展名的 baseName，否则会导出成 “报告.docx_1.png”
+                        bmp.Save(Path.Combine(fp, baseName + "_" + i + ".png"), ImageFormat.Png);
                         done++;
                     }
                 }
@@ -185,14 +213,14 @@ namespace 公文排版
         {
             float dpi = 150;
             try { dpi = Properties.Settings.Default.DPI; } catch { }
+            if (dpi <= 0) dpi = 150;   // 设置被改成 0 时 SetResolution 会抛 ArgumentException
 
             if (!EnsureDocumentSaved("生成JPG副本提示")) return;
             int done = 0;
             try
             {
                 string fp = WordApp.ActiveDocument.Path;
-                string fn = WordApp.ActiveDocument.Name;
-                string oldFile = Path.Combine(fp, fn);
+                string baseName = Path.GetFileNameWithoutExtension(WordApp.ActiveDocument.Name);
                 MSWord.Pages pages = WordApp.ActiveDocument.ActiveWindow.ActivePane.Pages;
 
                 for (int i = 1; i <= pages.Count; i++)
@@ -212,7 +240,7 @@ namespace 公文排版
                                 g.Clear(Color.White);
                                 g.DrawImage(img, 0, 0, w, h);
                             }
-                            b.Save(oldFile + "_" + i + ".jpg", ImageFormat.Jpeg);
+                            b.Save(Path.Combine(fp, baseName + "_" + i + ".jpg"), ImageFormat.Jpeg);
                             done++;
                         }
                     }
@@ -242,6 +270,13 @@ namespace 公文排版
                     sfd.DefaultExt = "png";
                     sfd.Filter = "A4尺寸网络交换图片(*.png)|*.png|原始尺寸网络交换图片(*.png)|*.png|原始尺寸有损压缩图片(*.jpg)|*.jpg|原始尺寸高精度文档图片(*.tiff)|*.tiff|所有文件(*.*)|*.*";
                     if (sfd.ShowDialog() != DialogResult.OK) return;
+                    // 第 5 项是“所有文件”，没有对应的保存分支，继续走下去只会静默成功
+                    if (sfd.FilterIndex > 4)
+                    {
+                        MessageBox.Show("请从列表中选择具体的图片格式。", "页面保存图片",
+                            MessageBoxButtons.OK, MessageBoxIcon.Information);
+                        return;
+                    }
 
                     WordApp.StatusBar = "正在将当前页面保存成图片... ";
                     int i = WordApp.Selection.Information[MSWord.WdInformation.wdActiveEndPageNumber];
@@ -262,7 +297,10 @@ namespace 公文排版
                             case 3:
                                 using (var b = new Bitmap(img.Width, img.Height))
                                 {
-                                    b.SetResolution(img.HorizontalResolution, img.VerticalResolution);
+                                    // 元文件可能没有分辨率信息，SetResolution(0) 会抛 ArgumentException
+                                    float dpiX = img.HorizontalResolution > 0 ? img.HorizontalResolution : 96;
+                                    float dpiY = img.VerticalResolution > 0 ? img.VerticalResolution : 96;
+                                    b.SetResolution(dpiX, dpiY);
                                     using (var g = Graphics.FromImage(b))
                                     {
                                         g.Clear(Color.White);
