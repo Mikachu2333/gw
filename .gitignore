@@ -23,3 +23,9 @@ packages/
 publish/
 发布*/
 *.application
+
+# make.bat 的打包产物与安装包载荷（都是可再生的）
+dist/
+
+# 可选：随包携带的 VSTO 运行库（约 40 MB，不入库）
+Installer/redist/
