@@ -18,20 +18,30 @@ namespace 公文排版
 
         private void Button3_Click(object sender, RibbonControlEventArgs e)
         {
-            WordApp.Selection.TypeText("===========所有内置对话框 ===========\r\n");
-            ShwoAllDialog();
-            WordApp.Selection.TypeText("===========所有任务面板 ===========\r\n");
-            ShowAllPanes();
+            // 这个调试按钮原先既不包撤销单元也没有 try/catch：中途抛异常会把异常抛给
+            // VSTO 运行时（用户会被建议禁用插件），而文档里已经留下几百行半截调试文本、
+            // 被记成几百个独立撤销步骤，基本没法恢复。
+            WithUndo("列出内置对话框与任务面板(调试)", () =>
+            {
+                WordApp.Selection.TypeText("===========所有内置对话框 ===========\r\n");
+                ShwoAllDialog();
+                WordApp.Selection.TypeText("===========所有任务面板 ===========\r\n");
+                ShowAllPanes();
+            }, suspendScreen: true);
         }
 
         private void ShowAllNumber()
         {
-            // 该探针会往当前文档写文本并把全文编号转成文字，故整体包进一条撤销记录
-            var undo = WordApp.UndoRecord;
-            undo.StartCustomRecord("列出编号库(调试)");
-            try
+            // 手写 StartCustomRecord/EndCustomRecord 绕开了 WithUndo 的屏幕刷新恢复；
+            // 更要紧的是原先每轮循环都对 ActiveDocument.Content 做一次 ConvertNumbersToText，
+            // 等于把用户文档里所有真实的自动编号都拍成文字，跟这段探针文本毫无关系。
+            MSWord.Document doc = WordApp.ActiveDocument;
+            int probeStart = WordApp.Selection.Start;
+            int lengthBefore = doc.Content.End;
+
+            WithUndo("列出编号库(调试)", () =>
             {
-                MSWord.ListTemplate myTemplate = WordApp.ActiveDocument.ListTemplates.Add();
+                MSWord.ListTemplate myTemplate = doc.ListTemplates.Add();
                 myTemplate.ListLevels[1].TrailingCharacter = MSWord.WdTrailingCharacter.wdTrailingNone;
                 myTemplate.ListLevels[1].TextPosition = 0;
                 myTemplate.ListLevels[1].NumberPosition = 0;
@@ -47,11 +57,13 @@ namespace 公文排版
                         WordApp.Selection.Range.ListFormat.ApplyListTemplate(myTemplate);
                     }
                     catch { }
-                    WordApp.ActiveDocument.Content.ListFormat.ConvertNumbersToText();
                     WordApp.Selection.TypeText("\r\n");
                 }
-            }
-            finally { undo.EndCustomRecord(); }
+
+                // 只把探针写出来的那一段转成文字，且只做一次
+                MSWord.Range probe = doc.Range(probeStart, probeStart + (doc.Content.End - lengthBefore));
+                probe.ListFormat.ConvertNumbersToText();
+            }, suspendScreen: true);
         }
 
         private void ShwoAllDialog()

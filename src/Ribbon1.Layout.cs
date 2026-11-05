@@ -7,6 +7,9 @@ namespace 公文排版
 {
     public partial class Ribbon1
     {
+        // fp 建立时所用的文档窗口句柄，用于判断 Owner 是否已经过期（见 btnPaper_Click）。
+        private int fpOwnerHwnd;
+
         /// <summary>显示/切换页面设置对话框</summary>
         private void btnPaper_Click(object sender, RibbonControlEventArgs e)
         {
@@ -21,12 +24,18 @@ namespace 公文排版
                     return;
                 }
 
-                if (fp == null || fp.IsDisposed)
+                int ownerHwnd = WordApp.ActiveWindow.Hwnd;
+                // fp 是按"当时那个文档窗口"当 Owner 建的。切到别的文档窗口后原句柄可能已经失效
+                // （Word 复用同一个数值时，窗体关闭还会把启用状态还给错误的窗口），而 WinForms
+                // 不允许改已显示窗体的 Owner，只能重建。
+                if (fp == null || fp.IsDisposed || fpOwnerHwnd != ownerHwnd)
                 {
+                    if (fp != null && !fp.IsDisposed) fp.Dispose();
                     fp = new frmPaperSetup();
                     // 用户点窗体右上角关闭时不会经过 btnPaper_Click，不订阅就会一直显示“按下”
                     fp.FormClosed += (s, args) => btnPaper.Checked = false;
-                    var clsWinWrap = new ClsWinWrap(WordApp.ActiveWindow.Hwnd);
+                    fpOwnerHwnd = ownerHwnd;
+                    var clsWinWrap = new ClsWinWrap(ownerHwnd);
                     clsWinWrap.Show(fp);
                     btnPaper.Checked = true;
                 }
