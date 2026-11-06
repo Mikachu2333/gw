@@ -11,11 +11,11 @@ using Microsoft.Vbe.Interop;
 using MSWord = Microsoft.Office.Interop.Word;
 using MSOffice = Microsoft.Office.Core;
 
-namespace 公文排版
+namespace gw_mika
 {
     public partial class Ribbon1
     {
-        private const string VbaModuleName = "小恐龙公文排版助手";
+        private const string VbaModuleName = "公文准式";
 
         /// <summary>
         /// 把 .vba 文件注入活动文档、执行其首个过程，并在结束时移除注入的模块。

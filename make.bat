@@ -3,12 +3,13 @@ setlocal EnableExtensions DisableDelayedExpansion
 chcp 65001 >nul
 
 rem =====================================================================
-rem 小恐龙公文排版助手 —— 构建 + 全自动安装包脚本
+rem 公文准式（gw_mika）—— 构建 + 全自动安装包脚本
 rem
 rem   用法：仓库根目录执行  make.bat
-rem   产物：dist\小恐龙公文排版助手-Setup-<版本>.exe
+rem   产物：dist\gw_mika-Setup-<版本>.exe
+rem         dist\gw_mika-wps-js-<版本>.zip
 rem
-rem   按顺序做七件事：
+rem   按顺序做八件事：
 rem     1  定位 MSBuild（VSTO 工程不支持 dotnet build，必须用 VS 的 MSBuild）
 rem     2  确认清单签名证书可用，缺失时自动调用 tools\make-dev-cert.ps1
 rem     3  Release 构建
@@ -16,6 +17,7 @@ rem     4  把 bin\Release 镜像成安装包载荷 dist\payload
 rem     5  定位 Inno Setup 编译器 ISCC.exe
 rem     6  从构建出的 dll 读版本、从 .cer 读指纹（两者不一致时拒绝打包）
 rem     7  编译 Installer\installer.iss
+rem     8  构建 wps-js（Linux 版 WPS 只认 JS 加载项）并压成 dist 下的 zip
 rem
 rem   证书说明：pfx / cer / snk / csproj.user 都不入库，每台打包机用的是自己的自签名
 rem   证书。安装包会把打包时的 .cer 一起带走并在安装时导入本机受信任根 + 受信任发布者，
@@ -23,8 +25,8 @@ rem   所以"换机器重新打包"不需要用户再做任何手工信任操作
 rem =====================================================================
 
 set "ROOT=%~dp0"
-set "PROJ=%ROOT%src\公文排版.csproj"
-set "USERPROJ=%ROOT%src\公文排版.csproj.user"
+set "PROJ=%ROOT%src\gw_mika.csproj"
+set "USERPROJ=%ROOT%src\gw_mika.csproj.user"
 set "CERTPS1=%ROOT%tools\make-dev-cert.ps1"
 set "CER=%ROOT%src\Resources\gw-codecert.cer"
 set "BIN=%ROOT%src\bin\Release"
@@ -35,7 +37,7 @@ set "VSTO_REDIST=%ROOT%Installer\redist\vstor_redist.exe"
 set "VSOUT=%TEMP%\gw_make_vswhere.txt"
 
 echo ==========================================
-echo 小恐龙公文排版助手 make
+echo 公文准式 gw_mika make
 echo ==========================================
 
 :: ---------- 1. MSBuild ----------
@@ -89,7 +91,7 @@ if not defined THUMB (
 
 call :read_thumbprint || (
     echo [错误] 运行 tools\make-dev-cert.ps1 之后仍然读不到 ManifestCertificateThumbprint。
-    echo         请检查 src\公文排版.csproj.user 是否可写。
+    echo         请检查 src\gw_mika.csproj.user 是否可写。
     exit /b 1
 )
 if not exist "%CER%" (
@@ -107,8 +109,8 @@ if errorlevel 1 (
     echo [错误] Release 构建失败，见上面的 MSBuild 输出。
     exit /b 1
 )
-if not exist "%BIN%\公文排版.vsto" (
-    echo [错误] 构建成功但 %BIN%\公文排版.vsto 不存在，载荷无法组装。
+if not exist "%BIN%\gw_mika.vsto" (
+    echo [错误] 构建成功但 %BIN%\gw_mika.vsto 不存在，载荷无法组装。
     exit /b 1
 )
 
@@ -196,7 +198,7 @@ rem 版本从构建出的 dll 读，而不是从 AssemblyInfo.cs 读：程序集
 rem 只有产物里的版本才是这台机器刚刚真正编译出来的那个。
 echo.
 echo [6/8] 读取版本与证书指纹...
-for /f "usebackq delims=" %%v in (`powershell -NoProfile -Command "[Reflection.AssemblyName]::GetAssemblyName('%BIN%\公文排版.dll').Version.ToString()"`) do set "VER4=%%v"
+for /f "usebackq delims=" %%v in (`powershell -NoProfile -Command "[Reflection.AssemblyName]::GetAssemblyName('%BIN%\gw_mika.dll').Version.ToString()"`) do set "VER4=%%v"
 if not defined VER4 (
     echo [错误] 读取程序集版本失败。
     exit /b 1
@@ -244,7 +246,7 @@ rem 没有 npm 时只跳过、不失败：Windows 的 C# 安装包才是主产�
 echo.
 echo [8/8] 构建 WPS JS 加载项 wps-js...
 set "JS_DIR=%ROOT%wps-js"
-set "JS_OUT=%DIST%\gw-mika-wps-js-%VER%"
+set "JS_OUT=%DIST%\gw_mika-wps-js-%VER%"
 
 where npm >nul 2>&1
 if errorlevel 1 (
@@ -276,12 +278,12 @@ if %ROBO_JS% GEQ 8 (
     echo [错误] 复制 JS 产物到 dist 失败（退出码 %ROBO_JS%）。
     exit /b 1
 )
-powershell -NoProfile -Command "Compress-Archive -Path '%JS_OUT%\*' -DestinationPath '%DIST%\gw-mika-wps-js-%VER%.zip' -Force"
-if not exist "%DIST%\gw-mika-wps-js-%VER%.zip" (
-    echo [错误] 生成 gw-mika-wps-js 压缩包失败。
+powershell -NoProfile -Command "Compress-Archive -Path '%JS_OUT%\*' -DestinationPath '%DIST%\gw_mika-wps-js-%VER%.zip' -Force"
+if not exist "%DIST%\gw_mika-wps-js-%VER%.zip" (
+    echo [错误] 生成 gw_mika-wps-js 压缩包失败。
     exit /b 1
 )
-echo        JS 产物: %DIST%\gw-mika-wps-js-%VER%.zip
+echo        JS 产物: %DIST%\gw_mika-wps-js-%VER%.zip
 
 :js_done
 echo.

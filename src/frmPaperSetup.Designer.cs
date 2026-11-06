@@ -1,4 +1,4 @@
-﻿namespace 公文排版
+﻿namespace gw_mika
 {
     partial class frmPaperSetup
     {
@@ -290,7 +290,7 @@
             // 
             this.picGW.BackgroundImageLayout = System.Windows.Forms.ImageLayout.None;
             this.picGW.Cursor = System.Windows.Forms.Cursors.Hand;
-            this.picGW.Image = global::公文排版.Properties.Resources.Info;
+            this.picGW.Image = global::gw_mika.Properties.Resources.Info;
             this.picGW.Location = new System.Drawing.Point(329, 23);
             this.picGW.Margin = new System.Windows.Forms.Padding(0);
             this.picGW.Name = "picGW";
@@ -433,13 +433,13 @@
             this.toolTip1.ReshowDelay = 100;
             this.toolTip1.ShowAlways = true;
             this.toolTip1.ToolTipIcon = System.Windows.Forms.ToolTipIcon.Info;
-            this.toolTip1.ToolTipTitle = "小恐龙温馨提示:";
+            this.toolTip1.ToolTipTitle = "提示:";
             // 
             // picShowHiddenText
             // 
             this.picShowHiddenText.BackgroundImageLayout = System.Windows.Forms.ImageLayout.None;
             this.picShowHiddenText.Cursor = System.Windows.Forms.Cursors.Hand;
-            this.picShowHiddenText.Image = global::公文排版.Properties.Resources.Info;
+            this.picShowHiddenText.Image = global::gw_mika.Properties.Resources.Info;
             this.picShowHiddenText.Location = new System.Drawing.Point(278, 365);
             this.picShowHiddenText.Margin = new System.Windows.Forms.Padding(0);
             this.picShowHiddenText.Name = "picShowHiddenText";
@@ -454,7 +454,7 @@
             // 
             this.picSaveFont.BackgroundImageLayout = System.Windows.Forms.ImageLayout.None;
             this.picSaveFont.Cursor = System.Windows.Forms.Cursors.Hand;
-            this.picSaveFont.Image = global::公文排版.Properties.Resources.Info;
+            this.picSaveFont.Image = global::gw_mika.Properties.Resources.Info;
             this.picSaveFont.Location = new System.Drawing.Point(192, 341);
             this.picSaveFont.Margin = new System.Windows.Forms.Padding(0);
             this.picSaveFont.Name = "picSaveFont";
@@ -486,7 +486,7 @@
             this.ShowIcon = false;
             this.SizeGripStyle = System.Windows.Forms.SizeGripStyle.Hide;
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
-            this.Text = "小恐龙公文排版助手-页面设置";
+            this.Text = "「公文准式」页面设置";
             this.HelpButtonClicked += new System.ComponentModel.CancelEventHandler(this.FrmPaperSetup_HelpButtonClicked);
             this.FormClosed += new System.Windows.Forms.FormClosedEventHandler(this.FrmPaperSetup_FormClosed);
             this.Load += new System.EventHandler(this.FrmPaperSetup_Load);

@@ -7,7 +7,7 @@ using Microsoft.Office.Tools.Ribbon;
 using System.Diagnostics;
 using System.IO;
 
-namespace 公文排版
+namespace gw_mika
 {
     public partial class Ribbon1
     {
@@ -56,6 +56,34 @@ namespace 公文排版
             return font;
         }
 
+        // ============ 项目地址与在线帮助 ============
+        // 关于窗体、各表单的"帮助"按钮和安装包共用这几个常量，避免同一个链接抄七份、改一处漏六处。
+        internal const string RepoUrl = "https://gitlab.com/Mikachu2333/gw";
+        internal const string UpstreamUrl = "https://github.com/xkonglong/gw";
+
+        private const string HelpUrlWps =
+            "https://open.wps.cn/documents/app-integration-dev/wps365/client/wpsoffice/jsapi/go-to-js-from-vb";
+        private const string HelpUrlWord =
+            "https://learn.microsoft.com/en-us/office/vba/api/overview/word";
+
+        /// <summary>在线帮助按宿主分流：WPS 走 JS 加载项文档，Word 走 VBA 文档。</summary>
+        internal string OnlineHelpUrl => IsWps ? HelpUrlWps : HelpUrlWord;
+
+        /// <summary>用系统默认浏览器打开链接。打不开时把地址原样留给用户，别只报一句"出错了"。</summary>
+        internal static void OpenLink(string url, string caption)
+        {
+            if (string.IsNullOrWhiteSpace(url)) return;
+            try
+            {
+                Process.Start(url);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message + "\r\n\r\n请手动用浏览器访问：\r\n" + url,
+                    caption, MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+            }
+        }
+
         // ============ 功能区载入/关闭 ============
         private void Ribbon1_Load(object sender, RibbonUIEventArgs e)
         {
@@ -69,10 +97,10 @@ namespace 公文排版
 #endif
             try
             {
-                btnAbout.Description = "关于小恐龙公文排版助手";
+                btnAbout.Description = "关于「公文准式」";
 
                 // 宿主信息必须取自宿主本身。原先用 WinForms 的 Application.ProductName，
-                // 它取的是本加载项程序集的 AssemblyProduct（"公文排版"），因此 IsWps 恒为
+                // 它取的是本加载项程序集的 AssemblyProduct（"公文准式"），因此 IsWps 恒为
                 // false，所有 WPS 适配分支（图标、页码、对话框、错误提示）从不执行。
                 hostProcess = Process.GetCurrentProcess().ProcessName ?? "";
                 MSWord.Application host = Globals.ThisAddIn.Application;
@@ -82,8 +110,8 @@ namespace 公文排版
 
                 if (IsLegacyHost && hostVersion.StartsWith("12."))
                 {
-                    MessageBox.Show("公文排版助手不再支持 MS Office 2007 \r\n\t 请安装旧版插件(v1.0.8.3 版本),或者升级您的 Office 版本! ",
-                        "小恐龙公文排版助手", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    MessageBox.Show("「公文准式」不再支持 MS Office 2007 \r\n\t 请安装旧版插件(v1.0.8.3 版本),或者升级您的 Office 版本! ",
+                        "公文准式", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 }
 
                 if (IsWps)
@@ -187,7 +215,7 @@ namespace 公文排版
             catch (Exception ex)
             {
                 MessageBox.Show(ex.Message + "\r\n\r\n" + ex.Source,
-                    "小恐龙公文排版助手载入时出错", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                    "「公文准式」载入时出错", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
             }
 
             ReadSetting();
@@ -370,18 +398,7 @@ namespace 公文排版
 
         private void btnHelp_Click(object sender, RibbonControlEventArgs e)
         {
-            string url = Properties.Settings.Default.在线帮助;
-            if (string.IsNullOrWhiteSpace(url))
-            {
-                MessageBox.Show("本版本未内置在线帮助地址。",
-                    "在线帮助", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                return;
-            }
-            try { Process.Start(url); }
-            catch (Exception ex)
-            {
-                MessageBox.Show(ex.Message + "\r\n请打开浏览器访问帮助地址:\r\n" + url);
-            }
+            OpenLink(OnlineHelpUrl, "在线帮助");
         }
 
         // ============ 功能区角标 ============

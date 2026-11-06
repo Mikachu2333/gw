@@ -6,7 +6,7 @@ using Microsoft.Office.Tools;
 using System.Windows.Forms;
 using System.Diagnostics;
 
-namespace 公文排版
+namespace gw_mika
 {
     public partial class ThisAddIn
     {

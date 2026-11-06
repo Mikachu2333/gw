@@ -13,7 +13,7 @@
 
     产物：src\gw-codecert.pfx（证书+私钥，便于迁移）、src\Resources\gw-codecert.cer（公钥，
     供信任发布者）、src\gw-strongname.snk（用同一张证书私钥导出的强名称密钥）、
-    以及写入 src\公文排版.csproj.user 的证书指纹。
+    以及写入 src\gw_mika.csproj.user 的证书指纹。
 
     本脚本只写当前用户存储（Cert:\CurrentUser\My），不需要管理员权限。
     要让 Word/WPS 不再弹信任提示，还需把证书导入本机受信任根与受信任发布者，
@@ -31,7 +31,7 @@ $repoRoot   = Split-Path -Parent $PSScriptRoot
 $projDir    = Join-Path $repoRoot 'src'
 $pfxPath    = Join-Path $projDir 'gw-codecert.pfx'
 $cerPath    = Join-Path $projDir 'Resources\gw-codecert.cer'
-$userProj   = Join-Path $projDir '公文排版.csproj.user'
+$userProj   = Join-Path $projDir 'gw_mika.csproj.user'
 
 if (-not (Test-Path $projDir)) { throw "未找到项目目录：$projDir" }
 
@@ -117,7 +117,7 @@ $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
 Write-Host "已写入指纹到：$userProj"
 
 Write-Host ''
-Write-Host "完成。现在可以构建：msbuild src\公文排版.csproj /p:Configuration=Debug"
+Write-Host "完成。现在可以构建：msbuild src\gw_mika.csproj /p:Configuration=Debug"
 Write-Host ''
 Write-Host '若 Word/WPS 加载时仍提示不受信任，请以管理员身份执行下面两行（本机信任，仅影响这台机器）：'
 Write-Host "  Import-Certificate -FilePath '$cerPath' -CertStoreLocation Cert:\LocalMachine\Root"

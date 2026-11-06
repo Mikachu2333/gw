@@ -8,8 +8,8 @@
     <ProjectGuid>{89778700-87AD-4503-A955-72628E11349C}</ProjectGuid>
     <OutputType>Library</OutputType>
     <NoStandardLibraries>false</NoStandardLibraries>
-    <RootNamespace>公文排版</RootNamespace>
-    <AssemblyName>公文排版</AssemblyName>
+    <RootNamespace>gw_mika</RootNamespace>
+    <AssemblyName>gw_mika</AssemblyName>
     <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
     <DefineConstants>VSTO40</DefineConstants>
     <TargetFrameworkProfile />
@@ -26,11 +26,11 @@
     <UpdateEnabled>false</UpdateEnabled>
     <UpdateInterval>0</UpdateInterval>
     <UpdateIntervalUnits>days</UpdateIntervalUnits>
-    <ProductName>小恐龙公文排版助手</ProductName>
-    <PublisherName>小恐龙工作室</PublisherName>
+    <ProductName>公文准式</ProductName>
+    <PublisherName>gw_mika</PublisherName>
     <SupportUrl />
-    <FriendlyName>公文排版</FriendlyName>
-    <OfficeApplicationDescription>小恐龙公文排版助手 for Word</OfficeApplicationDescription>
+    <FriendlyName>公文准式</FriendlyName>
+    <OfficeApplicationDescription>公文准式 for Word/WPS</OfficeApplicationDescription>
     <LoadBehavior>3</LoadBehavior>
   </PropertyGroup>
   <ItemGroup>
@@ -506,7 +506,7 @@
     <Error Condition="'$(SignAssembly)' == 'true' And !Exists('$(AssemblyOriginatorKeyFile)')"
            Text="缺少强名称密钥 $(AssemblyOriginatorKeyFile)（不入库，属本机开发密钥）。请运行： powershell -ExecutionPolicy Bypass -File tools\make-dev-cert.ps1" />
     <Error Condition="'$(SignManifests)' == 'true' And '$(ManifestCertificateThumbprint)' == ''"
-           Text="清单签名只能按证书存储中的指纹进行（VSTO 的 SignFile 不接受 pfx 路径）。请运行 tools\make-dev-cert.ps1，它会把指纹写入 公文排版.csproj.user；若已有代码签名证书，可在该 .user 文件里手工设置 ManifestCertificateThumbprint。" />
+           Text="清单签名只能按证书存储中的指纹进行（VSTO 的 SignFile 不接受 pfx 路径）。请运行 tools\make-dev-cert.ps1，它会把指纹写入 gw_mika.csproj.user；若已有代码签名证书，可在该 .user 文件里手工设置 ManifestCertificateThumbprint。" />
   </Target>
   <PropertyGroup>
     <ApplicationIcon>
@@ -518,7 +518,7 @@
     <VisualStudio>
       <FlavorProperties GUID="{BAA0C2D2-18E2-41B9-852F-F413020CAA33}">
         <ProjectProperties HostName="Word" HostPackage="{29A7B9D7-A7F1-4328-8EF0-6B2D1A56B2C1}" OfficeVersion="16.0" VstxVersion="4.0" ApplicationType="Word" Language="cs" TemplatesPath="" DebugInfoExeName="#Software\Microsoft\Office\16.0\Word\InstallRoot\Path#WINWORD.EXE" DebugInfoCommandLine="/x" AddItemTemplatesGuid="{51063C3A-E220-4D12-8922-BDA915ACD783}" />
-        <Host Name="Word" GeneratedCodeNamespace="公文排版" PublishedHash="69C324AB27932AA2FBF2B7EA72250886FF164DE6" IconIndex="0">
+        <Host Name="Word" GeneratedCodeNamespace="gw_mika" PublishedHash="69C324AB27932AA2FBF2B7EA72250886FF164DE6" IconIndex="0">
           <HostItem Name="ThisAddIn" Code="ThisAddIn.cs" CanonicalName="AddIn" PublishedHash="40778A096135166888CD13C44E3DBA55CB45F023" CanActivate="false" IconIndex="1" Blueprint="ThisAddIn.Designer.xml" GeneratedCode="ThisAddIn.Designer.cs" />
         </Host>
       </FlavorProperties>

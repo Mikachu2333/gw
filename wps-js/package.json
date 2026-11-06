@@ -1,5 +1,5 @@
 {
-  "name": "gw-mika-wps-js",
+  "name": "gw_mika-wps-js",
   "version": "3.8.0",
   "private": true,
   "description": "公文准式 WPS JS 加载项（Linux WPS 与 Windows WPS 通用）",

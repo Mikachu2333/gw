@@ -5,7 +5,7 @@ using System.Windows.Forms;
 using MSWord = Microsoft.Office.Interop.Word;
 using Microsoft.Office.Tools.Ribbon;
 
-namespace 公文排版
+namespace gw_mika
 {
     public partial class Ribbon1
     {
@@ -84,7 +84,7 @@ namespace 公文排版
             catch (Exception ex) { WordApp.StatusBar = ex.Message; }
             finally
             {
-                MessageBox.Show("共转换 " + i + "个衬于文字下方的图形为浮于文字上方!", "小恐龙公文排版助手");
+                MessageBox.Show("共转换 " + i + "个衬于文字下方的图形为浮于文字上方!", "公文准式");
             }
         }
 

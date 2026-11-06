@@ -6,12 +6,12 @@ using System.Security;
 // 有关程序集的一般信息由以下
 // 控制。更改这些特性值可修改
 // 与程序集关联的信息。
-[assembly: AssemblyTitle("公文排版")]
-[assembly: AssemblyDescription("小恐龙公文排版助手 for Word/WPS")]
+[assembly: AssemblyTitle("gw_mika")]
+[assembly: AssemblyDescription("公文准式 for Word/WPS，基于小恐龙公文排版助手二次开发")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("小恐龙工作室")]
-[assembly: AssemblyProduct("公文排版")]
-[assembly: AssemblyCopyright("Copyright ©  2017-2026 小恐龙工作室")]
+[assembly: AssemblyCompany("gw_mika")]
+[assembly: AssemblyProduct("公文准式")]
+[assembly: AssemblyCopyright("Copyright © 2017-2026 小恐龙工作室（上游原版）/ 2026 gw_mika（开源版）")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 

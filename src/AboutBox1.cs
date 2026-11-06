@@ -5,7 +5,7 @@ using System.Windows.Forms;
 using System.IO;
 using System.Diagnostics;
 
-namespace 公文排版
+namespace gw_mika
 {
     partial class AboutBox1 : Form
     {
@@ -17,12 +17,20 @@ namespace 公文排版
         private readonly System.Collections.Generic.Dictionary<Button, Font> ownedFonts
             = new System.Collections.Generic.Dictionary<Button, Font>();
 
+        // 关于窗体正文。两处链接由 AddUrlLinks 手工登记成可点击区间，
+        // 不再放收款码、赞赏图和旧站点入口。
+        private const string AboutText =
+            "「公文准式」是按 GB/T 9704—2012 排布公文的 Word / WPS 插件，本版本为开源二次开发版。\r\n\r\n" +
+            "源码与问题反馈：https://gitlab.com/Mikachu2333/gw\r\n\r\n" +
+            "本软件的根基「小恐龙公文排版助手」已由原作者开源，在此致谢：\r\n" +
+            "https://github.com/xkonglong/gw";
+
         public AboutBox1()
         {
             InitializeComponent();
-            string name = Assembly.GetExecutingAssembly().GetName().Name;
-            string ver = Assembly.GetExecutingAssembly().GetName().Version.ToString();
-            this.Text = "关于" + name + ver;
+            this.Text = BuildTitle();
+            this.lblText.Text = AboutText;
+            AddUrlLinks();
             this.Height = this.MinimumSize.Height;
 
             // 窗体是按次 new 出来再 using 释放的（Ribbon1.btnAbout_Click），_tip 和这些
@@ -36,6 +44,55 @@ namespace 公文排版
                 }
                 ownedFonts.Clear();
             };
+        }
+
+        /// <summary>标题形如：关于「公文准式」（版本 3.8.0.0）。</summary>
+        private static string BuildTitle()
+        {
+            var asm = Assembly.GetExecutingAssembly();
+            string product = ((AssemblyProductAttribute)Attribute.GetCustomAttribute(
+                asm, typeof(AssemblyProductAttribute)))?.Product;
+            if (string.IsNullOrWhiteSpace(product)) product = asm.GetName().Name;
+            return "关于「" + product + "」（版本 " + asm.GetName().Version + "）";
+        }
+
+        /// <summary>
+        /// 把正文里的 http(s) 地址登记成可点击区间。.NET Framework 4.8 的 LinkLabel 没有
+        /// DetectUrls 属性（反射确认过），URL 只能自己扫；LinkData 存原文，点击时不必再按
+        /// Start/Length 回查，也就不会把紧跟其后的中文标点一起吞进去。
+        /// </summary>
+        private void AddUrlLinks()
+        {
+            lblText.Links.Clear();
+            string text = lblText.Text ?? "";
+            int i = 0;
+            while (i < text.Length)
+            {
+                int at = text.IndexOf("http", i, StringComparison.Ordinal);
+                if (at < 0) break;
+                int end = at;
+                while (end < text.Length && !char.IsWhiteSpace(text[end])) end++;
+                string run = text.Substring(at, end - at);
+                if (run.StartsWith("http://", StringComparison.Ordinal)
+                    || run.StartsWith("https://", StringComparison.Ordinal))
+                {
+                    lblText.Links.Add(at, end - at, run);
+                    i = end;
+                }
+                else
+                {
+                    i = at + 4;
+                }
+            }
+        }
+
+        private void LblText_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
+        {
+            string url = e.Link.LinkData as string;
+            if (string.IsNullOrWhiteSpace(url))
+                url = lblText.Text.Substring(e.Link.Start, e.Link.Length);
+            e.Link.Visited = true;
+            Ribbon1.OpenLink(url.TrimEnd(' ', '。', '，', '、', '；', '：'), "打开链接");
         }
 
         private void LoadFont(ComboBox combo)
@@ -261,22 +318,10 @@ namespace 公文排版
 
         private void AboutBox1_HelpButtonClicked(object sender, System.ComponentModel.CancelEventArgs e)
         {
-            string url = Properties.Settings.Default.帮助_高级功能;
-            if (string.IsNullOrWhiteSpace(url))
-            {
-                MessageBox.Show("本版本未内置在线帮助地址。",
-                    "高级功能帮助", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                return;
-            }
-            try
-            {
-                Process.Start(url);
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(ex.Message + "\r\n\r\n" + ex.Source,
-                    "打开在线帮助时出错", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
-            }
+            // 原先读 Settings.帮助_高级功能（恒为空的 applicationSettings），点"?"只会看到
+            // "本版本未内置在线帮助地址"。现在直接指向项目主页。
+            Ribbon1.OpenLink(Ribbon1.RepoUrl, "在线帮助");
+            e.Cancel = true;
         }
 
         private void btnSave_Click(object sender, EventArgs e)

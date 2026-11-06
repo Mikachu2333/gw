@@ -6,7 +6,7 @@ using Microsoft.Office.Tools.Ribbon;
 using MSWord = Microsoft.Office.Interop.Word;
 using MSOffice = Microsoft.Office.Core;
 
-namespace 公文排版
+namespace gw_mika
 {
     public partial class Ribbon1
     {

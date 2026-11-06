@@ -1,7 +1,7 @@
 using System;
 using System.Windows.Forms;
 
-namespace 公文排版
+namespace gw_mika
 {
     public class ClsWinWrap : IWin32Window
     {

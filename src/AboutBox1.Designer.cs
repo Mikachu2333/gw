@@ -1,4 +1,4 @@
-﻿namespace 公文排版
+﻿namespace gw_mika
 {
     partial class AboutBox1
     {
@@ -27,11 +27,9 @@
         /// </summary>
         private void InitializeComponent()
         {
-            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(AboutBox1));
             this.txtInfo = new System.Windows.Forms.TextBox();
             this.btnOK = new System.Windows.Forms.Button();
-            this.logoPictureBox = new System.Windows.Forms.PictureBox();
-            this.lblText = new System.Windows.Forms.Label();
+            this.lblText = new System.Windows.Forms.LinkLabel();
             this.tableLayoutPanel1 = new System.Windows.Forms.TableLayoutPanel();
             this.lblLetter = new System.Windows.Forms.Label();
             this.lblPageNumber = new System.Windows.Forms.Label();
@@ -60,28 +58,27 @@
             this.panel2 = new System.Windows.Forms.Panel();
             this.btnSave = new System.Windows.Forms.Button();
             this.lblTip = new System.Windows.Forms.Label();
-            ((System.ComponentModel.ISupportInitialize)(this.logoPictureBox)).BeginInit();
             this.tableLayoutPanel1.SuspendLayout();
             this.panel1.SuspendLayout();
             this.panel2.SuspendLayout();
             this.SuspendLayout();
-            // 
+            //
             // txtInfo
-            // 
-            this.txtInfo.Location = new System.Drawing.Point(247, 99);
+            //
+            this.txtInfo.Location = new System.Drawing.Point(0, 152);
             this.txtInfo.Margin = new System.Windows.Forms.Padding(6, 3, 3, 3);
             this.txtInfo.Multiline = true;
             this.txtInfo.Name = "txtInfo";
             this.txtInfo.ReadOnly = true;
             this.txtInfo.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
-            this.txtInfo.Size = new System.Drawing.Size(282, 138);
+            this.txtInfo.Size = new System.Drawing.Size(532, 115);
             this.txtInfo.TabIndex = 30;
             this.txtInfo.TabStop = false;
             this.txtInfo.Text = "说明";
             this.txtInfo.Click += new System.EventHandler(this.TxtInfo_Click);
-            // 
+            //
             // btnOK
-            // 
+            //
             this.btnOK.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
             this.btnOK.DialogResult = System.Windows.Forms.DialogResult.Cancel;
             this.btnOK.Location = new System.Drawing.Point(447, 5);
@@ -89,27 +86,16 @@
             this.btnOK.Size = new System.Drawing.Size(80, 23);
             this.btnOK.TabIndex = 31;
             this.btnOK.Text = "关闭(&C)";
-            // 
-            // logoPictureBox
-            // 
-            this.logoPictureBox.BackgroundImageLayout = System.Windows.Forms.ImageLayout.None;
-            this.logoPictureBox.Image = ((System.Drawing.Image)(resources.GetObject("logoPictureBox.Image")));
-            this.logoPictureBox.Location = new System.Drawing.Point(0, 3);
-            this.logoPictureBox.Name = "logoPictureBox";
-            this.logoPictureBox.Size = new System.Drawing.Size(244, 253);
-            this.logoPictureBox.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
-            this.logoPictureBox.TabIndex = 26;
-            this.logoPictureBox.TabStop = false;
-            // 
+            //
             // lblText
-            // 
-            this.lblText.BorderStyle = System.Windows.Forms.BorderStyle.Fixed3D;
-            this.lblText.Location = new System.Drawing.Point(247, 3);
+            //
+            this.lblText.AutoSize = false;
+            this.lblText.Location = new System.Drawing.Point(0, 3);
             this.lblText.Name = "lblText";
-            this.lblText.Size = new System.Drawing.Size(282, 93);
+            this.lblText.Size = new System.Drawing.Size(532, 146);
             this.lblText.TabIndex = 33;
-            this.lblText.Text = "  小恐龙公文排版插件适用于 Word20010-2021和365版本,WPS Office2013-2019。" +
-    " \r\n\r\n本插件不含任何恶意代码，完全免费。";
+            this.lblText.Text = "说明";
+            this.lblText.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.LblText_LinkClicked);
             // 
             // tableLayoutPanel1
             // 
@@ -421,7 +407,6 @@
             // 
             // panel1
             // 
-            this.panel1.Controls.Add(this.logoPictureBox);
             this.panel1.Controls.Add(this.txtInfo);
             this.panel1.Controls.Add(this.lblText);
             this.panel1.Dock = System.Windows.Forms.DockStyle.Top;
@@ -501,7 +486,6 @@
             this.Text = "关于";
             this.HelpButtonClicked += new System.ComponentModel.CancelEventHandler(this.AboutBox1_HelpButtonClicked);
             this.Load += new System.EventHandler(this.AboutBox1_Load);
-            ((System.ComponentModel.ISupportInitialize)(this.logoPictureBox)).EndInit();
             this.tableLayoutPanel1.ResumeLayout(false);
             this.tableLayoutPanel1.PerformLayout();
             this.panel1.ResumeLayout(false);
@@ -516,8 +500,7 @@
 
         private System.Windows.Forms.TextBox txtInfo;
         private System.Windows.Forms.Button btnOK;
-        private System.Windows.Forms.PictureBox logoPictureBox;
-        private System.Windows.Forms.Label lblText;
+        private System.Windows.Forms.LinkLabel lblText;
         private System.Windows.Forms.TableLayoutPanel tableLayoutPanel1;
         private System.Windows.Forms.Label lblFormatSong;
         private System.Windows.Forms.Button button9;

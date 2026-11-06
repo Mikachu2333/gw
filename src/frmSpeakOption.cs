@@ -4,7 +4,7 @@ using System.Windows.Forms;
 using System.Speech.Synthesis;
 using System.Diagnostics;
 
-namespace 公文排版
+namespace gw_mika
 {
     public partial class frmSpeakOption : Form
     {

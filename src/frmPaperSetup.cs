@@ -3,7 +3,7 @@ using System.Windows.Forms;
 using Microsoft.Office.Interop.Word;
 using System.Diagnostics;
 
-namespace 公文排版
+namespace gw_mika
 {
     public partial class frmPaperSetup : Form
     {
@@ -301,27 +301,10 @@ namespace 公文排版
 
         private void FrmPaperSetup_HelpButtonClicked(object sender, System.ComponentModel.CancelEventArgs e)
         {
-            string url = Properties.Settings.Default.帮助_页面设置;
-            if (string.IsNullOrWhiteSpace(url))
-            {
-                MessageBox.Show("本版本未内置在线帮助地址。",
-                    "页面设置帮助", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                return;
-            }
-            try
-            {
-                Process.Start(url);
-            }
-            catch (System.ComponentModel.Win32Exception w)
-            {
-                MessageBox.Show(w.Message, "打开在线帮助时出错",
-                    MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(ex.Message + "\r\n\r\n" + ex.Source,
-                    "打开在线帮助时出错", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
-            }
+            // 原先读 Settings.帮助_页面设置（一个恒为空串的 applicationSettings），
+            // 用户点标题栏的"?"只会得到"本版本未内置在线帮助地址"。现在直接指向项目主页。
+            Ribbon1.OpenLink(Ribbon1.RepoUrl, "页面设置帮助");
+            e.Cancel = true;
         }
 
         private void FrmPaperSetup_FormClosed(object sender, FormClosedEventArgs e)

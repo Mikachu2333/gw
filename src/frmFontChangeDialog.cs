@@ -5,7 +5,7 @@ using System.Windows.Forms;
 using System.Diagnostics;
 using System.Drawing;
 
-namespace 公文排版
+namespace gw_mika
 {
     public partial class FrmFontChangeDialog : Form
     {

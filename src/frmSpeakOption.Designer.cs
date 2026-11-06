@@ -1,4 +1,4 @@
-﻿namespace 公文排版
+﻿namespace gw_mika
 {
     partial class frmSpeakOption
     {

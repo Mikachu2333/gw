@@ -4,7 +4,7 @@ using System.Windows.Forms;
 using MSWord = Microsoft.Office.Interop.Word;
 using Microsoft.Office.Tools.Ribbon;
 
-namespace 公文排版
+namespace gw_mika
 {
     public partial class Ribbon1
     {

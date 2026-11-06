@@ -1,7 +1,7 @@
 ﻿using System;
 using Microsoft.Office.Tools.Ribbon;
 
-namespace 公文排版
+namespace gw_mika
 {
     partial class Ribbon1 : Microsoft.Office.Tools.Ribbon.RibbonBase
     {
@@ -82,7 +82,7 @@ namespace 公文排版
             Microsoft.Office.Tools.Ribbon.RibbonDropDownItem ribbonDropDownItemImpl37 = this.Factory.CreateRibbonDropDownItem();
             Microsoft.Office.Tools.Ribbon.RibbonDialogLauncher ribbonDialogLauncherImpl5 = this.Factory.CreateRibbonDialogLauncher();
             Microsoft.Office.Tools.Ribbon.RibbonDialogLauncher ribbonDialogLauncherImpl6 = this.Factory.CreateRibbonDialogLauncher();
-            this.tabXKl = this.Factory.CreateRibbonTab();
+            this.tabGW = this.Factory.CreateRibbonTab();
             this.group1 = this.Factory.CreateRibbonGroup();
             this.btnPaper = this.Factory.CreateRibbonToggleButton();
             this.btnInsert2 = this.Factory.CreateRibbonButton();
@@ -200,7 +200,7 @@ namespace 公文排版
             this.button2 = this.Factory.CreateRibbonButton();
             this.button3 = this.Factory.CreateRibbonButton();
             this.button1 = this.Factory.CreateRibbonButton();
-            this.tabXKl.SuspendLayout();
+            this.tabGW.SuspendLayout();
             this.group1.SuspendLayout();
             this.group2.SuspendLayout();
             this.group3.SuspendLayout();
@@ -212,18 +212,18 @@ namespace 公文排版
             this.groupTest.SuspendLayout();
             this.SuspendLayout();
             // 
-            // tabXKl
+            // tabGW
             // 
-            this.tabXKl.Groups.Add(this.group1);
-            this.tabXKl.Groups.Add(this.group2);
-            this.tabXKl.Groups.Add(this.group3);
-            this.tabXKl.Groups.Add(this.group4);
-            this.tabXKl.Groups.Add(this.group6);
-            this.tabXKl.Groups.Add(this.group5);
-            this.tabXKl.Groups.Add(this.groupTest);
-            this.tabXKl.KeyTip = "XKL";
-            this.tabXKl.Label = "公文";
-            this.tabXKl.Name = "tabXKl";
+            this.tabGW.Groups.Add(this.group1);
+            this.tabGW.Groups.Add(this.group2);
+            this.tabGW.Groups.Add(this.group3);
+            this.tabGW.Groups.Add(this.group4);
+            this.tabGW.Groups.Add(this.group6);
+            this.tabGW.Groups.Add(this.group5);
+            this.tabGW.Groups.Add(this.groupTest);
+            this.tabGW.KeyTip = "GW";
+            this.tabGW.Label = "公文准式";
+            this.tabGW.Name = "tabGW";
             // 
             // group1
             // 
@@ -516,7 +516,7 @@ namespace 公文排版
             // mnuTitle1
             // 
             this.mnuTitle1.Dynamic = true;
-            this.mnuTitle1.Image = global::公文排版.Properties.Resources._1;
+            this.mnuTitle1.Image = global::gw_mika.Properties.Resources._1;
             this.mnuTitle1.KeyTip = "1";
             this.mnuTitle1.Label = "标题一、";
             this.mnuTitle1.Name = "mnuTitle1";
@@ -527,7 +527,7 @@ namespace 公文排版
             // mnuTitle2
             // 
             this.mnuTitle2.Dynamic = true;
-            this.mnuTitle2.Image = global::公文排版.Properties.Resources._2;
+            this.mnuTitle2.Image = global::gw_mika.Properties.Resources._2;
             this.mnuTitle2.KeyTip = "2";
             this.mnuTitle2.Label = "标题(一)";
             this.mnuTitle2.Name = "mnuTitle2";
@@ -543,7 +543,7 @@ namespace 公文排版
             // 
             // btnUnderDot
             // 
-            this.btnUnderDot.Image = global::公文排版.Properties.Resources.E;
+            this.btnUnderDot.Image = global::gw_mika.Properties.Resources.E;
             this.btnUnderDot.KeyTip = "E";
             this.btnUnderDot.Label = "着重号";
             this.btnUnderDot.Name = "btnUnderDot";
@@ -556,7 +556,7 @@ namespace 公文排版
             // 
             // btnHideFont
             // 
-            this.btnHideFont.Image = global::公文排版.Properties.Resources.H;
+            this.btnHideFont.Image = global::gw_mika.Properties.Resources.H;
             this.btnHideFont.KeyTip = "H";
             this.btnHideFont.Label = "隐藏";
             this.btnHideFont.Name = "btnHideFont";
@@ -574,7 +574,7 @@ namespace 公文排版
             // mnuTitle3
             // 
             this.mnuTitle3.Dynamic = true;
-            this.mnuTitle3.Image = global::公文排版.Properties.Resources._3;
+            this.mnuTitle3.Image = global::gw_mika.Properties.Resources._3;
             this.mnuTitle3.KeyTip = "3";
             this.mnuTitle3.Label = "标题1.";
             this.mnuTitle3.Name = "mnuTitle3";
@@ -585,7 +585,7 @@ namespace 公文排版
             // mnuTitle4
             // 
             this.mnuTitle4.Dynamic = true;
-            this.mnuTitle4.Image = global::公文排版.Properties.Resources._4;
+            this.mnuTitle4.Image = global::gw_mika.Properties.Resources._4;
             this.mnuTitle4.KeyTip = "4";
             this.mnuTitle4.Label = "标题(1)";
             this.mnuTitle4.Name = "mnuTitle4";
@@ -773,7 +773,7 @@ namespace 公文排版
             // 
             // btnHeadSingle
             // 
-            this.btnHeadSingle.Image = global::公文排版.Properties.Resources.GWHeadSingle_16;
+            this.btnHeadSingle.Image = global::gw_mika.Properties.Resources.GWHeadSingle_16;
             this.btnHeadSingle.Label = "单行发文机关";
             this.btnHeadSingle.Name = "btnHeadSingle";
             this.btnHeadSingle.ScreenTip = "插入-单行发文机关";
@@ -782,7 +782,7 @@ namespace 公文排版
             // 
             // btnHeadMulti
             // 
-            this.btnHeadMulti.Image = global::公文排版.Properties.Resources.GWHeadMutil_16;
+            this.btnHeadMulti.Image = global::gw_mika.Properties.Resources.GWHeadMutil_16;
             this.btnHeadMulti.Label = "联合发文机关";
             this.btnHeadMulti.Name = "btnHeadMulti";
             this.btnHeadMulti.ScreenTip = "插入-联合发文机关";
@@ -804,7 +804,7 @@ namespace 公文排版
             // 
             // btnLineH1
             // 
-            this.btnLineH1.Image = global::公文排版.Properties.Resources.GWline2_16;
+            this.btnLineH1.Image = global::gw_mika.Properties.Resources.GWline2_16;
             this.btnLineH1.Label = "函线(上)";
             this.btnLineH1.Name = "btnLineH1";
             this.btnLineH1.ScreenTip = "插入-红色函线(上沿)";
@@ -813,7 +813,7 @@ namespace 公文排版
             // 
             // btnLineH2
             // 
-            this.btnLineH2.Image = global::公文排版.Properties.Resources.GWline3_16;
+            this.btnLineH2.Image = global::gw_mika.Properties.Resources.GWline3_16;
             this.btnLineH2.Label = "函线(下)";
             this.btnLineH2.Name = "btnLineH2";
             this.btnLineH2.ScreenTip = "插入-红色函线(下沿)";
@@ -822,7 +822,7 @@ namespace 公文排版
             // 
             // btnBindLine
             // 
-            this.btnBindLine.Image = global::公文排版.Properties.Resources.LogicBoldItalicAction;
+            this.btnBindLine.Image = global::gw_mika.Properties.Resources.LogicBoldItalicAction;
             this.btnBindLine.Label = "装订线";
             this.btnBindLine.Name = "btnBindLine";
             this.btnBindLine.ScreenTip = "在页面左侧插入装订线";
@@ -1292,10 +1292,10 @@ namespace 公文排版
             // btnAbout
             // 
             this.btnAbout.ControlSize = Microsoft.Office.Core.RibbonControlSize.RibbonControlSizeLarge;
-            this.btnAbout.Image = global::公文排版.Properties.Resources.Info;
+            this.btnAbout.Image = global::gw_mika.Properties.Resources.Info;
             this.btnAbout.Label = "关于插件";
             this.btnAbout.Name = "btnAbout";
-            this.btnAbout.ScreenTip = "小恐龙公文助手";
+            this.btnAbout.ScreenTip = "关于「公文准式」";
             this.btnAbout.ShowImage = true;
             this.btnAbout.SuperTip = "免费,不含恶意代码";
             this.btnAbout.Click += new Microsoft.Office.Tools.Ribbon.RibbonControlEventHandler(this.btnAbout_Click);
@@ -1525,11 +1525,11 @@ namespace 公文排版
             // 
             this.Name = "Ribbon1";
             this.RibbonType = "Microsoft.Word.Document";
-            this.Tabs.Add(this.tabXKl);
+            this.Tabs.Add(this.tabGW);
             this.Close += new System.EventHandler(this.Ribbon1_Close);
             this.Load += new Microsoft.Office.Tools.Ribbon.RibbonUIEventHandler(this.Ribbon1_Load);
-            this.tabXKl.ResumeLayout(false);
-            this.tabXKl.PerformLayout();
+            this.tabGW.ResumeLayout(false);
+            this.tabGW.PerformLayout();
             this.group1.ResumeLayout(false);
             this.group1.PerformLayout();
             this.group2.ResumeLayout(false);
@@ -1555,7 +1555,7 @@ namespace 公文排版
 
         #endregion
 
-        internal Microsoft.Office.Tools.Ribbon.RibbonTab tabXKl;
+        internal Microsoft.Office.Tools.Ribbon.RibbonTab tabGW;
         internal Microsoft.Office.Tools.Ribbon.RibbonGroup group1;
         internal Microsoft.Office.Tools.Ribbon.RibbonButton btnTitleHei;
         internal Microsoft.Office.Tools.Ribbon.RibbonGroup group3;
