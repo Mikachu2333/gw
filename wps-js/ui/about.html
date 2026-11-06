@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>关于「公文准式」</title>
+    <style>
+        body {
+            font-family: "Microsoft YaHei", "Noto Sans CJK SC", "WenQuanYi Micro Hei", sans-serif;
+            font-size: 13px;
+            color: #222;
+            margin: 0;
+            padding: 16px 18px;
+            line-height: 1.8;
+        }
+
+        h1 {
+            font-size: 17px;
+            margin: 0 0 10px;
+        }
+
+        .row {
+            margin: 6px 0;
+        }
+
+        .label {
+            color: #666;
+        }
+
+        a {
+            color: #0b6e99;
+            word-break: break-all;
+            cursor: pointer;
+        }
+
+        .box {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 10px 12px;
+            margin-top: 12px;
+            background: #fafafa;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>关于「公文准式」（版本 3.8.0.0）</h1>
+
+    <div class="row">
+        <span class="label">当前仓库：</span>
+        <a onclick="openExternal(this.getAttribute('data-url'))"
+            data-url="https://gitlab.com/Mikachu2333/gw">https://gitlab.com/Mikachu2333/gw</a>
+    </div>
+    <div class="row">
+        <span class="label">本页面：</span>「WPS JS 版」加载项，运行于 WPS（含 Linux 版）。
+        「Word 版」是 VSTO 加载项，功能更全（插入部件、导出、语音等）。
+    </div>
+
+    <div class="box">
+        <div class="row">
+            本软件是「小恐龙公文排版助手」的二次开发分支。原版作者「小恐龙」已将源码以 MIT
+            协议开源，GB/T 9704—2012 的排版规则与全部原始实现都来自该项目，特此致谢。
+        </div>
+        <div class="row">
+            <span class="label">原插件开源地址：</span>
+            <a onclick="openExternal(this.getAttribute('data-url'))"
+                data-url="https://github.com/xkonglong/gw">https://github.com/xkonglong/gw</a>
+        </div>
+        <div class="row">
+            <span class="label">许可：</span>沿用上游的 MIT License（见仓库内 MIT_License.md）。
+        </div>
+    </div>
+
+    <div class="row" style="margin-top:12px">
+        <span class="label">在线帮助：</span>
+        <a onclick="openExternal(this.getAttribute('data-url'))"
+            data-url="https://open.wps.cn/documents/app-integration-dev/wps365/client/wpsoffice/jsapi/">WPS
+            JSAPI 介绍</a>
+        <span class="label">；Word 版功能区指向 VBA 文档。</span>
+    </div>
+
+    <script>
+        // WPS 内嵌浏览器里 target=_blank 未必能拉起系统浏览器，官方模板给的办法是
+        // OAAssist.ShellExecute，因此链接统一走这里，失败再退回 window.open。
+        function openExternal(url) {
+            try {
+                var a = window.Application;
+                if (a && a.OAAssist && typeof a.OAAssist.ShellExecute === 'function') {
+                    a.OAAssist.ShellExecute(url);
+                    return;
+                }
+            } catch (e) { /* 走兜底 */ }
+            try { window.open(url, '_blank'); } catch (e2) { alert('请手动访问: ' + url); }
+        }
+    </script>
+</body>
+
+</html>

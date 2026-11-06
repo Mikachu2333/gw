@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  「公文准式」WPS JS 加载项功能区。
+  架构与 Office 2006 customUI 相同（和 C# 版 VSTO 功能区同源），回调函数由 js/ribbon.js 提供。
+  MVP 覆盖 GB/T 9704—2012 的一条完整排版流程：页面设置 → 标题层级 → 正文 → 文字清理 → 页码 → 页眉。
+  插入红线/版头/落款/印章、导出与语音等仍只在 Windows 的 C# 版里，Linux WPS 无对应能力。
+-->
+<customUI xmlns="http://schemas.microsoft.com/office/2006/01/customui" onLoad="OnAddinLoad">
+    <ribbon startFromScratch="false">
+        <tabs>
+            <tab id="gwTabMika" label="公文准式">
+                <group id="gwGroupPage" label="版面">
+                    <button id="btnPageSetup" label="页面设置" onAction="OnAction" getImage="GetImage" size="large"/>
+                    <button id="btnToggleGrid" label="公文版式" onAction="OnAction" getImage="GetImage" size="large"/>
+                    <button id="btnIndent2" label="中文缩进" onAction="OnAction" getImage="GetImage" size="large"/>
+                    <button id="btnFlush" label="段落顶格" onAction="OnAction" getImage="GetImage" size="large"/>
+                </group>
+                <group id="gwGroupTitle" label="标题">
+                    <button id="btnMainTitle" label="公文标题" onAction="OnAction" getImage="GetImage" size="large"/>
+                    <button id="btnHeading1" label="标题一、" onAction="OnAction" getImage="GetImage" size="large"/>
+                    <button id="btnHeading2" label="标题（一）" onAction="OnAction" getImage="GetImage" size="large"/>
+                    <button id="btnHeading3" label="标题1." onAction="OnAction" getImage="GetImage" size="large"/>
+                    <button id="btnHeading4" label="标题（1）" onAction="OnAction" getImage="GetImage" size="large"/>
+                    <button id="btnBody" label="正文" onAction="OnAction" getImage="GetImage" size="large"/>
+                </group>
+                <group id="gwGroupText" label="文字">
+                    <button id="btnDelSpace" label="删除空白" onAction="OnAction" getImage="GetImage" size="large"/>
+                    <button id="btnDelEmptyLine" label="删除空行" onAction="OnAction" getImage="GetImage" size="large"/>
+                    <button id="btnDelSelEmptyLine" label="删除选区空行" onAction="OnAction" getImage="GetImage" size="large"/>
+                    <button id="btnLineBreak" label="换行符转回车" onAction="OnAction" getImage="GetImage" size="large"/>
+                    <button id="btnReflow" label="断行重排" onAction="OnAction" getImage="GetImage" size="large"/>
+                    <button id="btnCnEnSpace" label="中英加空格" onAction="OnAction" getImage="GetImage" size="large"/>
+                    <button id="btnPunctEn2Cn" label="标点英转中" onAction="OnAction" getImage="GetImage" size="large"/>
+                    <button id="btnPunctCn2En" label="标点中转英" onAction="OnAction" getImage="GetImage" size="large"/>
+                </group>
+                <group id="gwGroupPageNum" label="页码">
+                    <button id="btnNumCenter" label="居中页码" onAction="OnAction" getImage="GetImage" size="large"/>
+                    <button id="btnNumRight" label="居右页码" onAction="OnAction" getImage="GetImage" size="large"/>
+                    <button id="btnNumOutside" label="外侧页码" onAction="OnAction" getImage="GetImage" size="large"/>
+                </group>
+                <group id="gwGroupHeader" label="页眉">
+                    <button id="btnDelHeader" label="删除页眉" onAction="OnAction" getImage="GetImage" size="large"/>
+                    <button id="btnDelHeaderLine" label="删除页眉横线" onAction="OnAction" getImage="GetImage" size="large"/>
+                </group>
+                <group id="gwGroupHelp" label="帮助">
+                    <button id="btnAbout" label="关于" onAction="OnAction" getImage="GetImage" size="large"/>
+                    <button id="btnHelp" label="在线帮助" onAction="OnAction" getImage="GetImage" size="large"/>
+                </group>
+            </tab>
+        </tabs>
+    </ribbon>
+</customUI>

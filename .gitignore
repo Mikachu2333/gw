@@ -29,3 +29,7 @@ dist/
 
 # 可选：随包携带的 VSTO 运行库（约 40 MB，不入库）
 Installer/redist/
+
+# WPS JS 加载项的依赖与打包产物（都可再生；package-lock.json 要入库以固定版本）
+wps-js/node_modules/
+wps-js/dist/

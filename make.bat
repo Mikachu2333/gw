@@ -40,7 +40,7 @@ echo ==========================================
 
 :: ---------- 1. MSBuild ----------
 echo.
-echo [1/7] 定位 MSBuild...
+echo [1/8] 定位 MSBuild...
 set "MSBUILD="
 set "VSWHERE=%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe"
 
@@ -74,7 +74,7 @@ rem 清单签名只能按证书存储里的指纹进行（VSTO 的 SignFile 不�
 rem "指纹属性存在 + 指纹对应的证书确实在当前用户存储里"，两者任一缺失就自动跑一次 make-dev-cert.ps1。
 rem 该脚本幂等：同主题证书已存在则复用，不会每次构建都往存储里堆证书。
 echo.
-echo [2/7] 检查清单签名证书...
+echo [2/8] 检查清单签名证书...
 call :read_thumbprint
 if not defined THUMB (
     echo        未找到 ManifestCertificateThumbprint，需要生成/复用本机开发证书。
@@ -101,7 +101,7 @@ echo        清单指纹: %THUMB%
 
 :: ---------- 3. 构建 ----------
 echo.
-echo [3/7] MSBuild Release 构建...
+echo [3/8] MSBuild Release 构建...
 "%MSBUILD%" "%PROJ%" /t:Rebuild /p:Configuration=Release /p:Platform=AnyCPU /v:m /nologo
 if errorlevel 1 (
     echo [错误] Release 构建失败，见上面的 MSBuild 输出。
@@ -117,7 +117,7 @@ rem 载荷必须是 bin\Release 的完整镜像（去掉 pdb）：.dll.manifest 
 rem 和 dll.config 的哈希，缺任何一个 VSTO 都会拒绝加载；反过来多带的文件不影响加载。
 rem 证书 .cer 不放进载荷 —— 它由 installer.iss 直接从 src\Resources 取用，只进 {tmp} 不进 {app}。
 echo.
-echo [4/7] 组装安装包载荷 dist\payload...
+echo [4/8] 组装安装包载荷 dist\payload...
 if exist "%DIST%" (
     rmdir /s /q "%DIST%" >nul 2>&1
     if exist "%DIST%" (
@@ -138,7 +138,7 @@ del /q "%PAYLOAD%\Resources\gw-codecert.cer" >nul 2>&1
 
 :: ---------- 5. Inno Setup ----------
 echo.
-echo [5/7] 定位 Inno Setup 编译器...
+echo [5/8] 定位 Inno Setup 编译器...
 set "ISCC="
 
 if exist "%ProgramFiles%\Inno Setup 7\ISCC.exe" (
@@ -195,7 +195,7 @@ echo        ISCC: %ISCC%
 rem 版本从构建出的 dll 读，而不是从 AssemblyInfo.cs 读：程序集版本号会被 VS 的自动递增插件改写，
 rem 只有产物里的版本才是这台机器刚刚真正编译出来的那个。
 echo.
-echo [6/7] 读取版本与证书指纹...
+echo [6/8] 读取版本与证书指纹...
 for /f "usebackq delims=" %%v in (`powershell -NoProfile -Command "[Reflection.AssemblyName]::GetAssemblyName('%BIN%\公文排版.dll').Version.ToString()"`) do set "VER4=%%v"
 if not defined VER4 (
     echo [错误] 读取程序集版本失败。
@@ -222,7 +222,7 @@ echo        指纹: %CER_THUMB%
 
 :: ---------- 7. 编译安装包 ----------
 echo.
-echo [7/7] 编译 Inno Setup 安装包...
+echo [7/8] 编译 Inno Setup 安装包...
 set "REDIST_DEFINE=/DHaveVstoRedist=0"
 if exist "%VSTO_REDIST%" set "REDIST_DEFINE=/DHaveVstoRedist=1"
 if "%REDIST_DEFINE%"=="/DHaveVstoRedist=1" (
@@ -238,6 +238,52 @@ if errorlevel 1 (
     exit /b 1
 )
 
+:: ---------- 8. WPS JS 加载项 ----------
+rem Linux 版 WPS 只认 JS 加载项，wps-js 就是面向 Linux 的那一份产物。
+rem 没有 npm 时只跳过、不失败：Windows 的 C# 安装包才是主产物，别因为缺 Node 就中断整条流水线。
+echo.
+echo [8/8] 构建 WPS JS 加载项 wps-js...
+set "JS_DIR=%ROOT%wps-js"
+set "JS_OUT=%DIST%\gw-mika-wps-js-%VER%"
+
+where npm >nul 2>&1
+if errorlevel 1 (
+    echo        [跳过] PATH 上没有 npm，WPS JS 加载项未构建。装好 Node 后重跑 make.bat 即可。
+    goto :js_done
+)
+
+pushd "%JS_DIR%"
+if not exist "node_modules" (
+    echo        npm install（首次构建需要联网）...
+    call npm install --no-audit --no-fund
+    if errorlevel 1 (
+        popd
+        echo [错误] wps-js 的 npm install 失败。
+        exit /b 1
+    )
+)
+call npm run build
+if errorlevel 1 (
+    popd
+    echo [错误] wps-js 构建失败（vite build）。
+    exit /b 1
+)
+popd
+
+robocopy "%JS_DIR%\dist" "%JS_OUT%" /MIR /NFL /NDL /NJH /NJS >nul
+set "ROBO_JS=%errorlevel%"
+if %ROBO_JS% GEQ 8 (
+    echo [错误] 复制 JS 产物到 dist 失败（退出码 %ROBO_JS%）。
+    exit /b 1
+)
+powershell -NoProfile -Command "Compress-Archive -Path '%JS_OUT%\*' -DestinationPath '%DIST%\gw-mika-wps-js-%VER%.zip' -Force"
+if not exist "%DIST%\gw-mika-wps-js-%VER%.zip" (
+    echo [错误] 生成 gw-mika-wps-js 压缩包失败。
+    exit /b 1
+)
+echo        JS 产物: %DIST%\gw-mika-wps-js-%VER%.zip
+
+:js_done
 echo.
 echo ==========================================
 echo 打包完成
