@@ -26,11 +26,13 @@ VBA 脚本可以实现自动排版等复杂的且个性化的操作.
 
 ### 安装
 
-到 [Releases/仓库](https://gitlab.com/Mikachu2333/gw) 下载 `gw_mika-Setup-<版本>.exe`，双击、一路"下一步"即可：
-安装包会自动检查 .NET Framework 4.8、补装 VSTO 运行库（可离线）、把签名证书导入本机受信任根与受信任发布者，
-并同时在 Word 与 WPS 里登记加载项。装完重开 Word/WPS，功能区里会出现「公文准式」选项卡。
+在仓库根目录执行 `make.bat` 即可产出安装包 `dist\gw_mika-Setup-<版本>.exe`
+（需要 Visual Studio 的 Office/SharePoint 开发组件、.NET 4.8 targeting pack 与 Inno Setup）。
+双击这个 exe、一路"下一步"即可：安装包会自动申请管理员权限、检查 .NET Framework 4.8、
+补装 VSTO 运行库（可离线）、导入签名证书，并同时注册到 Word 与 WPS。
+装完重开 Word/WPS，功能区里会出现「公文准式」选项卡。
 
-想自己打包，在仓库根目录执行 `make.bat`（需要 Visual Studio 的 Office/SharePoint 开发组件与 Inno Setup）。
+同一脚本还会产出 `dist\gw_mika-wps-js-<版本>.zip`，那是给 WPS（含 Linux 版）用的 JS 加载项。
 
 ### 致谢与来源
 
