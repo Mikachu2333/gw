@@ -82,6 +82,10 @@ ArchitecturesInstallIn64BitMode=x64compatible arm64
 ; 插件本体保持 AnyCPU：编成 x86 会让 64 位 Word/WPS 直接拒绝加载。
 SetupArchitecture=x86
 PrivilegesRequired=admin
+; 故意以管理员身份写 HKCU：WPS 的加载项白名单 AddinsWL 只存在于 HKCU，机器级写入对它无效，
+; 而 HKCU 的加载项键能保证"运行安装包的这个用户"一定看得到。所以这条"admin 模式下别写
+; HKCU"的通用警告对本脚本不适用，关掉它，别让它每次编译都冒出来掩盖真的问题。
+UsedUserAreasWarning=no
 ; 插件 dll 在 Word/WPS 运行期间一直被占用，不先处理就复制必然失败。交给 Inno 的
 ; 重启管理器（默认过滤器已包含 *.dll）礼貌请求宿主退出，用户可以保存文档 —— 这里
 ; 不 taskkill /F 强杀 WINWORD.EXE/wps.exe，因为那会直接丢掉用户未保存的公文。
@@ -254,7 +258,13 @@ end;
 function PrepareVstoRuntime(var NeedsReboot: Boolean): String;
 var
   ResultCode: Integer;
-  RedistPath, DownloadError: string;
+  RedistPath: string;
+  // DownloadError 只有"联网下载"那条分支会用到；随包携带运行库时它是未使用变量，
+  // ISCC 会为此出一条警告，所以连同声明一起放进 #else。
+  #if HaveVstoRedist == "1"
+  #else
+  DownloadError: string;
+  #endif
 begin
   Result := '';
   if IsVstoRuntimeInstalled then
