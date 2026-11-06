@@ -1,5 +1,5 @@
 ﻿; =====================================================================
-; 小恐龙公文排版助手 —— Inno Setup 安装脚本（Inno Setup 6.3+ / 7.x）
+; 公文准式（gw_mika）—— Inno Setup 安装脚本（Inno Setup 6.3+ / 7.x）
 ;
 ; 正常入口是仓库根目录的 make.bat：它先 Release 构建、把 bin\Release 镜像成
 ; dist\payload，再用下面四个宏调用 ISCC：
@@ -18,16 +18,19 @@
 ;   4 卸载时把写过的注册表项清掉，并且只删本安装包自己导入的那张证书。
 ; =====================================================================
 
-#define MyAppName "小恐龙公文排版助手"
-#define MyAppPublisher "小恐龙工作室"
-; 加载项 ID 用 "厂商.产品名" 的点分形式：官方版的 ID 是 小恐龙工作室.小恐龙公文排版助手，
-; 开源版刻意取 小恐龙工作室.公文排版助手，两份注册表键名互不相同，可以并存、也互不顶替。
-; 信息键另用一个短名，避免和官方那份 HKCU\Software\小恐龙工作室\小恐龙公文排版助手 撞车
-; （撞上了我们卸载时会把它的 Version/Path 一起删掉）。
-#define MyAddinId "小恐龙工作室.公文排版助手"
-#define MyProductId "公文排版助手"
-#define MyAppURL "https://github.com/xkonglong/gw"
-#define MyVstoFile "公文排版.vsto"
+#define MyAppName "公文准式"
+#define MyAppPublisher "gw_mika"
+; 加载项 ID 用 "厂商.产品名" 的点分形式。本开源版用 gw_mika.公文准式，与官方版的
+; 小恐龙工作室.小恐龙公文排版助手 键名互不相同，两份可以并存、也互不顶替。
+; （并存时 Word/WPS 的 COM 加载项列表里会出现两条，功能重复，二选一勾选即可。）
+; 信息键用 Software\gw_mika\公文准式，厂商段已经是 gw_mika，不可能和官方那份
+; Software\小恐龙工作室\小恐龙公文排版助手 撞上，也就不会在卸载时误删对方的 Version/Path。
+#define MyAddinId "gw_mika.公文准式"
+#define MyProductId "公文准式"
+; 安装包与"关于"窗体共用同一个仓库地址；上游原版（本软件的二次开发根基）已开源在
+; https://github.com/xkonglong/gw ，致谢写在使用说明和关于窗体里，不再放收款码与旧站点链接。
+#define MyAppURL "https://gitlab.com/Mikachu2333/gw"
+#define MyVstoFile "gw_mika.vsto"
 
 #ifndef AppVersion
   #define AppVersion "0.0.0"
@@ -43,9 +46,13 @@
 #endif
 
 [Setup]
-; AppId 一旦发布就不能改：它是 Inno 判断"同一个程序"的依据，改了就会出现
+; AppId 一旦正式发布就不能改：它是 Inno 判断"同一个程序"的依据，改了就会出现
 ; 装了新版还留着旧版条目、或卸载器找不到安装记录。
-AppId={{5611716C-4AB9-4ECF-84F5-22251C389075}
+; 这次是"公文准式"这个名字的第一次发布，所以趁还没有公开用户换成了新 GUID：
+; 沿用旧 GUID 会让 Inno 把本机测试装的"小恐龙公文排版助手"当同一个程序走"升级"，
+; 而 Inno 的升级只是覆盖文件并重写卸载日志，旧包写的那套注册表键会从日志里失联、
+; 永远清不掉。换成新 GUID 后两条安装记录各自独立，旧的那条在控制面板里单独卸载干净。
+AppId={{D56CAA61-2CA1-4533-B210-E4E045939A32}
 AppName={#MyAppName}
 AppVersion={#AppVersion}
 AppVerName={#MyAppName} {#AppVersion}
@@ -60,7 +67,7 @@ DisableWelcomePage=yes
 UninstallDisplayName={#MyAppName}
 InfoAfterFile=安装完成说明.txt
 OutputDir=..\dist
-OutputBaseFilename={#MyAppName}-Setup-{#AppVersion}
+OutputBaseFilename=gw_mika-Setup-{#AppVersion}
 ; 故意不设 SetupIconFile：仓库里唯一的 .ico（src\Resources\wps.ico）是功能区"两端对齐"
 ; 按钮图标，不是品牌图标，拿它当安装包图标比 Inno 的默认图标更让人误会。
 Compression=lzma2/max
@@ -114,7 +121,7 @@ en_US.CertPartial=Only one certificate store was updated (thumbprint %1); Word/W
 
 [Files]
 ; 载荷目录是 bin\Release 的镜像（去掉 pdb 和证书），必须整目录带走：
-; 公文排版.dll.manifest 里逐项记着 42 个 .vba 与 dll.config 的哈希，少一个文件 VSTO 就拒绝加载。
+; gw_mika.dll.manifest 里逐项记着 42 个 .vba 与 dll.config 的哈希，少一个文件 VSTO 就拒绝加载。
 ; 手工编译前请先跑一次 make.bat，否则这里会报"没有匹配的文件"。
 Source: "..\dist\payload\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 ; 证书公钥只在安装时导入信任链用，不进安装目录，所以 dontcopy、按需释放到 {tmp}。

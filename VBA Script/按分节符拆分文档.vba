@@ -13,7 +13,7 @@
 ' ver1.1 修复msgbox提示出错的bug
 
 
-Sub xkonglong_根据分节符拆分文档()
+Sub gw_根据分节符拆分文档()
 
     '本段代码作用: 如果没有分节符,提示后退出
     If Word.ActiveDocument.Sections.Count <= 1 Then

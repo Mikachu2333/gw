@@ -20,7 +20,7 @@
 
 Option Explicit    '强制声明变量是个好习惯, 可以提高代码速度,减少bug
 
-Sub xkonglong_自动排版()
+Sub gw_自动排版()
 '公文
     ' 文档被限制编辑时每条改写语句都会报错, 宏会停在半成品上, 所以先挡掉
     If ActiveDocument.ProtectionType <> wdNoProtection Then

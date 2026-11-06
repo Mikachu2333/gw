@@ -27,7 +27,7 @@ Sub 批量打印WORD文档()
         If .Show <> -1 Then Exit Sub     '点击取消按钮退出
     End With
 
-    份数输入 = InputBox("请输入要打印的份数?", "小恐龙VBA脚本", 1)
+    份数输入 = InputBox("请输入要打印的份数?", "公文准式VBA脚本", 1)
     ' 取消或填了非数字时不再靠吞异常蒙过去, 直接退出
     If Not IsNumeric(份数输入) Then Exit Sub
     份数 = CLng(份数输入)

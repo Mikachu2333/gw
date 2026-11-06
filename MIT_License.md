@@ -1,8 +1,14 @@
-从即日起,小恐龙公文排版助手 全面开源.
+本仓库是「小恐龙公文排版助手」的开源二次开发版，名为「公文准式」(gw_mika)。
+
+原版由小恐龙工作室于 2026 年 10 月 21 日起以 MIT 协议开源，出处：
+https://github.com/xkonglong/gw
+
+本版本的修改与新增部分同样以 MIT 协议发布。
 
 MIT License
 
-Copyright (c) [2026] [小恐龙工作室]
+Copyright (c) [2026] [小恐龙工作室]（原版「小恐龙公文排版助手」）
+Copyright (c) [2026] [gw_mika]（「公文准式」二次开发部分）
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

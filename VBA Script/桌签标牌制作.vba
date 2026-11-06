@@ -15,7 +15,7 @@
 
 
 Option Explicit    '强制声明变量是个好习惯, 可以提高代码速度,减少bug
-Sub xkonglong_桌签标牌()
+Sub gw_桌签标牌()
 '标牌
     Dim c As Cell, i&, j&
     DataInit

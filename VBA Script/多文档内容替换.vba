@@ -22,7 +22,7 @@ Dim strF As String
 Dim strR As String
 Dim 最近错误 As String
 
-Sub xkonglong_批量替换()
+Sub gw_批量替换()
     Dim 筛选器 As FileDialog
     Dim 文件名 As Variant
     Dim 成功数 As Long

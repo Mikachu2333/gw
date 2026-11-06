@@ -12,7 +12,7 @@
 
 '  本功能用于撤掉工作表的写保护(仅限未设密码的保护; 工作簿级密码保护无法移除).
 
-Sub xkonglong_移除xls写保护()
+Sub gw_移除xls写保护()
     Dim xls As Object
     Dim dia As FileDialog
     Dim book As Object

@@ -12,7 +12,7 @@
 '  日期: 2023年2月24日
 
 
-Sub xkonglong_按页拆分文档()
+Sub gw_按页拆分文档()
 
     '本段代码作用: 选择拆分后要保存的文件夹'
     Dim dia As FileDialog

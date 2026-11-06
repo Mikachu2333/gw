@@ -14,7 +14,7 @@
 '  修改日期: 2023年1月31日
 
 Option Explicit    '强制声明变量是个好习惯, 可以提高代码速度,减少bug
-Sub xkonglong_删除页眉页脚()
+Sub gw_删除页眉页脚()
     Dim oSec As Section
     Dim okCount As Long
     Dim failCount As Long

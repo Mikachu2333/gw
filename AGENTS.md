@@ -1,9 +1,20 @@
-# AGENTS.md — 小恐龙公文排版助手
+# AGENTS.md — 公文准式 (gw_mika)
 
 VSTO add-in for Microsoft Word (with WPS compatibility branches) that applies the
 Chinese official-document layout standard GB/T 9704—2012. C# WinForms Ribbon,
 .NET Framework 4.8, VSTO 4.0, Office PIA 15. UI text and code comments are Chinese;
 follow that convention.
+
+Open-source derivative of 小恐龙公文排版助手. Repository (this project):
+`https://gitlab.com/Mikachu2333/gw`; upstream original, open-sourced by its author:
+`https://github.com/xkonglong/gw`. Both URLs live in one place — `Ribbon1.RepoUrl` /
+`Ribbon1.UpstreamUrl` (src\Ribbon1.cs) and `MyAppURL` (Installer\installer.iss). No payment
+QR codes and no legacy site URLs anywhere in the product.
+
+Display name is 「公文准式」 everywhere a user sees it (Ribbon tab, About title, installer,
+COM add-in FriendlyName). Every identifier that must be ASCII is `gw_mika` (project,
+assembly, root namespace, output dll, installer file names, npm package); `gw-mika` is only
+used where an underscore is not allowed, which turned out to be nowhere.
 
 This file records how the repository actually works today. Keep it factual and update
 it when the architecture, build steps, or domain constants change.
@@ -12,8 +23,8 @@ it when the architecture, build steps, or domain constants change.
 
 | Path | Responsibility |
 | --- | --- |
-| `src\公文排版.sln` | Single-project solution. |
-| `src\公文排版.csproj` | Old-style VSTO project (ToolsVersion 15.0), `AssemblyName=公文排版`, `RootNamespace=公文排版`, `DefineConstants=VSTO40`. |
+| `src\gw_mika.sln` | Single-project solution. |
+| `src\gw_mika.csproj` | Old-style VSTO project (ToolsVersion 15.0), `AssemblyName=gw_mika`, `RootNamespace=gw_mika`, `DefineConstants=VSTO40`. |
 | `src\Ribbon1.cs` | Shared state, host detection, `Ribbon1_Load/Close`, `ReadSetting`, `FormatFontSize`, `GetDllPath`, `WithUndo`, WPS icon setup. |
 | `src\Ribbon1.designer.cs` | Ribbon definition: control creation, properties, `Buttons.Add` order, Click wiring, field declarations. Designer-managed; hand edits must keep all four parts consistent. |
 | `src\Ribbon1.Fonts.cs` | Font buttons, `SetFont`, `FontSwitch`, `SetTitle`, font-conversion gallery, font/letter dialog entry. |
@@ -38,8 +49,9 @@ it when the architecture, build steps, or domain constants change.
 | `src\app.config` | Default values for `userSettings` and `applicationSettings`. |
 | `src\Resources\` | Icons plus `公文部件.dotx` (copied to output `Always`). |
 | `VBA Script\` | 42 example `.vba` scripts, linked into the build as `VBA Script\*.vba`. |
-| `tools\make-dev-cert.ps1` | Creates/imports the dev signing certificate and writes `ManifestCertificateThumbprint` into `公文排版.csproj.user`. |
-| `make.bat` | One-shot Release build + installer packaging (see Packaging below); outputs `dist\*.exe`. |
+| `tools\make-dev-cert.ps1` | Creates/imports the dev signing certificate and writes `ManifestCertificateThumbprint` into `gw_mika.csproj.user`. |
+| `make.bat` | One-shot Release build + installer packaging + JS build (see Packaging below); outputs `dist\*.exe` and `dist\*.zip`. |
+| `wps-js\` | WPS JS 加载项（manifest.xml + ribbon.xml + js/ + ui/），vite + `wpsjs` CLI，Linux 版 WPS 只能用这一份产物。 |
 | `Installer\installer.iss` | Inno Setup script: machine-wide install, VSTO runtime prerequisite, certificate import, Word/WPS registry registration. |
 | `Installer\redist\` | Optional drop folder for a bundled `vstor_redist.exe` (git-ignored; makes the installer offline). |
 | `img\` | README screenshots. |
@@ -48,7 +60,7 @@ it when the architecture, build steps, or domain constants change.
 
 Prerequisites: Visual Studio with the Office/SharePoint development workload (Office PIA
 v15 and the VSTO targets), .NET Framework 4.8 targeting pack, and a manifest-signing
-certificate thumbprint in `src\公文排版.csproj.user` (git-ignored; run
+certificate thumbprint in `src\gw_mika.csproj.user` (git-ignored; run
 `tools\make-dev-cert.ps1` once per machine).
 
 The PIA reference path comes from `$(OfficePiaDir)`; the default expects
@@ -61,12 +73,12 @@ Build with Visual Studio's MSBuild (the .NET SDK `dotnet build` does not support
 $ErrorActionPreference = 'Stop'
 $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
 $msbuild = & $vswhere -latest -requires Microsoft.Component.MSBuild -find 'MSBuild\**\Bin\MSBuild.exe' | Select-Object -First 1
-& $msbuild src\公文排版.csproj /p:Configuration=Debug /v:m /nologo
+& $msbuild src\gw_mika.csproj /p:Configuration=Debug /v:m /nologo
 ```
 
 On this machine a working MSBuild is
 `C:\Program Files\Microsoft Visual Studio\18\Community\MSBuild\Current\Bin\MSBuild.exe`.
-Expected result: `公文排版 -> src\bin\Debug\公文排版.dll`, zero errors and warnings.
+Expected result: `gw_mika -> src\bin\Debug\gw_mika.dll`, zero errors and warnings.
 The output folder also receives `VBA Script\` and `Resources\公文部件.dotx`.
 
 There are no unit tests. Validation = successful build + manual smoke test in Word
@@ -75,15 +87,17 @@ There are no unit tests. Validation = successful build + manual smoke test in Wo
 ### Packaging (make.bat)
 
 `make.bat` in the repo root builds Release, mirrors `src\bin\Release` into
-`dist\payload`, and compiles `Installer\installer.iss` with Inno Setup 6.3+/7 into
-`dist\小恐龙公文排版助手-Setup-<版本>.exe`. It locates MSBuild with vswhere, runs
-`tools\make-dev-cert.ps1` when the manifest thumbprint or its certificate is missing,
-reads the version from the built `公文排版.dll` (not from `AssemblyInfo.cs`, which the
+`dist\payload`, compiles `Installer\installer.iss` with Inno Setup 6.3+/7 into
+`dist\gw_mika-Setup-<版本>.exe`, then runs `npm install` + `npm run build` in `wps-js\`
+and zips `dist\gw_mika-wps-js-<版本>`. Step 8 is skipped (not failed) when npm is missing,
+because the Windows C# installer is the primary artifact. It locates MSBuild with vswhere,
+runs `tools\make-dev-cert.ps1` when the manifest thumbprint or its certificate is missing,
+reads the version from the built `gw_mika.dll` (not from `AssemblyInfo.cs`, which the
 VS extension rewrites), and aborts if the `.cer` thumbprint differs from the one that
 signed the manifests.
 
 `dist\payload` must stay a complete mirror of `bin\Release` (minus `.pdb`):
-`公文排版.dll.manifest` lists all 42 `VBA Script\*.vba` files and `公文排版.dll.config`
+`gw_mika.dll.manifest` lists all 42 `VBA Script\*.vba` files and `gw_mika.dll.config`
 with hashes, and VSTO refuses to load when a declared file is missing.
 
 The installer is machine-wide (`PrivilegesRequired=admin`, `{autopf}`) and does four
@@ -93,8 +107,11 @@ and SHA-256-pinned), registers the add-in, and imports the bundled `gw-codecert.
 LocalMachine Root + TrustedPublisher via `certutil` so Word/WPS stop prompting to trust
 the publisher.
 
-Registration is the `file:///...\公文排版.vsto|vstolocal` manifest under HKCU plus both HKLM
-registry views: one add-in ID across hives merges into a single load, and writing
+Registration is the `file:///...\gw_mika.vsto|vstolocal` manifest under HKCU plus both HKLM
+registry views, under the add-in ID `gw_mika.公文准式` (`MyAddinId` in `installer.iss`). That
+key name deliberately differs from the official `小恐龙工作室.小恐龙公文排版助手`, so the two
+add-ins coexist instead of overwriting each other's `Manifest` value — at the cost of two
+Ribbon tabs when both are enabled. One add-in ID across hives merges into a single load, and writing
 `LoadBehavior=3` in every hive clears the stale "user disabled it" override that would
 otherwise win over HKLM. It also always writes the add-in ID as an empty value under
 `HKCU\Software\Kingsoft\Office\WPS\AddinsWL` — without that WPS whitelist entry WPS does not
@@ -138,7 +155,7 @@ keys, the whitelist value, and only the certificate this package recorded as imp
 
 ## Configuration and persisted state
 
-`src\app.config` holds both sections for `公文排版.Properties.Settings`:
+`src\app.config` holds both sections for `gw_mika.Properties.Settings`:
 
 - `userSettings` (per user, `%LOCALAPPDATA%\...\user.config`): 上边距 37, 下边距 35,
   左边距 28, 右边距 26, 页脚边距 24.7, 行数 22, 字数 28, 行间距 28,
@@ -146,7 +163,15 @@ keys, the whitelist value, and only the certificate this package recorded as imp
   (公文标题 `方正小标宋简体, 21.75pt`; 一级标题/版头 `黑体, 15.75pt`;
   二级标题/签发人姓名 `楷体, 15.75pt`; 三级/四级标题/正文 `仿宋, 15.75pt`;
   版记/页码 `仿宋`/`宋体`, 14.25pt; 数字字体/英文字体 `Times New Roman`).
-- `applicationSettings`: `DPI` 200, `VBA路径`, help URLs.
+- `applicationSettings`: `DPI` 200 and `VBA路径` only. The three `帮助_*`/`在线帮助`
+  URL settings were removed — they were always empty, so every help entry point printed
+  "本版本未内置在线帮助地址". Help is now routed in code: `Ribbon1.OnlineHelpUrl`
+  picks the WPS JSAPI page when `IsWps` and the Word VBA reference otherwise, and the
+  two form "?" buttons open `Ribbon1.RepoUrl`.
+- The rename to `gw_mika` changed `AssemblyCompany`/`AssemblyTitle`, so the per-user
+  config folder (`%LOCALAPPDATA%\<company>\<product>_<version>\user.config`) moved.
+  Together with the missing `Settings.Upgrade()`, an existing 小恐龙 install's margins
+  and fonts do not carry into this add-in — it starts on the defaults by design.
 - `Settings.ResetNames(names)` resets only the named settings and saves. Never call
   `Settings.Default.Reset()` — it also wipes VBA history and script paths.
 - There is no `Settings.Upgrade()` call. Bumping `AssemblyVersion` makes existing

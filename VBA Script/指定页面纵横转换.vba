@@ -13,7 +13,7 @@
 '  修改人: 小恐龙
 
 Option Explicit    '强制声明变量是个好习惯, 可以提高代码速度,减少bug
-Sub xkonglong_页面纵横转换()
+Sub gw_页面纵横转换()
 '指定页面纵横转换
     Dim p$, q$
     q = ActiveDocument.Content.Information(wdActiveEndPageNumber)

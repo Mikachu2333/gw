@@ -11,12 +11,12 @@
 '日期:2023年2月4日'
 
 
-Sub xkonglong_所选姓名对齐()
+Sub gw_所选姓名对齐()
     
     Dim n As Long
     Dim xAnswer As String
     ' InputBox 取消时返回空串, 直接赋给 Long 会抛"类型不匹配"中断宏; 原来的 IsNumeric(n) 判的是已经转换完的 Long, 永远为真
-    xAnswer = InputBox("请确认所选姓名未用空格对齐,再使用本功能." & Chr(13) & "所选姓名几字对齐? 请输入一个整数(默认为三字姓名):", "小恐龙VBA", 3)
+    xAnswer = InputBox("请确认所选姓名未用空格对齐,再使用本功能." & Chr(13) & "所选姓名几字对齐? 请输入一个整数(默认为三字姓名):", "公文准式VBA", 3)
     If IsNumeric(xAnswer) Then n = CLng(xAnswer) Else n = 3
     If n < 1 Then n = 3
     
