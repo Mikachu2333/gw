@@ -1,6 +1,6 @@
 # AGENTS.md — 公文准式 (gw_mika)
 
-VSTO add-in for Microsoft Word (with WPS compatibility branches) that applies the
+VSTO add-in for Microsoft Word, plus a WPS JS add-in, applying the
 Chinese official-document layout standard GB/T 9704—2012. C# WinForms Ribbon,
 .NET Framework 4.8, VSTO 4.0, Office PIA 15. UI text and code comments are Chinese;
 follow that convention.
@@ -8,7 +8,7 @@ follow that convention.
 Open-source derivative of 小恐龙公文排版助手. Repository (this project):
 `https://gitlab.com/Mikachu2333/gw`; upstream original, open-sourced by its author:
 `https://github.com/xkonglong/gw`. Both URLs live in one place — `Ribbon1.RepoUrl` /
-`Ribbon1.UpstreamUrl` (src\Ribbon1.cs) and `MyAppURL` (Installer\installer.iss). No payment
+`Ribbon1.UpstreamUrl` (src\Ribbon1.cs) and `MyAppURL` (Installer\word.iss). No payment
 QR codes and no legacy site URLs anywhere in the product.
 
 Display name is 「公文准式」 everywhere a user sees it (Ribbon tab, About title, installer,
@@ -50,9 +50,12 @@ it when the architecture, build steps, or domain constants change.
 | `src\Resources\` | Icons plus `公文部件.dotx` (copied to output `Always`). |
 | `VBA Script\` | 42 example `.vba` scripts, linked into the build as `VBA Script\*.vba`. |
 | `tools\make-dev-cert.ps1` | Creates/imports the dev signing certificate and writes `ManifestCertificateThumbprint` into `gw_mika.csproj.user`. |
-| `make.bat` | One-shot Release build + installer packaging + JS build (see Packaging below); outputs `dist\*.exe` and `dist\*.zip`. |
-| `wps-js\` | WPS JS 开发部署资源（manifest.xml + ribbon.xml + js/ + ui/），vite + `wpsjs` CLI；ZIP 不能直接从 WPS 加载项对话框导入。 |
-| `Installer\installer.iss` | Inno Setup script: machine-wide install, VSTO runtime prerequisite, certificate import, Word/WPS registry registration. |
+| `make.bat` / `tools\build.ps1` | Build Word/VSTO and WPS/JS, then package the Windows dispatcher, two child installers, and Linux tar.gz. |
+| `wps-js\` | WPS JS implementation. `addonType=wps`; Vite ESM config copies resources and emits `install.json`. |
+| `Installer\installer.iss` / `host-detection.iss` | Unelevated Windows dispatcher: auto-select WPS JS and/or Word VSTO by detected hosts; no installation state of its own. |
+| `Installer\word.iss` | Machine-wide Word VSTO installer, retaining the original AppId for upgrades; never enables the WPS VSTO whitelist. |
+| `Installer\wps-js.iss` / `register-wps-js.ps1` | Per-user WPS JS installer; merge `publish.xml`, migrate only this project's WPS VSTO entries, restore prior registry values on uninstall. |
+| `Installer\linux\` | Python 3.8+ per-user WPS JS installation/upgrade/uninstall; shell entry refuses sudo/root. |
 | `Installer\redist\` | Optional drop folder for a bundled `vstor_redist.exe` (git-ignored; makes the installer offline). |
 | `img\` | README screenshots. |
 
@@ -81,44 +84,44 @@ On this machine a working MSBuild is
 Expected result: `gw_mika -> src\bin\Debug\gw_mika.dll`, zero errors and warnings.
 The output folder also receives `VBA Script\` and `Resources\公文部件.dotx`.
 
-There are no unit tests. Validation = successful build + manual smoke test in Word
-(and WPS when a `IsWps` branch is touched).
+VSTO validation remains a successful build plus host smoke tests. Installer regression checks:
+`python tools/test-js-installers.py` (temporary directories only) and `node tools/test-js-host.mjs`.
+Run the Python checks on Linux as well when changing the Linux installer; GUI behavior still needs WPS smoke tests.
 
 ### Packaging (make.bat)
 
-`make.bat` in the repo root builds Release, mirrors `src\bin\Release` into
-`dist\payload`, compiles `Installer\installer.iss` with Inno Setup 6.3+/7 into
-`dist\gw_mika-Setup-<版本>.exe`, then runs `npm install` + `npm run build` in `wps-js\`
-and zips `dist\gw_mika-wps-js-<版本>`. Step 8 is skipped (not failed) when npm is missing,
-because the Windows C# installer is the primary artifact. It locates MSBuild with vswhere,
-runs `tools\make-dev-cert.ps1` when the manifest thumbprint or its certificate is missing,
-reads the version from the built `gw_mika.dll` (not from `AssemblyInfo.cs`, which the
-VS extension rewrites), and aborts if the `.cer` thumbprint differs from the one that
-signed the manifests.
+`make.bat` delegates to `tools/build.ps1` using PowerShell 7 if available, otherwise Windows
+PowerShell. `make.bat -WpsOnly` skips all .NET/Word build prerequisites. npm is required for
+both modes. Builds stop on certificate, version, build, or packaging failure. MSBuild binlogs
+are kept under `dist/logs`; the whole `dist` tree is never deleted.
 
-`dist\payload` must stay a complete mirror of `bin\Release` (minus `.pdb`):
-`gw_mika.dll.manifest` lists all 42 `VBA Script\*.vba` files and `gw_mika.dll.config`
-with hashes, and VSTO refuses to load when a declared file is missing.
+Outputs (version comes from package.json and must match the built assembly):
 
-The installer is machine-wide (`PrivilegesRequired=admin`, `{autopf}`) and does four
-things: requires .NET 4.8 (Release >= 528040), installs the VSTO 4.0 runtime when absent
-(from `Installer\redist\vstor_redist.exe` if present, otherwise downloaded from Microsoft
-and SHA-256-pinned), registers the add-in, and imports the bundled `gw-codecert.cer` into
-LocalMachine Root + TrustedPublisher via `certutil` so Word/WPS stop prompting to trust
-the publisher.
+- `gw_mika-Setup-<version>.exe`: unelevated Windows dispatcher; WPS-only machines select JS,
+  Word-only machines select VSTO, and machines with both select both. Missing/portable hosts can
+  be selected manually. `/DETECTONLY=<absolute-path>` records detection without installation.
+- `gw_mika-WPS-Setup-<version>.exe`: per-user JS installer, no VBA/VSTO/certificate prerequisites.
+- `gw_mika-Word-Setup-<version>.exe`: original machine-wide VSTO package, Word registration only.
+- `gw_mika-WPS-Linux-<version>.tar.gz`: `sh install.sh`; Python 3.8+, no Node.js or sudo.
 
-Registration is the `file:///...\gw_mika.vsto|vstolocal` manifest under HKCU plus both HKLM
-registry views, under the add-in ID `gw_mika.公文准式` (`MyAddinId` in `installer.iss`). That
-key name deliberately differs from the official `小恐龙工作室.小恐龙公文排版助手`, so the two
-add-ins coexist instead of overwriting each other's `Manifest` value — at the cost of two
-Ribbon tabs when both are enabled. One add-in ID across hives merges into a single load, and writing
-`LoadBehavior=3` in every hive clears the stale "user disabled it" override that would
-otherwise win over HKLM. It also always writes the add-in ID as an empty value under
-`HKCU\Software\Kingsoft\Office\WPS\AddinsWL` — without that WPS whitelist entry WPS does not
-enumerate the add-in at all (no error, no disabled row), which is what the vendor's own MSI
-does too. The whitelist exists only under HKCU, so a machine-wide install still leaves other
-users' WPS without the add-in until each of them runs the installer once. Uninstall removes the
-keys, the whitelist value, and only the certificate this package recorded as imported.
+WPS uses the official offline registration shape (`type=wps`, `enable=enable_dev`, `install=null`)
+in per-user `publish.xml`: Windows `%APPDATA%/kingsoft/wps/jsaddons`, Linux
+`~/.local/share/Kingsoft/wps/jsaddons`. The stable JS ID is `gw_mika`; version folders are
+`gw_mika_<version>`. Registration merges only this ID (and its previous `gw_mika-wps-js` alias)
+for `type=wps`, preserving other components and add-ins. Malformed XML fails without replacement.
+Windows file ownership is tracked by Inno; Linux uses `install.json` markers plus an owned-folder
+state file, atomic config writes, and rollback. Neither installer changes `oem.ini` or macro security.
+
+On Windows, JS installation removes only `gw_mika.公文准式` from the current user's WPS
+`AddinsWL` and adds it to `AddinsBL`, preventing duplicate legacy VSTO tabs without changing Word.
+Original values are saved once and restored when uninstalling JS. The upstream add-in ID is untouched.
+The Word package retains its original AppId and imports the VSTO signing certificate into machine
+stores. It uses bundled `Installer/redist/vstor_redist.exe` if present, otherwise the pinned download.
+
+`dist/payload` must remain the complete Word build payload (excluding pdb, diagnostic logs, and cer):
+the VSTO manifest lists all 42 VBA scripts, config, and template hashes. JS payloads contain no VBA.
+JS covers only its existing basic formatting commands; the 42 VBA scripts and other VSTO features
+have not been ported. Installed WPS must already include the text JS add-in runtime.
 
 ## Runtime architecture
 

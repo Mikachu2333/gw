@@ -36,13 +36,23 @@ $userProj   = Join-Path $projDir 'gw_mika.csproj.user'
 if (-not (Test-Path $projDir)) { throw "未找到项目目录：$projDir" }
 
 # 1) 取或建证书（幂等：同主题已存在则复用，避免每次构建都往存储里堆证书）
-$existing = Get-ChildItem Cert:\CurrentUser\My -CodeSigningCert |
-            Where-Object { $_.Subject -eq $Subject } |
-            Select-Object -First 1
+# 不依赖证书驱动器的动态 -CodeSigningCert 参数：部分 PowerShell 环境不提供它。
+$store = New-Object Security.Cryptography.X509Certificates.X509Store('My', 'CurrentUser')
+try {
+    $store.Open([Security.Cryptography.X509Certificates.OpenFlags]::ReadOnly)
+    $existing = $store.Certificates | Where-Object {
+        $_.Subject -eq $Subject -and $_.HasPrivateKey -and $_.NotAfter -gt (Get-Date) -and
+        ($_.Extensions | Where-Object {
+            $_ -is [Security.Cryptography.X509Certificates.X509EnhancedKeyUsageExtension] -and
+            ($_.EnhancedKeyUsages | Where-Object { $_.Value -eq '1.3.6.1.5.5.7.3.3' })
+        })
+    } | Sort-Object NotAfter -Descending | Select-Object -First 1
+} finally { $store.Close() }
 
 if ($existing -and $Force) {
     Write-Host ("移除旧证书 " + $existing.Thumbprint)
-    Remove-Item $existing.PSPath -Force
+    $store.Open([Security.Cryptography.X509Certificates.OpenFlags]::ReadWrite)
+    try { $store.Remove($existing) } finally { $store.Close() }
     $existing = $null
 }
 

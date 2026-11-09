@@ -9,7 +9,12 @@ function GetUrlPath() {
 }
 
 // ---- 宿主对象 ----
-function app() { return window.Application; }
+function app() {
+    if (window.wps && window.wps.Application) return window.wps.Application;
+    if (window.wps && typeof window.wps.WpsApplication === 'function') return window.wps.WpsApplication();
+    if (window.Application) return window.Application;
+    throw new Error('当前 WPS 未提供文字 JS 加载项接口。');
+}
 function doc() { return app().ActiveDocument; }
 function sel() { return app().Selection; }
 
