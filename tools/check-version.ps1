@@ -1,5 +1,5 @@
 ﻿# 校验发布版本号在 C# 侧与 npm 侧一致。
-# 用法（由仓库根目录的 make.bat 第 6 步调用）：
+# 单独检查版本号；统一构建入口 tools/build.ps1 另有产物校验：
 #   powershell -NoProfile -ExecutionPolicy Bypass -File tools\check-version.ps1 -AssemblyVersion 4.0.0.0
 # 退出码 0 表示一致，并在标准输出打印显示用版本号（修订号为 0 时三段，否则四段）；
 # 非 0 表示不一致或读取失败，标准输出给出中文原因。

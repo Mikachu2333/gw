@@ -1,6 +1,6 @@
 // 功能区回调入口。OnAddinLoad 是整个加载项里最先执行的函数。
 var GW_APP_NAME = '公文准式';
-// dev 占位值：vite build 时由 vite.config.js 的 injectVersion 插件替换成 package.json 版本；
+// dev 占位值：vite build 时由 vite.config.mjs 的 injectVersion 插件替换成 package.json 版本；
 // wpsjs debug 直接读源码目录、不经过 Vite，此时显示占位值属预期。
 var GW_VERSION = '0.0.0-dev';
 var GW_REPO_URL = 'https://gitlab.com/Mikachu2333/gw';
@@ -8,18 +8,18 @@ var GW_UPSTREAM_URL = 'https://github.com/xkonglong/gw';
 // 在线帮助按宿主分流：WPS 侧指向官方 JSAPI 介绍页，Word(VBA) 侧由 C# 版指向 VBA 文档。
 var GW_HELP_URL_WPS = 'https://open.wps.cn/documents/app-integration-dev/wps365/client/wpsoffice/jsapi/';
 
+var gwRibbonUI = null;
 function OnAddinLoad(ribbonUI) {
-    if (typeof window.Application.ribbonUI !== 'object') {
-        window.Application.ribbonUI = ribbonUI;
-    }
-    // 新版 WPS 会自带 Application.Enum；没有时退回 js/enums.js 里按 PIA 反射出来的常量。
-    if (typeof window.Application.Enum !== 'object') {
-        window.Application.Enum = Wd;
-    }
+    // 功能区对象保存在脚本中，不向宿主只读的 Application 对象添加属性。
+    gwRibbonUI = ribbonUI;
     return true;
 }
 
 function OnAction(control) {
+    if (!OnGetEnabled(control)) {
+        alert('请打开可编辑的文档后再使用此功能。');
+        return false;
+    }
     var id = control.Id;
     switch (id) {
         case 'btnPageSetup': gwApplyPageSetup(); break;
@@ -111,7 +111,7 @@ function OnGetEnabled(control) {
     if (control.Id === 'btnAbout' || control.Id === 'btnHelp') return true;
     try {
         if (!hasDocument()) return false;
-        return doc().ProtectionType === 0;   // wdNoProtection
+        return !doc().ReadOnly && doc().ProtectionType === -1;   // wdNoProtection
     } catch (e) {
         return false;
     }

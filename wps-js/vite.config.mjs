@@ -6,7 +6,7 @@ import { resolve } from 'node:path'
 // 发布版本号只有两处人工维护点：
 //   C# 侧   src/Properties/AssemblyInfo.cs（四段）
 //   npm 侧  wps-js/package.json（三段）
-// make.bat 第 6 步会校验两者的前三段一致；package-lock.json 由 npm 自动生成。
+// tools/build.ps1 会校验两者的前三段一致；package-lock.json 由 npm 自动生成。
 // 本文件不写死任何版本数字，源码里的 dev 占位值只是占位符、不是版本号。
 const { version } = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8'))
 const VERSION_SENTINEL = '0.0.0-dev'
@@ -47,6 +47,7 @@ function injectVersion() {
         closeBundle() {
             if (config.command !== 'build') return
             const outDir = resolve(config.root, config.build.outDir)
+            writeFileSync(resolve(outDir, 'install.json'), JSON.stringify({ id: 'gw_mika', version }, null, 2))
             for (const rel of VERSION_FILES) {
                 const file = resolve(outDir, rel)
                 if (!existsSync(file)) {
@@ -70,10 +71,11 @@ export default defineConfig({
         injectVersion(),
         copyFile({ src: 'manifest.xml', dest: 'manifest.xml' }),
         copyFile({ src: 'ribbon.xml', dest: 'ribbon.xml' }),
-        copyFile({ src: 'main.js', dest: 'main.js' }),
+        copyFile({ src: 'index.html', dest: 'index.html' }),
         copyFile({ src: 'js', dest: 'js' }),
         copyFile({ src: 'images', dest: 'images' }),
         copyFile({ src: 'ui', dest: 'ui' }),
     ],
-    server: { host: '0.0.0.0' }
+    build: { rollupOptions: { input: 'main.js', output: { entryFileNames: 'main.js' } } },
+    server: { host: '127.0.0.1' }
 })

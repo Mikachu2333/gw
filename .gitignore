@@ -1,6 +1,7 @@
 # 构建产物
 bin/
 obj/
+__pycache__/
 
 # Visual Studio / MSBuild 本地状态
 # .user 内含本机 Office/WPS 安装路径，属于个人环境，不应入库
