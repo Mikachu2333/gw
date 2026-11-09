@@ -196,6 +196,7 @@ namespace gw_mika
                 mnuScript.Items.Add(btnVBAlist);
                 Properties.Settings.Default.VBA历史.Add(item);
                 Properties.Settings.Default.Save();
+                InvalidateVbaHistoryMenu();
             }
             catch (Exception ex)
             {
@@ -392,8 +393,8 @@ namespace gw_mika
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show(ex.Message, "获取VBA脚本路径时出错",
-                        MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                    // 构造函数里不能弹框，否则宿主加载功能区时会被模态对话框卡住
+                    Debug.WriteLine("获取VBA脚本路径时出错：" + ex.Message);
                 }
             }
 
@@ -414,6 +415,76 @@ namespace gw_mika
                 btn.Click += BtnVBAlist_Click;
                 mnuVBA.Items.Add(btn);
             }
+        }
+
+        // 嵌套在「脚本」拆分按钮里的菜单必须静态化：mnuVBA 的子项在这里预填，
+        // 随功能区 XML 一起交给宿主。WPS 的 VSTO 兼容层不会为嵌套 dynamicMenu
+        // 回调 getContent，早先在 Ribbon1_Load 里填充的 Items 根本不会被读取。
+        private void InitializeVbaMenus()
+        {
+            try
+            {
+                LoadVBA();
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("预填预设脚本菜单时出错：" + ex.Message);
+            }
+
+            mnuScript.ItemsLoading += MnuScript_ItemsLoading;
+            RebuildVbaHistoryMenu();
+        }
+
+        private void MnuScript_ItemsLoading(object sender, RibbonControlEventArgs e)
+        {
+            // 宿主每次展开动态菜单都会回调；重建过程中避免递归清空 Items
+            if (rebuildingVbaHistory) return;
+            RebuildVbaHistoryMenu();
+        }
+
+        private bool rebuildingVbaHistory;
+
+        private void RebuildVbaHistoryMenu()
+        {
+            rebuildingVbaHistory = true;
+            try
+            {
+                mnuScript.Items.Clear();
+                var vbaHistory = Properties.Settings.Default.VBA历史;
+                if (vbaHistory == null || vbaHistory.Count == 0)
+                {
+                    mnuScript.Visible = false;
+                    return;
+                }
+                foreach (string item in vbaHistory)
+                {
+                    string[] it = item.Split('|');
+                    if (it.Length < 2) continue;
+                    var btnVBAlist = this.Factory.CreateRibbonButton();
+                    btnVBAlist.Label = it[0];
+                    btnVBAlist.ScreenTip = it[1];
+                    btnVBAlist.Click += BtnVBAlist_Click;
+                    mnuScript.Items.Add(btnVBAlist);
+                }
+                // 原先只在为空时置 false、非空时从不置 true：用户清空历史后再产生历史，
+                // 菜单会一直隐藏到重启宿主
+                mnuScript.Visible = mnuScript.Items.Count > 0;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("重建历史脚本菜单时出错：" + ex.Message);
+            }
+            finally
+            {
+                rebuildingVbaHistory = false;
+            }
+        }
+
+        private void InvalidateVbaHistoryMenu()
+        {
+            // 动态菜单的内容由宿主缓存，新增历史后必须让它重新取一次
+            try { mnuScript.RibbonUI?.InvalidateControl(mnuScript.Id); }
+            catch (Exception ex) { Debug.WriteLine("刷新历史脚本菜单时出错：" + ex.Message); }
         }
     }
 }

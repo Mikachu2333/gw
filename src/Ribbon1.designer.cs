@@ -14,6 +14,7 @@ namespace gw_mika
             : base(Globals.Factory.GetRibbonFactory())
         {
             InitializeComponent();
+            InitializeVbaMenus();
         }
 
         /// <summary> 
@@ -1466,7 +1467,6 @@ namespace gw_mika
             // 
             // mnuVBA
             // 
-            this.mnuVBA.Dynamic = true;
             this.mnuVBA.Label = "预设脚本";
             this.mnuVBA.Name = "mnuVBA";
             this.mnuVBA.OfficeImageId = "ControlWizards";

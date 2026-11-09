@@ -218,8 +218,16 @@ namespace gw_mika
                     "「公文准式」载入时出错", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
             }
 
-            ReadSetting();
-            LoadVBA();
+            // 预设脚本菜单在构造函数里静态预填，功能区加载后不能再 Clear/Add；
+            // 历史脚本菜单由 ReadSetting 从设置重建。
+            try
+            {
+                ReadSetting();
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("Ribbon1_Load 读取设置: " + ex.Message);
+            }
         }
 
         private void Ribbon1_Close(object sender, EventArgs e)
@@ -311,26 +319,7 @@ namespace gw_mika
             btnName.ScreenTip = "设置所选文字为: " + (iniName?.Name ?? "?") + " " + (iniName?.Size ?? 0) + "pt";
             btnFoot.ScreenTip = "设置所选文字为: " + (iniFoot?.Name ?? "?") + " " + (iniFoot?.Size ?? 0) + "pt";
 
-            mnuScript.Items.Clear();
-            var vbaHistory = Properties.Settings.Default.VBA历史;
-            if (vbaHistory == null || vbaHistory.Count == 0)
-            {
-                mnuScript.Visible = false;
-                return;
-            }
-            foreach (string item in vbaHistory)
-            {
-                string[] it = item.Split('|');
-                if (it.Length < 2) continue;
-                var btnVBAlist = this.Factory.CreateRibbonButton();
-                btnVBAlist.Label = it[0];
-                btnVBAlist.ScreenTip = it[1];
-                btnVBAlist.Click += BtnVBAlist_Click;
-                mnuScript.Items.Add(btnVBAlist);
-            }
-            // 原先只在为空时置 false、非空时从不置 true：用户清空历史后再产生历史，
-            // 菜单会一直隐藏到重启宿主
-            mnuScript.Visible = mnuScript.Items.Count > 0;
+            RebuildVbaHistoryMenu();
         }
 
         private Font FormatFontSize(Font font)
