@@ -3,8 +3,8 @@
 ;
 ; 正常入口是仓库根目录的 make.bat：它先 Release 构建、把 bin\Release 镜像成
 ; dist\payload，再用下面四个宏调用 ISCC：
-;     /DAppVersion=3.8.0            显示用版本（安装包文件名、卸载列表）
-;     /DAppVersion4=3.8.0.0         PE 版本（setup.exe 文件属性）
+;     /DAppVersion=<三段显示版本>    显示用版本（安装包文件名、卸载列表）
+;     /DAppVersion4=<四段 PE 版本>   PE 版本（setup.exe 文件属性）
 ;     /DCertThumbprint=BFD2...      清单签名证书指纹（卸载时按它删证书）
 ;     /DHaveVstoRedist=0|1          Installer\redist\vstor_redist.exe 是否随包携带
 ; 在 IDE 里手工编译也能过（每个宏都有默认值），只是没有指纹时卸载不会清理证书。

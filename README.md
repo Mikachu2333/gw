@@ -34,6 +34,15 @@ VBA 脚本可以实现自动排版等复杂的且个性化的操作.
 
 同一脚本还会产出 `dist\gw_mika-wps-js-<版本>.zip`，那是给 WPS（含 Linux 版）用的 JS 加载项。
 
+### 版本号维护
+
+发版时只需改两处（对外显示三段，PE/程序集/VSTO 清单用四段；两处主版本前三段必须一致）：
+
+1. `src/Properties/AssemblyInfo.cs` 的 `AssemblyVersion` 与 `AssemblyFileVersion`；
+2. `wps-js/package.json` 的 `version`，然后在 `wps-js/` 下执行 `npm install` 刷新 `package-lock.json`。
+
+其余位置不再手工维护：`<ApplicationVersion>` 从 `AssemblyInfo.cs` 派生；安装包名、注册表版本、PE 版本都由 `make.bat` 从构建出的 `gw_mika.dll` 读取；WPS JS 加载项里的版本号由 `wps-js/vite.config.js` 在 `npm run build` 时从 `package.json` 注入。源码里的 `0.0.0-dev` 只是调试占位符。`make.bat` 第 6 步会调用 `tools/check-version.ps1` 校验两侧版本一致，不一致即中止打包。
+
 ### 致谢与来源
 
 本软件的根基是「小恐龙公文排版助手」，原作者已把原版开源，特此致谢：

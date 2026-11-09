@@ -15,7 +15,7 @@ rem     2  确认清单签名证书可用，缺失时自动调用 tools\make-dev
 rem     3  Release 构建
 rem     4  把 bin\Release 镜像成安装包载荷 dist\payload
 rem     5  定位 Inno Setup 编译器 ISCC.exe
-rem     6  从构建出的 dll 读版本、从 .cer 读指纹（两者不一致时拒绝打包）
+rem     6  从构建出的 dll 读版本、校验 wps-js 版本一致、从 .cer 读指纹（两者不一致时拒绝打包）
 rem     7  编译 Installer\installer.iss
 rem     8  构建 wps-js（Linux 版 WPS 只认 JS 加载项）并压成 dist 下的 zip
 rem
@@ -203,9 +203,27 @@ if not defined VER4 (
     echo [错误] 读取程序集版本失败。
     exit /b 1
 )
-rem 修订号为 0 时只显示三段，避免安装包名叫 "...-Setup-3.8.0.0.exe"。
-for /f "usebackq delims=" %%v in (`powershell -NoProfile -Command "$v=[Version]::Parse('%VER4%'); if ($v.Revision -gt 0) { $v.ToString() } else { ('{0}.{1}.{2}' -f $v.Major,$v.Minor,$v.Build) }"`) do set "VER=%%v"
-
+set "CHECKVER=%ROOT%tools\check-version.ps1"
+set "VER="
+if not exist "%CHECKVER%" (
+    echo [错误] 缺少版本一致性校验脚本 %CHECKVER%。
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -File "%CHECKVER%" -AssemblyVersion "%VER4%" > "%VSOUT%" 2>&1
+if errorlevel 1 (
+    echo [错误] 版本号不一致或校验失败：
+    type "%VSOUT%"
+    del /q "%VSOUT%" >nul 2>&1
+    echo        请同步 src\Properties\AssemblyInfo.cs 与 wps-js\package.json，
+    echo        并在 wps-js\ 下重跑 npm install 刷新 package-lock.json。
+    exit /b 1
+)
+for /f "usebackq delims=" %%v in ("%VSOUT%") do if not defined VER set "VER=%%v"
+del /q "%VSOUT%" >nul 2>&1
+if not defined VER (
+    echo [错误] 版本校验脚本没有返回显示版本号。
+    exit /b 1
+)
 rem 指纹以安装包真正携带的 .cer 为准；和 csproj.user 里的签名指纹不一致就说明清单是别的证书签的，
 rem 那样装出来的包会把用户机器上的信任链指错，必须在这里拦下来。
 rem 用 X509Certificate2 而不是 Get-PfxCertificate：后者依赖证书模块，前者只要有 .NET 就能读公钥。

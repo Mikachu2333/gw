@@ -21,7 +21,9 @@
     <PublishUrl>发布lite\</PublishUrl>
     <InstallUrl />
     <TargetCulture>zh-CN</TargetCulture>
-    <ApplicationVersion>2.0.0.1</ApplicationVersion>
+    <!-- VSTO/ClickOnce 清单版本必须四段且不能是手工第二份版本：从 AssemblyInfo.cs 的
+         AssemblyVersion 派生。make.bat 从构建出的 dll 读版本，二者天然一致。 -->
+    <ApplicationVersion>$([System.Text.RegularExpressions.Regex]::Match($([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)\Properties\AssemblyInfo.cs')), '(?m)^\s*\[assembly:\s*AssemblyVersion\(&quot;([^&quot;]+)&quot;\)\]').Groups[1].Value)</ApplicationVersion>
     <AutoIncrementApplicationRevision>false</AutoIncrementApplicationRevision>
     <UpdateEnabled>false</UpdateEnabled>
     <UpdateInterval>0</UpdateInterval>

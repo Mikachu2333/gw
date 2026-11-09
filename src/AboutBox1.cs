@@ -46,7 +46,7 @@ namespace gw_mika
             };
         }
 
-        /// <summary>标题形如：关于「公文准式」（版本 3.8.0.0）。</summary>
+        /// <summary>标题由程序集版本生成，形如：关于「公文准式」（版本 X.Y.Z.W）。</summary>
         private static string BuildTitle()
         {
             var asm = Assembly.GetExecutingAssembly();
