@@ -24,7 +24,8 @@ namespace gw_mika
             try
             {
                 if (Sel == null) return;
-                bool editable = Sel.Document.ProtectionType == MSWord.WdProtectionType.wdNoProtection;
+                bool editable = !Sel.Document.ReadOnly
+                    && Sel.Document.ProtectionType == MSWord.WdProtectionType.wdNoProtection;
                 ControlEnable(editable);
             }
             catch (Exception ex)
@@ -44,7 +45,8 @@ namespace gw_mika
         {
             try
             {
-                ControlEnable(this.Application.ActiveDocument.ProtectionType
+                MSWord.Document doc = this.Application.ActiveDocument;
+                ControlEnable(!doc.ReadOnly && doc.ProtectionType
                     == MSWord.WdProtectionType.wdNoProtection);
             }
             catch (Exception ex)
@@ -116,7 +118,7 @@ namespace gw_mika
             try
             {
                 if (Doc == null) return;
-                bool editable = Doc.ProtectionType == MSWord.WdProtectionType.wdNoProtection;
+                bool editable = !Doc.ReadOnly && Doc.ProtectionType == MSWord.WdProtectionType.wdNoProtection;
                 ControlEnable(editable);
             }
             catch (Exception ex)
@@ -182,7 +184,7 @@ namespace gw_mika
 
             // VBA 注入不受文档保护约束：注入的宏可以调用 Document.Unprotect（无口令保护时
             // 直接成功），等于绕过"只读/限制编辑"。受保护或只读文档必须一并关掉这些入口。
-            // 其余改动型控件都已在上面逐项列出，这四处是仅剩的 VBA 入口，不能靠容器覆盖。
+            // 拆分按钮和两个独立脚本菜单都要门控，不能只禁用容器中的某一项。
             rb.btnVBA.Enabled = enable;
             rb.btnClearVBA.Enabled = enable;
             rb.mnuVBA.Enabled = enable;
@@ -191,7 +193,11 @@ namespace gw_mika
 
         private void ThisAddIn_NewDocument(MSWord.Document Doc)
         {
-            try { ControlEnable(true); }
+            try
+            {
+                if (Doc != null)
+                    ControlEnable(!Doc.ReadOnly && Doc.ProtectionType == MSWord.WdProtectionType.wdNoProtection);
+            }
             catch (Exception ex) { Debug.WriteLine(ex.Message); }
         }
 
@@ -200,7 +206,7 @@ namespace gw_mika
             try
             {
                 if (Doc == null) return;
-                bool editable = Doc.ProtectionType == MSWord.WdProtectionType.wdNoProtection;
+                bool editable = !Doc.ReadOnly && Doc.ProtectionType == MSWord.WdProtectionType.wdNoProtection;
                 ControlEnable(editable);
             }
             catch (Exception ex)

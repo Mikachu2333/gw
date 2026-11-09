@@ -54,7 +54,6 @@
             this.button1 = new System.Windows.Forms.Button();
             this.cobLetter = new System.Windows.Forms.ComboBox();
             this.panel1 = new System.Windows.Forms.Panel();
-            this.btnCustom = new System.Windows.Forms.Button();
             this.panel2 = new System.Windows.Forms.Panel();
             this.btnSave = new System.Windows.Forms.Button();
             this.lblTip = new System.Windows.Forms.Label();
@@ -415,22 +414,10 @@
             this.panel1.Size = new System.Drawing.Size(532, 270);
             this.panel1.TabIndex = 37;
             // 
-            // btnCustom
-            // 
-            this.btnCustom.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
-            this.btnCustom.Location = new System.Drawing.Point(343, 5);
-            this.btnCustom.Name = "btnCustom";
-            this.btnCustom.Size = new System.Drawing.Size(80, 23);
-            this.btnCustom.TabIndex = 39;
-            this.btnCustom.Text = ">>高级功能";
-            this.btnCustom.UseVisualStyleBackColor = true;
-            this.btnCustom.Click += new System.EventHandler(this.BtnCustom_Click);
-            // 
             // panel2
             // 
             this.panel2.Controls.Add(this.btnSave);
             this.panel2.Controls.Add(this.lblTip);
-            this.panel2.Controls.Add(this.btnCustom);
             this.panel2.Controls.Add(this.btnOK);
             this.panel2.Dock = System.Windows.Forms.DockStyle.Bottom;
             this.panel2.Location = new System.Drawing.Point(9, 636);
@@ -444,7 +431,8 @@
             // 无条件关掉窗体，"未指定默认西文字体"那条校验 return 也就形同虚设 ——
             // 用户看到警告、窗体消失、刚才改的几项字体设置全部丢失。
             this.btnSave.DialogResult = System.Windows.Forms.DialogResult.None;
-            this.btnSave.Location = new System.Drawing.Point(236, 5);
+            this.btnSave.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
+            this.btnSave.Location = new System.Drawing.Point(343, 5);
             this.btnSave.Name = "btnSave";
             this.btnSave.Size = new System.Drawing.Size(80, 23);
             this.btnSave.TabIndex = 41;
@@ -521,7 +509,6 @@
         private System.Windows.Forms.Label lblFormatTitle;
         private System.Windows.Forms.Button button1;
         private System.Windows.Forms.Panel panel1;
-        private System.Windows.Forms.Button btnCustom;
         private System.Windows.Forms.Panel panel2;
         private System.Windows.Forms.Label lblTip;
         private System.Windows.Forms.Button btnSave;

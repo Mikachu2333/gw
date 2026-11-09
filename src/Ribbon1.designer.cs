@@ -178,6 +178,7 @@ namespace gw_mika
             this.btnSpeakOption = this.Factory.CreateRibbonButton();
             this.group5 = this.Factory.CreateRibbonGroup();
             this.btnAbout = this.Factory.CreateRibbonButton();
+            this.btnAdvancedSettings = this.Factory.CreateRibbonButton();
             this.btnHelp = this.Factory.CreateRibbonButton();
             this.groupTest = this.Factory.CreateRibbonGroup();
             this.mnuSelect = this.Factory.CreateRibbonMenu();
@@ -193,7 +194,6 @@ namespace gw_mika
             this.btnSharp2Top = this.Factory.CreateRibbonButton();
             this.btnVBA = this.Factory.CreateRibbonSplitButton();
             this.btnClearVBA = this.Factory.CreateRibbonButton();
-            this.separator4 = this.Factory.CreateRibbonSeparator();
             this.mnuVBA = this.Factory.CreateRibbonMenu();
             this.mnuScript = this.Factory.CreateRibbonMenu();
             this.btnAI = this.Factory.CreateRibbonMenu();
@@ -1285,6 +1285,7 @@ namespace gw_mika
             ribbonDialogLauncherImpl5.ScreenTip = "列出快捷键";
             this.group5.DialogLauncher = ribbonDialogLauncherImpl5;
             this.group5.Items.Add(this.btnAbout);
+            this.group5.Items.Add(this.btnAdvancedSettings);
             this.group5.Items.Add(this.btnHelp);
             this.group5.Label = "关于";
             this.group5.Name = "group5";
@@ -1301,6 +1302,16 @@ namespace gw_mika
             this.btnAbout.SuperTip = "免费,不含恶意代码";
             this.btnAbout.Click += new Microsoft.Office.Tools.Ribbon.RibbonControlEventHandler(this.btnAbout_Click);
             // 
+            // btnAdvancedSettings
+            //
+            this.btnAdvancedSettings.ControlSize = Microsoft.Office.Core.RibbonControlSize.RibbonControlSizeLarge;
+            this.btnAdvancedSettings.Image = global::gw_mika.Properties.Resources.CustomPageMargins;
+            this.btnAdvancedSettings.Label = "高级设置";
+            this.btnAdvancedSettings.Name = "btnAdvancedSettings";
+            this.btnAdvancedSettings.ScreenTip = "打开公文格式高级设置";
+            this.btnAdvancedSettings.ShowImage = true;
+            this.btnAdvancedSettings.Click += new Microsoft.Office.Tools.Ribbon.RibbonControlEventHandler(this.btnAdvancedSettings_Click);
+            //
             // btnHelp
             // 
             this.btnHelp.Label = "在线帮助";
@@ -1318,6 +1329,8 @@ namespace gw_mika
             this.groupTest.Items.Add(this.mnuSelect);
             this.groupTest.Items.Add(this.mnuConvert);
             this.groupTest.Items.Add(this.btnVBA);
+            this.groupTest.Items.Add(this.mnuVBA);
+            this.groupTest.Items.Add(this.mnuScript);
             this.groupTest.Items.Add(this.btnAI);
             this.groupTest.Items.Add(this.button2);
             this.groupTest.Items.Add(this.button3);
@@ -1441,14 +1454,11 @@ namespace gw_mika
             this.btnVBA.ControlSize = Microsoft.Office.Core.RibbonControlSize.RibbonControlSizeLarge;
             this.btnVBA.Description = "VBA脚本";
             this.btnVBA.Items.Add(this.btnClearVBA);
-            this.btnVBA.Items.Add(this.separator4);
-            this.btnVBA.Items.Add(this.mnuVBA);
-            this.btnVBA.Items.Add(this.mnuScript);
             this.btnVBA.Label = "脚本\r";
             this.btnVBA.Name = "btnVBA";
             this.btnVBA.OfficeImageId = "ControlWizards";
             this.btnVBA.ScreenTip = "打开一个外部VBA文件,并执行它.";
-            this.btnVBA.SuperTip = "运行VBA文件有风险, 访问插件官网查看详细说明";
+            this.btnVBA.SuperTip = "打开外部脚本；插件自带脚本和运行记录见旁边的预设脚本、历史脚本菜单。";
             this.btnVBA.Click += new Microsoft.Office.Tools.Ribbon.RibbonControlEventHandler(this.btnVBA_Click);
             // 
             // btnClearVBA
@@ -1461,12 +1471,9 @@ namespace gw_mika
             this.btnClearVBA.ShowImage = true;
             this.btnClearVBA.Click += new Microsoft.Office.Tools.Ribbon.RibbonControlEventHandler(this.btnClearVBA_Click);
             // 
-            // separator4
-            // 
-            this.separator4.Name = "separator4";
-            // 
             // mnuVBA
             // 
+            this.mnuVBA.ControlSize = Microsoft.Office.Core.RibbonControlSize.RibbonControlSizeLarge;
             this.mnuVBA.Label = "预设脚本";
             this.mnuVBA.Name = "mnuVBA";
             this.mnuVBA.OfficeImageId = "ControlWizards";
@@ -1475,6 +1482,7 @@ namespace gw_mika
             // 
             // mnuScript
             // 
+            this.mnuScript.ControlSize = Microsoft.Office.Core.RibbonControlSize.RibbonControlSizeLarge;
             this.mnuScript.Description = "历史脚本";
             this.mnuScript.Dynamic = true;
             this.mnuScript.Label = "历史脚本";
@@ -1669,9 +1677,9 @@ namespace gw_mika
         private RibbonButton btnFormatParaPage;
         internal RibbonButton btnClearVBA;
         internal RibbonSplitButton btnVBA;
+        internal RibbonButton btnAdvancedSettings;
         internal RibbonMenu mnuScript;
         internal RibbonButton btnAI_Check;
-        internal RibbonSeparator separator4;
         internal RibbonMenu mnuVBA;
     }
 

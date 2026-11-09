@@ -25,7 +25,7 @@ it when the architecture, build steps, or domain constants change.
 | --- | --- |
 | `src\gw_mika.sln` | Single-project solution. |
 | `src\gw_mika.csproj` | Old-style VSTO project (ToolsVersion 15.0), `AssemblyName=gw_mika`, `RootNamespace=gw_mika`, `DefineConstants=VSTO40`. |
-| `src\Ribbon1.cs` | Shared state, host detection, `Ribbon1_Load/Close`, `ReadSetting`, `FormatFontSize`, `GetDllPath`, `WithUndo`, WPS icon setup. |
+| `src\Ribbon1.cs` | Shared state, host detection, `Ribbon1_Load/Close`, `ReadSetting`, `FormatFontSize`, `GetDllDirectories` / `FindInstalledFile`, `WithUndo`, WPS icon setup. |
 | `src\Ribbon1.designer.cs` | Ribbon definition: control creation, properties, `Buttons.Add` order, Click wiring, field declarations. Designer-managed; hand edits must keep all four parts consistent. |
 | `src\Ribbon1.Fonts.cs` | Font buttons, `SetFont`, `FontSwitch`, `SetTitle`, font-conversion gallery, font/letter dialog entry. |
 | `src\Ribbon1.Styles.cs` | "公文:" style creation, custom-style cleanup, style-refresh button, style key bindings. |
@@ -44,14 +44,14 @@ it when the architecture, build steps, or domain constants change.
 | `src\frmPaperSetup.*` | Modeless page-setup form (Word 2013+ path). |
 | `src\frmFontChangeDialog.*` | Modal "指定字体更改" dialog (letter/digit font replacement). |
 | `src\frmSpeakOption.*` | Borderless read-aloud options form; shares the Ribbon speech synthesizer. |
-| `src\AboutBox1.*` | Settings UI (page margins, fonts, line spacing, help URLs); saves via `Properties.Settings`. |
+| `src\AboutBox1.*` | About dialog and font settings panel. The Ribbon's separate “高级设置” button opens the settings panel directly; saves via `Properties.Settings`. |
 | `src\Properties\Settings.Designer.cs` | Generated strongly typed settings. `Settings.cs` adds `ResetNames(...)`. |
 | `src\app.config` | Default values for `userSettings` and `applicationSettings`. |
 | `src\Resources\` | Icons plus `公文部件.dotx` (copied to output `Always`). |
 | `VBA Script\` | 42 example `.vba` scripts, linked into the build as `VBA Script\*.vba`. |
 | `tools\make-dev-cert.ps1` | Creates/imports the dev signing certificate and writes `ManifestCertificateThumbprint` into `gw_mika.csproj.user`. |
 | `make.bat` | One-shot Release build + installer packaging + JS build (see Packaging below); outputs `dist\*.exe` and `dist\*.zip`. |
-| `wps-js\` | WPS JS 加载项（manifest.xml + ribbon.xml + js/ + ui/），vite + `wpsjs` CLI，Linux 版 WPS 只能用这一份产物。 |
+| `wps-js\` | WPS JS 开发部署资源（manifest.xml + ribbon.xml + js/ + ui/），vite + `wpsjs` CLI；ZIP 不能直接从 WPS 加载项对话框导入。 |
 | `Installer\installer.iss` | Inno Setup script: machine-wide install, VSTO runtime prerequisite, certificate import, Word/WPS registry registration. |
 | `Installer\redist\` | Optional drop folder for a bundled `vstor_redist.exe` (git-ignored; makes the installer offline). |
 | `img\` | README screenshots. |
@@ -127,8 +127,8 @@ keys, the whitelist value, and only the certificate this package recorded as imp
   (`hostProcess`), `Application.Name` (`hostName`), and `Version` (`hostVersion`);
   sets `IsWps` (src\Ribbon1.cs:40) and `IsLegacyHost` (12.x/14.x, non-WPS,
   src\Ribbon1.cs:44); applies WPS icons; initializes the speech synthesizer; fills the
-  Chinese-font combo box (only families containing 宋/黑/楷); then calls `ReadSetting`
-  and `LoadVBA`.
+  Chinese-font combo box (only families containing 宋/黑/楷); then calls `ReadSetting`.
+  `InitializeVbaMenus` fills presets in the Ribbon constructor before XML is generated.
 - Word 2007 (12.x) shows an "unsupported, install v1.0.8.3" warning at load
   (src\Ribbon1.cs:83-87) but keeps running. Word 2010 (14.x) goes through the
   `IsLegacyHost` modal-dialog path for page setup.
@@ -148,8 +148,16 @@ keys, the whitelist value, and only the certificate this package recorded as imp
   `SpeakCompleted` fires on a worker thread, so the handler marshals through the
   invisible `speechMarshal` control (handle created on the Ribbon STA thread).
   `Ribbon1_Close` cancels, unsubscribes, then disposes in that order.
-- VBA: scripts load from `VBA Script\` next to the DLL (fallback `VBA脚本\`) or from
-  `Settings.VBA路径`; `RunVbaFile` adds a module to the active document's VBA project.
+- Resources: `GetDllDirectories` checks the assembly's original `CodeBase` location,
+  then `Location`, then the installer's HKLM `InstallPath` in both registry views.
+  Template and script discovery checks actual resources rather than assuming the shadow-copy
+  DLL directory contains them. `LoadDotTemplate` loads with `Install: true`; shutdown removes
+  only registrations it created or restores a pre-existing template's unloaded state.
+- VBA: scripts load from `Settings.VBA路径` or `VBA Script\` (fallback `VBA脚本\`) in
+  the resource directories above; `RunVbaFile` adds a module to the active document's VBA project.
+  Presets and history are independent menus in the “实验室” group, outside the script split button.
+  Empty menus show an explanatory disabled item; history refreshes when opened and after a successful
+  external or preset script run. Both entry points show actionable error dialogs.
   Scripts must be cp936/GBK (see Editing conventions) for `CheckVbaEncoding`; the history menu is rebuilt from
   `VBA历史` entries formatted `label|path`.
 
@@ -172,6 +180,9 @@ keys, the whitelist value, and only the certificate this package recorded as imp
   config folder (`%LOCALAPPDATA%\<company>\<product>_<version>\user.config`) moved.
   Together with the missing `Settings.Upgrade()`, an existing 小恐龙 install's margins
   and fonts do not carry into this add-in — it starts on the defaults by design.
+- The font settings dialog owns copies of the settings fonts and saves copies back. Closing it must
+  never dispose fonts still held by `Settings.Default`. `SettingsChanged` refreshes Ribbon fonts
+  after saving or restoring defaults, including when the dialog is then closed without saving again.
 - `Settings.ResetNames(names)` resets only the named settings and saves. Never call
   `Settings.Default.Reset()` — it also wipes VBA history and script paths.
 - There is no `Settings.Upgrade()` call. Bumping `AssemblyVersion` makes existing

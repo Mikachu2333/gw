@@ -17,7 +17,7 @@
 | --- | --- | --- |
 | VSTO 插件本体（C#） | `src/`，编译出 `gw_mika.dll` | Windows 上的 Word 与 WPS 文字 |
 | VBA 脚本 | `VBA Script/`，42 个示例 | Windows（Word 与 WPS 的 VBA 宿主） |
-| WPS JS 加载项 | `wps-js/`，产出 `dist/gw_mika-wps-js-<版本>.zip` | WPS，**Linux 版 WPS 只认这一种** |
+| WPS JS 开发包 | `wps-js/`，产出 `dist/gw_mika-wps-js-<版本>.zip` | 需具备 JS 加载项能力的 WPS，并配置部署环境；不是可直接导入的安装包 |
 
 插件支持 VBA 脚本，可以在此处`VBA Script`文件夹查看脚本示例。
 VBA 脚本可以实现自动排版等复杂的且个性化的操作.
@@ -32,7 +32,11 @@ VBA 脚本可以实现自动排版等复杂的且个性化的操作.
 补装 VSTO 运行库（可离线）、导入签名证书，并同时注册到 Word 与 WPS。
 装完重开 Word/WPS，功能区里会出现「公文准式」选项卡。
 
-同一脚本还会产出 `dist\gw_mika-wps-js-<版本>.zip`，那是给 WPS（含 Linux 版）用的 JS 加载项。
+Windows 版 Word/WPS 使用上述 EXE 安装。同一脚本产出的 `dist\gw_mika-wps-js-<版本>.zip`
+是 JS 开发部署资源，不能直接通过“工具 → WPS 加载项”导入，也不包含本次修复的 VSTO 功能。
+
+“高级设置”位于功能区“关于插件”按钮旁边，可直接设置公文字体。
+“实验室”组中的“脚本”按钮用于打开外部 VBA 文件，“预设脚本”和“历史脚本”是旁边的独立菜单。
 
 ### 版本号维护
 
