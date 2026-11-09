@@ -6,6 +6,7 @@ using MSOffice = Microsoft.Office.Core;
 using Microsoft.Office.Tools.Ribbon;
 using System.Diagnostics;
 using System.IO;
+using System.Collections.Generic;
 
 namespace gw_mika
 {
@@ -253,9 +254,8 @@ namespace gw_mika
                 if (fp != null) { if (!fp.IsDisposed) fp.Dispose(); fp = null; }
                 // 公文部件模板是会话级加载项：不摘掉的话 dotx 一直被占用，
                 // 插件更新/卸载时删不动这个文件。
-                try { dotAddIn?.Delete(); }   // AddIn 上的方法叫 Delete，不是 Remove
+                try { UnloadDotTemplate(); }
                 catch (Exception ex) { Debug.WriteLine("卸载公文部件模板失败: " + ex.Message); }
-                dotAddIn = null;
                 foreach (Font f in ownedFonts)
                 {
                     try { f.Dispose(); } catch { }
@@ -280,7 +280,8 @@ namespace gw_mika
 
                 // 必须同时看保护状态：这个处理器每次移动光标都会跑，只看有没有选区的话，
                 // 受保护文档里 ControlEnable(false) 刚禁用的这两个改动型按钮会被立刻重新点亮。
-                bool editable = Sel.Document.ProtectionType == MSWord.WdProtectionType.wdNoProtection;
+                bool editable = !Sel.Document.ReadOnly
+                    && Sel.Document.ProtectionType == MSWord.WdProtectionType.wdNoProtection;
                 bool hasSelection = editable && Sel.Type == MSWord.WdSelectionType.wdSelectionNormal && Sel.Text.Length > 1;
                 btnFormatDelSelectSpace.Enabled = hasSelection;
                 btnFormatDelSelectEmptyLine.Enabled = hasSelection;
@@ -333,17 +334,74 @@ namespace gw_mika
             return new Font(fontName, sfs, font.Style);
         }
 
-        internal string GetDllPath()
+        /// <summary>
+        /// 返回加载项文件及其附带资源可能所在的目录。
+        ///
+        /// .NET Framework 影子复制时 Location 指向缓存，CodeBase 保留原始位置。
+        /// 模板和预设脚本按资源是否存在选择目录，不能只用 DLL 的缓存位置。
+        /// </summary>
+        private IEnumerable<string> GetDllDirectories()
         {
-            // Assembly.CodeBase 在 .NET 5+ 已弃用，且要求 Uri 解析；Location 对磁盘上的
-            // 程序集直接给出路径，单文件/内存加载时为空，故保留 CodeBase 作为兜底
-            string location = System.Reflection.Assembly.GetExecutingAssembly().Location;
-            if (!string.IsNullOrEmpty(location))
-                return Path.GetDirectoryName(location);
+            var result = new List<string>();
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-            string codeBase = System.Reflection.Assembly.GetExecutingAssembly().CodeBase;
-            string fullPath = Uri.UnescapeDataString(new UriBuilder(codeBase).Path);
-            return Path.GetDirectoryName(fullPath);
+            Action<string> add = path =>
+            {
+                if (string.IsNullOrWhiteSpace(path)) return;
+                try
+                {
+                    string full = Path.GetFullPath(path);
+                    if (seen.Add(full)) result.Add(full);
+                }
+                catch (Exception ex) { Debug.WriteLine("解析加载项目录失败: " + ex.Message); }
+            };
+
+            var assembly = System.Reflection.Assembly.GetExecutingAssembly();
+            try
+            {
+                string codeBase = assembly.CodeBase;
+                Uri codeBaseUri;
+                if (!string.IsNullOrWhiteSpace(codeBase)
+                    && Uri.TryCreate(codeBase, UriKind.Absolute, out codeBaseUri)
+                    && codeBaseUri.IsFile)
+                {
+                    add(Path.GetDirectoryName(codeBaseUri.LocalPath));
+                }
+            }
+            catch (Exception ex) { Debug.WriteLine("解析程序集 CodeBase 失败: " + ex.Message); }
+
+            try { add(Path.GetDirectoryName(assembly.Location)); }
+            catch (Exception ex) { Debug.WriteLine("解析程序集 Location 失败: " + ex.Message); }
+
+            // 安装器会把真实安装目录写在这里。它能覆盖 WPS 影子复制且程序集属性
+            // 被兼容层改写的情况；读取失败时不影响 Word 侧正常工作。
+            foreach (var view in new[] { Microsoft.Win32.RegistryView.Registry64, Microsoft.Win32.RegistryView.Registry32 })
+            {
+                try
+                {
+                    // 32 位 WPS 也要能读取 64 位安装器写入的目录。
+                    using (var root = Microsoft.Win32.RegistryKey.OpenBaseKey(Microsoft.Win32.RegistryHive.LocalMachine, view))
+                    using (var key = root.OpenSubKey(@"Software\gw_mika\公文准式"))
+                    {
+                        add(key?.GetValue("InstallPath") as string);
+                    }
+                }
+                catch (Exception ex) { Debug.WriteLine("读取加载项安装目录失败: " + ex.Message); }
+            }
+
+            return result;
+        }
+
+        /// <summary>按候选安装目录查找随插件发布的文件。</summary>
+        internal string FindInstalledFile(string relativePath)
+        {
+            if (string.IsNullOrWhiteSpace(relativePath)) return null;
+            foreach (string directory in GetDllDirectories())
+            {
+                string file = Path.Combine(directory, relativePath);
+                if (File.Exists(file)) return file;
+            }
+            return null;
         }
 
         /// <summary>
@@ -382,6 +440,16 @@ namespace gw_mika
             using (var about = new AboutBox1())
             {
                 if (about.ShowDialog() == DialogResult.OK) ReadSetting();
+            }
+        }
+
+        private void btnAdvancedSettings_Click(object sender, RibbonControlEventArgs e)
+        {
+            using (var about = new AboutBox1())
+            {
+                about.ShowAdvancedSettings();
+                about.ShowDialog();
+                if (about.SettingsChanged) ReadSetting();
             }
         }
 

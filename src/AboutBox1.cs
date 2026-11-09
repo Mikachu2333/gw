@@ -10,10 +10,11 @@ namespace gw_mika
     partial class AboutBox1 : Form
     {
         private readonly ToolTip _tip = new ToolTip();
+        private bool advancedSettings;
+        internal bool SettingsChanged { get; private set; }
 
-        // 本窗体替按钮持有的 Font。设置提供者每读一次就新建一个 Font，字体对话框返回的也是
-        // 新实例，而 WinForms 不接管控件 Font 的所有权：换字体时上一个实例没人 Dispose，
-        // GDI 字体句柄只能等终结器回收（和 Ribbon1.ReadSetting 里修掉的是同一类问题）。
+        // 设置提供者会缓存 Font；窗体只持有它们的副本和字体对话框返回的实例。
+        // 保存时也复制一份交给设置对象，避免关闭窗体后配置中的字体已被释放。
         private readonly System.Collections.Generic.Dictionary<Button, Font> ownedFonts
             = new System.Collections.Generic.Dictionary<Button, Font>();
 
@@ -135,7 +136,12 @@ namespace gw_mika
 
                 tableLayoutPanel1.Dock = DockStyle.Fill;
 
-                LoadFont(cobLetter);
+                if (advancedSettings)
+                {
+                    LoadFont(cobLetter);
+                    GetFont();
+                    this.Height = 400 * this.DeviceDpi / 96;
+                }
 
                 // TableLayoutPanel 双缓冲，减少刷新闪烁
                 typeof(TableLayoutPanel)
@@ -164,36 +170,19 @@ namespace gw_mika
             }
         }
 
-        private void ShowAdvancedPanel(bool show)
+        internal void ShowAdvancedSettings()
         {
-            if (show)
-            {
-                // 400 是设计器在 96dpi 下量的设备像素：AutoScaleMode 是 Dpi，子控件会跟着
-                // 缩放而这个常数不会，125%/150% 下面板里 11 行只剩几十像素高。
-                this.Height = 400 * this.DeviceDpi / 96;
-                panel1.Visible = false;
-                lblTip.Visible = true;
-                lblTip.Text = "用户设置，双击恢复默认.";
-                GetFont();
-                btnCustom.Text = "<<高级功能";
-                btnSave.Visible = true;
-                tableLayoutPanel1.Dock = DockStyle.Fill;
-                tableLayoutPanel1.Visible = true;
-            }
-            else
-            {
-                lblTip.Visible = false;
-                btnSave.Visible = false;
-                this.Height = MinimumSize.Height;
-                panel1.Visible = true;
-                tableLayoutPanel1.Visible = false;
-                btnCustom.Text = ">>高级功能";
-            }
-        }
-
-        private void BtnCustom_Click(object sender, EventArgs e)
-        {
-            ShowAdvancedPanel(panel1.Visible);
+            advancedSettings = true;
+            this.Text = "高级设置（公文准式）";
+            // 400 是设计器在 96dpi 下量的设备像素：AutoScaleMode 是 Dpi，子控件会跟着
+            // 缩放而这个常数不会，125%/150% 下面板里 11 行只剩几十像素高。
+            this.Height = 400 * this.DeviceDpi / 96;
+            panel1.Visible = false;
+            lblTip.Visible = true;
+            lblTip.Text = "用户设置，双击恢复默认.";
+            btnSave.Visible = true;
+            tableLayoutPanel1.Dock = DockStyle.Fill;
+            tableLayoutPanel1.Visible = true;
         }
 
         private void SetFont(object sender, EventArgs e)
@@ -227,7 +216,7 @@ namespace gw_mika
         {
             if (btn == null || font == null) return;
             btn.Text = font.Name;
-            SetButtonFont(btn, font);
+            SetButtonFont(btn, (Font)font.Clone());
         }
 
         /// <summary>给按钮换字体，并把上一个由本窗体持有的 Font 释放掉。</summary>
@@ -276,36 +265,37 @@ namespace gw_mika
         {
             try
             {
-                var s = Properties.Settings.Default;
-                s.公文标题 = button1.Font;
-                s.一级标题 = button2.Font;
-                s.二级标题 = button3.Font;
-                s.三级标题 = button4.Font;
-                s.四级标题 = button5.Font;
-                s.正文 = button6.Font;
-                s.版头 = button7.Font;
-                s.签发人姓名 = button8.Font;
-                s.版记 = button9.Font;
-                s.页码 = button10.Font;
-
                 string letterFont = cobLetter.Text?.Trim();
                 if (string.IsNullOrEmpty(letterFont))
                 {
                     MessageBox.Show("未指定默认西文字体!", this.Text);
                     return;
                 }
+
+                var s = Properties.Settings.Default;
+                s.公文标题 = (Font)button1.Font.Clone();
+                s.一级标题 = (Font)button2.Font.Clone();
+                s.二级标题 = (Font)button3.Font.Clone();
+                s.三级标题 = (Font)button4.Font.Clone();
+                s.四级标题 = (Font)button5.Font.Clone();
+                s.正文 = (Font)button6.Font.Clone();
+                s.版头 = (Font)button7.Font.Clone();
+                s.签发人姓名 = (Font)button8.Font.Clone();
+                s.版记 = (Font)button9.Font.Clone();
+                s.页码 = (Font)button10.Font.Clone();
+
                 s.英文字体 = letterFont;
 
                 s.Save();
+                SettingsChanged = true;
 
                 MessageBox.Show(
                     "用户自定义配置文件已保存！\r\n注意：Word 更新后用户配置文件可能被重置。",
                     this.Text, MessageBoxButtons.OK, MessageBoxIcon.Information);
 
                 // 校验不过时上面已经 return，窗体保持打开；能走到这里说明保存成功，
-                // 必须显式给出 OK：btnOK 的 DialogResult 是 Cancel，而调用方
-                // Ribbon1.btnAbout_Click 只在返回 OK 时才 ReadSetting() 重建功能区字体，
-                // 不返回 OK 用户刚存的设置在本次会话里根本不生效。
+                // 用 SettingsChanged 告知调用方刷新功能区字体；恢复默认后直接关闭
+                // 窗体也需要刷新，不能只依赖 DialogResult。
                 DialogResult = DialogResult.OK;
                 Close();
             }
@@ -343,6 +333,7 @@ namespace gw_mika
                     "公文标题", "一级标题", "二级标题", "三级标题", "四级标题",
                     "正文", "版头", "签发人姓名", "版记", "页码",
                     "英文字体", "数字字体");
+                SettingsChanged = true;
                 GetFont();
             }
             catch (Exception ex)

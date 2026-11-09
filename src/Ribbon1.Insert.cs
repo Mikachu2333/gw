@@ -34,6 +34,49 @@ namespace gw_mika
         }
 
         private MSWord.AddIn dotAddIn;   // 公文部件.dotx 的会话级加载项，见 InsertHead
+        private bool dotAddInCreated;
+        private bool dotAddInWasInstalled;
+
+        private void LoadDotTemplate(string filename)
+        {
+            if (dotAddIn == null)
+            {
+                // 用户可能已经手动加载过同一模板；退出时只撤销本插件做的加载。
+                foreach (MSWord.AddIn addIn in WordApp.AddIns)
+                {
+                    if (string.Equals(Path.Combine(addIn.Path, addIn.Name), filename,
+                        StringComparison.OrdinalIgnoreCase))
+                    {
+                        dotAddInWasInstalled = addIn.Installed;
+                        dotAddIn = addIn;
+                        break;
+                    }
+                }
+                if (dotAddIn == null)
+                {
+                    // Install:false 只登记到列表，不会让 Templates 能访问其文档部件。
+                    dotAddIn = WordApp.AddIns.Add(filename, Install: true);
+                    dotAddInCreated = true;
+                }
+            }
+            if (!dotAddIn.Installed) dotAddIn.Installed = true;
+        }
+
+        private void UnloadDotTemplate()
+        {
+            if (dotAddIn == null) return;
+            try
+            {
+                if (dotAddInCreated) dotAddIn.Delete();
+                else if (!dotAddInWasInstalled) dotAddIn.Installed = false;
+            }
+            finally
+            {
+                dotAddIn = null;
+                dotAddInCreated = false;
+                dotAddInWasInstalled = false;
+            }
+        }
 
         private void InsertLine(int LineNumber = 1)
         {
@@ -69,26 +112,17 @@ namespace gw_mika
         private void InsertHead(string autoText)
         {
             if (!EnsureMainDocumentView()) return;
-            string startPath = GetDllPath();
-            string dotFilename = Path.Combine(startPath ?? string.Empty, "Resources", "公文部件.dotx");
-            if (!File.Exists(dotFilename))
+            string dotFilename = FindInstalledFile(Path.Combine("Resources", "公文部件.dotx"));
+            if (string.IsNullOrEmpty(dotFilename))
             {
-                MessageBox.Show("未找到公文部件,请重新安装/修复本插件!", "载入公文部件时出错",
+                MessageBox.Show("未找到公文部件，请重新安装/修复本插件。\r\n查找目录：\r\n"
+                    + string.Join("\r\n", GetDllDirectories()), "载入公文部件时出错",
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
             try
             {
-                // AddIns.Add(..., Install: true) 会把模板永久登记进用户的 Word 启动项
-                // （写注册表 AddIns），每次插入版头都调用一次就是在反复改用户的 Word 配置，
-                // 卸载插件后仍残留。这里只需要它本次会话可用，取其中的公文部件即可。
-                // 同一个模板重复 AddIns.Add 会在 Word 的加载项集合里堆出多个条目，
-                // 而且文件一直被占用，插件更新或卸载时删不动它。整个会话只加一次，
-                // 退出时由 Ribbon1_Close 调 UnloadDotTemplate 释放。
-                if (dotAddIn == null)
-                {
-                    dotAddIn = WordApp.AddIns.Add(dotFilename, Install: false);
-                }
+                LoadDotTemplate(dotFilename);
             }
             catch (Exception ex)
             {

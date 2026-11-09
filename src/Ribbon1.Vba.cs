@@ -123,11 +123,17 @@ namespace gw_mika
                 if (!RunVbaFile(vbaFile)) return false;
                 stopwatch.Stop();
                 WordApp.StatusBar = $"VBA文件执行共用时:{stopwatch.Elapsed.TotalSeconds:F2} 秒";
+                AddVbaHistory(vbaFile);
                 return true;
+            }
+            catch (COMException ex)
+            {
+                HandleVbaComException(ex);
+                return false;
             }
             catch (Exception ex)
             {
-                WordApp.StatusBar = ex.Message;
+                MessageBox.Show(ex.Message, "执行VBA代码出错", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
                 return false;
             }
         }
@@ -187,15 +193,9 @@ namespace gw_mika
                     Properties.Settings.Default.VBA历史 = new StringCollection();
                 if (Properties.Settings.Default.VBA历史.Contains(item)) return;
 
-                var btnVBAlist = this.Factory.CreateRibbonButton();
-                btnVBAlist.Label = fileNameNoExt;
-                btnVBAlist.ScreenTip = vbaFile;
-                btnVBAlist.ControlSize = MSOffice.RibbonControlSize.RibbonControlSizeRegular;
-                btnVBAlist.Click += BtnVBAlist_Click;
-                mnuScript.Visible = true;
-                mnuScript.Items.Add(btnVBAlist);
                 Properties.Settings.Default.VBA历史.Add(item);
                 Properties.Settings.Default.Save();
+                RebuildVbaHistoryMenu();
                 InvalidateVbaHistoryMenu();
             }
             catch (Exception ex)
@@ -379,16 +379,21 @@ namespace gw_mika
                     vbaFolder = Properties.Settings.Default.VBA路径;
                     if (string.IsNullOrEmpty(vbaFolder))
                     {
-                        // 发行仓库里的脚本目录名是 "VBA Script"（README 同），原代码只找 "VBA脚本"，
-                        // 两个名字都对不上时菜单就是空的，而且没有任何提示
-                        string baseDir = GetDllPath() ?? string.Empty;
-                        foreach (string candidate in new[] { "VBA Script", "VBA脚本" })
+                        // 与公文模板共用安装目录解析，避免在 DLL 的影子复制目录里找脚本。
+                        foreach (string baseDir in GetDllDirectories())
                         {
-                            string dir = Path.Combine(baseDir, candidate);
-                            if (Directory.Exists(dir)) { vbaFolder = dir; break; }
+                            foreach (string candidate in new[] { "VBA Script", "VBA脚本" })
+                            {
+                                string directory = Path.Combine(baseDir, candidate);
+                                if (Directory.Exists(directory)
+                                    && Directory.GetFiles(directory, "*.vba").Length > 0)
+                                {
+                                    vbaFolder = directory;
+                                    break;
+                                }
+                            }
+                            if (!string.IsNullOrEmpty(vbaFolder)) break;
                         }
-                        if (string.IsNullOrEmpty(vbaFolder))
-                            vbaFolder = Path.Combine(baseDir, "VBA脚本");
                     }
                 }
                 catch (Exception ex)
@@ -402,6 +407,7 @@ namespace gw_mika
             if (!Directory.Exists(vbaFolder))
             {
                 Debug.WriteLine("未找到 VBA 脚本目录：" + vbaFolder);
+                AddScriptMenuMessage(mnuVBA, "未找到预设脚本，请修复安装", "查找目录：\r\n" + string.Join("\r\n", GetDllDirectories()));
                 return;
             }
 
@@ -415,11 +421,21 @@ namespace gw_mika
                 btn.Click += BtnVBAlist_Click;
                 mnuVBA.Items.Add(btn);
             }
+            if (mnuVBA.Items.Count == 0)
+                AddScriptMenuMessage(mnuVBA, "此目录没有 VBA 脚本", vbaFolder);
         }
 
-        // 嵌套在「脚本」拆分按钮里的菜单必须静态化：mnuVBA 的子项在这里预填，
-        // 随功能区 XML 一起交给宿主。WPS 的 VSTO 兼容层不会为嵌套 dynamicMenu
-        // 回调 getContent，早先在 Ribbon1_Load 里填充的 Items 根本不会被读取。
+        private void AddScriptMenuMessage(RibbonMenu menu, string label, string details)
+        {
+            var message = this.Factory.CreateRibbonButton();
+            message.Label = label;
+            message.SuperTip = details;
+            message.Enabled = false;
+            menu.Items.Add(message);
+        }
+
+        // 预设菜单在构造时填充，随功能区 XML 提交；历史菜单放在组内独立动态刷新，
+        // 不再依赖拆分按钮内嵌 dynamicMenu 的回调。
         private void InitializeVbaMenus()
         {
             try
@@ -429,6 +445,8 @@ namespace gw_mika
             catch (Exception ex)
             {
                 Debug.WriteLine("预填预设脚本菜单时出错：" + ex.Message);
+                if (mnuVBA.Items.Count == 0)
+                    AddScriptMenuMessage(mnuVBA, "预设脚本读取失败", ex.Message);
             }
 
             mnuScript.ItemsLoading += MnuScript_ItemsLoading;
@@ -453,22 +471,22 @@ namespace gw_mika
                 var vbaHistory = Properties.Settings.Default.VBA历史;
                 if (vbaHistory == null || vbaHistory.Count == 0)
                 {
-                    mnuScript.Visible = false;
+                    AddScriptMenuMessage(mnuScript, "暂无运行记录", "成功运行脚本后会在这里显示。");
                     return;
                 }
                 foreach (string item in vbaHistory)
                 {
+                    if (string.IsNullOrWhiteSpace(item)) continue;
                     string[] it = item.Split('|');
-                    if (it.Length < 2) continue;
+                    if (it.Length != 2 || string.IsNullOrWhiteSpace(it[0]) || string.IsNullOrWhiteSpace(it[1])) continue;
                     var btnVBAlist = this.Factory.CreateRibbonButton();
                     btnVBAlist.Label = it[0];
                     btnVBAlist.ScreenTip = it[1];
                     btnVBAlist.Click += BtnVBAlist_Click;
                     mnuScript.Items.Add(btnVBAlist);
                 }
-                // 原先只在为空时置 false、非空时从不置 true：用户清空历史后再产生历史，
-                // 菜单会一直隐藏到重启宿主
-                mnuScript.Visible = mnuScript.Items.Count > 0;
+                if (mnuScript.Items.Count == 0)
+                    AddScriptMenuMessage(mnuScript, "暂无运行记录", "成功运行脚本后会在这里显示。");
             }
             catch (Exception ex)
             {

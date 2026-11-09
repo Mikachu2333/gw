@@ -260,7 +260,7 @@ namespace gw_mika
             }
             catch (Exception ex)
             {
-                string err = ex.Message + "比如指定了不存在的字体或者在英文环境使用了!请到关于-高级设置里先指定公文字体。\r\n\r\n" + ex.Source;
+                string err = ex.Message + "比如指定了不存在的字体或者在英文环境使用了!请单击功能区的“高级设置”指定公文字体。\r\n\r\n" + ex.Source;
                 MessageBox.Show(err, "新建公文样式时发生错误", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
             }
         }
