@@ -1,0 +1,33 @@
+# ParagraphFormat.LeftIndent
+
+返回或设置一个 **Single** 类型的值，该值代表指定段落格式的左缩进值（以磅为单位）。可读写。
+
+
+
+## 语法
+
+express.**LeftIndent**
+
+express   一个代表 **ParagraphFormat** 对象的变量。
+
+## 类型
+
+number（float 精度）
+
+## 示例
+
+
+```JavaScript
+/*本示例设置活动文档的第一个段落格式的左缩进值为 1 英寸。*/
+function test() {
+    ActiveDocument.Paragraphs.Item(1).Format.LeftIndent = InchesToPoints(1)
+}
+```
+
+
+```JavaScript
+/*本示例显示所选段落的格式的左缩进值。*/
+function test() {
+    alert(Selection.ParagraphFormat.LeftIndent + " 磅")
+}
+```

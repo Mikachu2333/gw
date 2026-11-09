@@ -1,0 +1,46 @@
+# PivotCell.PivotRowLine
+
+在行上返回特定 **PivotCell** 对象的 PivotLine。只读 **PivotLine** 类型。
+
+
+
+## 语法
+
+express.**PivotRowLine**
+
+express   一个代表 **PivotCell** 对象的变量。
+
+## 类型
+
+PivotLine
+
+## 说明
+
+
+如果 PivotCell 在行上，则 **PivotRowLine** 返回行的 **PivotLine** 对象。  
+
+如果 PivotCell 在列上，则 **PivotRowLine** 返回一个运行时错误。
+
+如果 PivotCell 在数据区域中，则 **PivotRowLine** 返回对应的行的 **PivotLine** 对象。
+
+
+
+## 示例
+
+
+```JavaScript
+/*本示例显示包含活动单元格的数据透视项行轴上数据透视线的PivotLineCells属性中第二个PivotCell应用区域的值。*/
+function test() {
+    let pvtCell = ActiveCell.PivotCell.PivotRowLine.PivotLineCells.Item(2)
+    alert(pvtCell.Range.Value2)
+}
+```
+
+
+```JavaScript
+/*本示例显示包含工作表 Sheet1 中 K10 单元格的数据透视项行轴上数据透视线是否检索所有隐藏的单元格。*/
+function test() {
+    let pvtLine = Application.Worksheets.Item("Sheet1").Range("K10").PivotCell.PivotRowLine
+    alert(pvtLine.PivotLineCellsFull.Full)
+}
+```

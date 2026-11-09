@@ -1,0 +1,42 @@
+# CommandBarButton.Parameter
+
+获取或设置一个应用程序可用于执行 **CommandBarButton** 控件中命令的字符串。可读写。
+
+
+
+
+## 语法
+
+express.**Parameter**
+
+express   一个代表 **CommandBarButton** 对象的变量。
+
+## 类型
+
+string
+
+## 说明
+
+
+如果为内置控件设置一个指定的参数，那么应用程序将修改其默认的操作，前提是该应用程序能分析和使用这个新值。如果为自定义控件设置参数，那么该参数可用来为 Visual Basic 程序传送信息，或保存关于该控件的信息（类似于另一个 Tag 属性值）。
+
+| 注释                                                                   |
+| -------------------------------------------------------------------- |
+| 在某些 WPS Office应用程序中，CommandBar 已被新的功能区用户界面取代。有关详细信息，请在帮助中搜索关键字“功能区”。 |
+
+
+
+
+## 示例
+
+
+```JavaScript
+//本示例将一个新参数赋予控件并将焦点置于新按钮上。
+function test()
+{
+    let myControl = Application.CommandBars.Item("Custom").Controls.Item(4)
+    myControl.Copy(null, 1)
+    myControl.Parameter = "2"
+    myControl.SetFocus()
+}
+```

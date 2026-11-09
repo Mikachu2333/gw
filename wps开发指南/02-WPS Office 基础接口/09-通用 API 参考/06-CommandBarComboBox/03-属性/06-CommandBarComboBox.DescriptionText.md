@@ -1,0 +1,26 @@
+# CommandBarComboBox.DescriptionText
+
+获取或设置命令栏组合框控件的说明。可读写。
+
+
+
+
+## 语法
+
+express.**DescriptionText**
+
+express   一个代表 **CommandBarComboBox** 对象的变量。
+
+## 类型
+
+string
+
+## 说明
+
+
+该说明不显示给用户，但有助于其他开发者将控件行为归档。  
+
+| 注释                                                                   |
+| -------------------------------------------------------------------- |
+| 在某些 WPS Office应用程序中，CommandBar 已被新的功能区用户界面取代。有关详细信息，请在帮助中搜索关键字“功能区”。 |
+

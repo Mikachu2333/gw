@@ -1,0 +1,37 @@
+# PpSaveAsFileType 枚举
+
+用于指定保存为文件类型的常量，并传递给 Presentation 对象的 SaveAs 方法。
+
+| 名称              | 值 |
+| ----------------- | ---- |
+| **ppSaveAsAddIn** | 8 |
+| **ppSaveAsAnimatedGIF** | 40 |
+| **ppSaveAsBMP** | 19 |
+| **ppSaveAsDefault** | 11 |
+| **ppSaveAsEMF** | 23 |
+| **ppSaveAsExternalConverter** | 64000 |
+| **ppSaveAsGIF** | 16 |
+| **ppSaveAsJPG** | 17 |
+| **ppSaveAsMetaFile** | 15 |
+| **ppSaveAsMP4** | 39 |
+| **ppSaveAsOpenDocumentPresentation** | 35 |
+| **ppSaveAsOpenXMLAddin** | 30 |
+| **ppSaveAsOpenXMLPicturePresentation** | 36 |
+| **ppSaveAsOpenXMLPresentation** | 24 |
+| **ppSaveAsOpenXMLPresentationMacroEnabled** | 25 |
+| **ppSaveAsOpenXMLShow** | 28 |
+| **ppSaveAsOpenXMLShowMacroEnabled** | 29 |
+| **ppSaveAsOpenXMLTemplate** | 26 |
+| **ppSaveAsOpenXMLTemplateMacroEnabled** | 27 |
+| **ppSaveAsOpenXMLTheme** | 31 |
+| **ppSaveAs PDF** | 32 |
+| **ppSaveAsPNG** | 18 |
+| **ppSaveAsPresentation** | 1 |
+| **ppSaveAsRTF** | 6 |
+| **ppSaveAsShow** | 7 |
+| **ppSaveAsStrictOpenXMLPresentation** | 38 |
+| **ppSaveAsTemplate** | 5 |
+| **ppSaveAsTIF** | 21 |
+| **ppSaveAsWMV** | 37 |
+| **ppSaveAsXMLPresentation** | 34 |
+| **ppSaveAsXPS** | 33 |

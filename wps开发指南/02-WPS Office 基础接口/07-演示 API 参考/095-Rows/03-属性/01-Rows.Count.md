@@ -1,0 +1,27 @@
+# Rows.Count
+
+返回指定集合中的对象数。只读。
+
+
+
+## 语法
+
+express.**Count**
+
+express   一个代表 **Rows** 对象的变量。
+
+## 类型
+
+number（int4 精度）
+
+## 示例
+
+
+```JavaScript
+/*本示例显示活动演示文稿的第一张幻灯片的第一个表格的行数。*/
+function test() {
+    let shape = ActivePresentation.Slides.Item(1).Shapes.Item(1)
+    let rows = shape.Table.Rows
+    alert(rows.Count)
+}
+```

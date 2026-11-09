@@ -1,0 +1,57 @@
+# QueryTable.TextFileTextQualifier
+
+返回或设置向查询表中导入文本文件时的文本识别符。文本识别符用于指定包含的数据是文本格式。 **XlTextQualifier** 类型，可读写。
+
+
+
+## 语法
+
+express.**TextFileTextQualifier**
+
+express   一个代表 **QueryTable** 对象的变量。
+
+## 类型
+
+XlTextQualifier
+
+## 说明
+
+
+| **XlTextQualifier** 可为以下 **XlTextQualifier** 常量之一。 |
+| -------------------------------------------------- |
+| **xlTextQualifierNone**                            |
+| **xlTextQualifierDoubleQuote** 默认值                  |
+| **xlTextQualifierSingleQuote**                     |
+
+仅当查询表基于文本文件数据（ **QueryType** 属性设置为 **xlTextImport** ）时，才使用此属性。
+
+如果使用用户界面导入数据，来自 Web 查询或文本查询的数据将作为 **QueryTable** 对象导入，而所有其他外部数据将作为 **ListObject** 对象导入。
+
+如果使用对象模型导入数据，来自 Web 查询或文本查询的数据必须作为 **QueryTable** 导入，而所有其他外部数据既可作为 **ListObject** 导入，也可作为 **QueryTable** 导入。
+
+ **TextFileTextQualifier** 属性仅适用于 **QueryTable** 对象。
+
+
+
+## 示例
+
+
+```JavaScript
+/*本示例将第一个工作簿中第一张工作表上的查询表的文本识别符设置为单引号。*/
+function test() {
+    let sheet = Application.Workbooks.Item(1).Worksheets.Item(1)
+    let qyTable = sheet.QueryTables.Add("TEXT;D:\\示例\\test.txt", sheet.Cells.Item(1, 9))
+    qyTable.TextFileParseType = xlDelimited
+    qyTable.TextFileTextQualifier = xlTextQualifierSingleQuote
+    qyTable.Refresh()
+}
+```
+
+
+```JavaScript
+/*本示例显示活动工作表上包含 B2 单元格的查询表的文本识别符是否为 xlTextQualifierNone。*/
+function test() {
+    let qyTable = Application.ActiveSheet.Range("B2").QueryTable
+    alert(qyTable.TextFileTextQualifier == xlTextQualifierNone)
+}
+```

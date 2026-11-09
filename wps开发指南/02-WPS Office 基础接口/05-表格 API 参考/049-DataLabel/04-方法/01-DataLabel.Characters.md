@@ -1,0 +1,50 @@
+# DataLabel.Characters
+
+返回 **Characters** 对象，它代表对象文本内某个区域的字符。使用 **Characters** 对象可为文本字符串内的字符设置格式。
+
+
+
+## 语法
+
+express.**Characters(Start, Length)**
+
+express   一个代表 **DataLabel** 对象的变量。
+
+## 参数
+
+| **名称** | **必选/可选** | **数据类型** | **说明** |
+| :------ | :------------ | :---------- | :------- |
+| Start | 可选 | any | 要返回的第一个字符。如果此参数是 1 或被省略，则此属性返回一个以第一个字符为开头的字符区域。 |
+| Length | 可选 | any | 要返回的字符数。如果省略此参数，则此属性返回字符串的后半部分（Start 字符之后的所有字符）。 |
+
+## 返回值
+
+Characters
+
+## 说明
+
+
+ **Characters** 对象不是集合。
+
+
+
+## 示例
+
+
+```JavaScript
+/*此示例将图表工作表 Chart1 中图表的第二个数据序列的第一个数据标签设置为倾斜。*/
+function test() {
+    let datalabel = Application.Charts.Item("Chart1").ChartObjects(1).Chart.SeriesCollection(2).DataLabels(1)
+    datalabel.Characters().Font.Italic = true
+}
+```
+
+
+```JavaScript
+/*此示例将图表工作表 Chart1 中图表的第二个数据序列的第三个数据标签的文本设置为“五年级数学成绩”，并将该数据标签的前三个字符设置为加粗。*/
+function test() {
+    let datalabel = Application.Sheets.Item("Sheet1").ChartObjects(1).Chart.SeriesCollection(2).DataLabels(3)
+    datalabel.Caption = "五年级数学成绩"
+    datalabel.Characters(null, 3).Font.Bold = true
+}
+```

@@ -1,0 +1,40 @@
+# ParagraphFormat.WordWrap
+
+如果 WPS 在指定段落或文本框架的西文单词中间断字换行，则该属性值为 **msoTrue** 。可读写 **Long** 类型。
+
+
+
+## 语法
+
+express.**WordWrap**
+
+express   一个代表 **ParagraphFormat** 对象的变量。
+
+## 类型
+
+number（int4 精度）
+
+## 说明
+
+
+如果只有一些指定段落或文本框架的此属性设置为 **msoTrue** ，则此属性返回 **wdUndefined** 。根据您所选择或安装的语言支持（例如，美国英语），这种用法可能不可用。
+
+
+
+## 示例
+
+
+```JavaScript
+/*本示例设置 WPS 在活动文档的第一个段落中的西文单词中间断字换行。*/
+function test() {
+    ActiveDocument.Paragraphs.Item(1).Format.WordWrap = msoTrue
+}
+```
+
+
+```JavaScript
+/*本示例显示 WPS 是否在所选段落的西文单词中间断字换行。*/
+function test() {
+    alert(Selection.Range.ParagraphFormat.WordWrap === msoTrue)
+}
+```

@@ -1,0 +1,9 @@
+# XlLayoutRowType 枚举
+
+指定版式行的类型。 
+
+| 名称               | 值 | 说明  |
+| ---------------- | - | --- |
+| **xlCompactRow** | 0 | 压缩行 |
+| **xlOutlineRow** | 2 | 大纲行 |
+| **xlTabularRow** | 1 | 表格行 |

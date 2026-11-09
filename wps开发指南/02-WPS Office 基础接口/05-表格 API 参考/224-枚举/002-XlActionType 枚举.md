@@ -1,0 +1,10 @@
+# XlActionType 枚举
+
+指定应执行的操作。 
+
+| 名称                           | 值   | 说明    |
+| ---------------------------- | --- | ----- |
+| **xlActionTypeDrillthrough** | 256 | 明细数据。 |
+| **xlActionTypeReport**       | 128 | 报表。   |
+| **xlActionTypeRowset**       | 16  | 行集。   |
+| **xlActionTypeUrl**          | 1   | URL。  |

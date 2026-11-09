@@ -1,0 +1,42 @@
+# LegendEntry.Left
+
+以磅为单位返回从对象左边缘至图表区左边缘之间的距离。只读 **Double** 类型。
+
+
+
+## 语法
+
+express.**Left**
+
+express   一个代表 **LegendEntry** 对象的变量。
+
+## 类型
+
+number（double 精度）
+
+## 示例
+
+
+```JavaScript
+/*本示例显示第一个演示文稿的第一张幻灯片中第一个图表的第一个图例项的左边缘至图表区左边缘之间的距离。*/
+function test() {
+    let shape = Presentations.Item(1).Slides.Item(1).Shapes.Item(1)
+    if (shape.HasChart) {
+        alert(shape.Chart.Legend.LegendEntries().Item(1).Left)
+    }
+}
+```
+
+
+```JavaScript
+/*本示例遍历活动演示文稿的第一张幻灯片中第一个图表的图例项集合，并显示这些图例项的左边缘至图表区左边缘之间的距离。*/
+function test() {
+    let shape = ActivePresentation.Slides.Item(1).Shapes.Item(1)
+    if (shape.HasChart) {
+        let legend = shape.Chart.Legend
+        for (let i = 1; i <= legend.LegendEntries().Count; i++) {
+            alert(legend.LegendEntries().Item(i).Left)
+        }
+    }
+}
+```

@@ -1,0 +1,24 @@
+# ComboBox.Top
+
+您可以通过该属性指定控件在对象或报表中的位置。
+
+## 语法
+
+express.Top
+
+express   一个代表 ComboBox 对象的变量。
+
+## 说明
+
+您可以通过该属性指定控件在对象或报表中的位置。
+
+
+## 示例
+
+```javascript
+/*将ComboBox1的位置设置到距离窗体上边缘100像素*/
+function func1()
+{
+    UserForm1.ComboBox1.Top = 100
+}
+```

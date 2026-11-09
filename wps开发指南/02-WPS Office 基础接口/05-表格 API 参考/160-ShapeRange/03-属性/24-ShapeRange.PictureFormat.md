@@ -1,0 +1,36 @@
+# ShapeRange.PictureFormat
+
+返回一个 **PictureFormat** 对象，它包含指定形状的图片格式属性。应用于代表图片或 OLE 对象的 **[ShapeRange](/app-integration-dev/wps365/client/wpsoffice/jsapi/et/ShapeRange/obj)** 对象。只读。
+
+
+
+## 语法
+
+express.**PictureFormat**
+
+express   一个代表 **ShapeRange** 对象的变量。
+
+## 类型
+
+PictureFormat
+
+## 示例
+
+
+```JavaScript
+/*本示例先在第一张工作表创建shpRange对象，然后设置对象的亮度和对比度。*/
+function test() {
+    let shpRange = Application.Worksheets.Item(1).Shapes.Range([1])
+    shpRange.PictureFormat.Brightness = 0.3
+    shpRange.PictureFormat.Contrast = 0.75
+}
+```
+
+
+```JavaScript
+/*本示例将活动工作表中新建的shpRange对象的颜色转换类型设置为灰度。*/
+function test() {
+    let shpRange = ActiveSheet.Shapes.Range([2])
+    shpRange.PictureFormat.ColorType = msoPictureGrayscale
+}
+```

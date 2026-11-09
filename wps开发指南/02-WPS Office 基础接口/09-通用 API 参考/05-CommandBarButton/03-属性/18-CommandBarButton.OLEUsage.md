@@ -1,0 +1,42 @@
+# CommandBarButton.OLEUsage
+
+获取或设置特定的 OLE 客户端和 OLE 服务器角色，在合并两个 WPS Office应用程序时，会用到这些角色中的 **CommandBarButton** 控件。可读写。
+
+
+
+
+## 语法
+
+express.**OLEUsage**
+
+express   一个代表 **CommandBarButton** 对象的变量。
+
+## 类型
+
+MsoControlOLEUsage
+
+## 说明
+
+
+本属性允许用户在某 Office 应用程序与另一个 Office 应用程序合并时，指定加载应用程序的各个命令栏控件在该 Office 应用程序中的表示方法。如果客户端和服务器均提供命令栏，那么命令栏控件将逐个嵌入客户端。系统将从服务器中略去标记为只用于客户端（或既不用于客户端也不用于服务器）的自定义控件，而从客户端中略去标记为只用于服务器（或既不用于客户端也不用于服务器）的控件。剩下的控件再进行合并。 
+
+如果要合并的应用程序之一不是 Office 应用程序，则使用常规 OLE 菜单合并，该过程将由 **OLEMenuGroup** 属性控制。
+
+| 注释                                                                   |
+| -------------------------------------------------------------------- |
+| 在某些 WPS Office应用程序中，CommandBar 已被新的功能区用户界面取代。有关详细信息，请在帮助中搜索关键字“功能区”。 |
+
+
+
+
+## 示例
+
+
+```JavaScript
+//本示例向名为“Tools”的命令栏中添加一个新按钮并设置其 OLEUsage 属性。
+function test()
+{
+    let myControl = Application.CommandBars.Item("Tools").Controls.Add(Application.Enum.msoControlButton, null, null, null, true)
+    myControl.OLEUsage = Application.Enum.msoControlOLEUsageNeither
+}
+```

@@ -1,0 +1,34 @@
+# PivotTable.ShowTableStyleColumnStripes
+
+ **ShowTableStyleColumnStripes** 属性显示镶边列，这些列中的偶数列和奇数列的格式互不相同。这样使数据透视表更易于阅读。可读/写 **Boolean** 类型。
+
+
+
+## 语法
+
+express.**ShowTableStyleColumnStripes**
+
+express   一个代表 **PivotTable** 对象的变量。
+
+## 类型
+
+boolean
+
+## 示例
+
+
+```JavaScript
+/*本示例显示数据透视表的镶边列。*/
+function test() {
+    ActiveSheet.PivotTables(1).ShowTableStyleColumnStripes = true
+}
+```
+
+
+```JavaScript
+/*本示例显示数据透视表 ShowTableStyleColumnStripes 属性的数据类型，并设置为 false。*/
+function test() {
+    alert(typeof ActiveSheet.PivotTables(1).ShowTableStyleColumnStripes)
+    ActiveSheet.PivotTables(1).ShowTableStyleColumnStripes = false
+}
+```

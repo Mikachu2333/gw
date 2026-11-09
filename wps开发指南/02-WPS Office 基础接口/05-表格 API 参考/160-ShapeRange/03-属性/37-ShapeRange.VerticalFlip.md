@@ -1,0 +1,44 @@
+# ShapeRange.VerticalFlip
+
+如果指定的形状绕垂直坐标轴翻转，则此属性为 **True** 。 **MsoTriState** 类型，只读。
+
+
+
+## 语法
+
+express.**VerticalFlip**
+
+express   一个代表 **ShapeRange** 对象的变量。
+
+## 类型
+
+MsoTriState
+
+## 示例
+
+
+```JavaScript
+/*本示例先在第一张工作表创建shpRange对象，将对象中所有进行过水平翻转或垂直翻转的形状还原至初始状态。*/
+function test() {
+    let shpRange = Application.Worksheets.Item(1).Shapes.Range([1, 2])
+    if (shpRange.HorizontalFlip) {
+        shpRange.Flip(msoFlipHorizontal)
+    }
+    if (shpRange.VerticalFlip) {
+        shpRange.Flip(msoFlipVertical)
+    }
+}
+```
+
+
+```JavaScript
+/*本示例判断活动工作表中创建shpRange对象是否围绕垂直轴进行翻转，并显示结果。*/
+function test() {
+    let shpRange = ActiveSheet.Shapes.Range([1])
+    if (shpRange.VerticalFlip) {
+        alert("已围绕垂直轴进行翻转")
+    } else {
+        alert("未围绕垂直轴进行翻转")
+    }
+}
+```

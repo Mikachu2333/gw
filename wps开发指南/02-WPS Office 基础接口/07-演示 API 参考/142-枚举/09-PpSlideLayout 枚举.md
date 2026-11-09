@@ -1,0 +1,43 @@
+# PpSlideLayout 枚举
+
+指定幻灯片版式的常量，由 Slide 和 SlideRange 对象的 Layout 属性传递和返回。
+
+| 名称              | 值 | 说明 |
+| ----------------- | ---- | ---- |
+| **ppLayoutBlank** | 12 | 空白 |
+| **ppLayoutChart** | 8 | 图表 |
+| **ppLayoutChartAndText** | 6 | 图表和文字 |
+| **ppLayoutClipArtAndText** | 10 | 剪贴画和文本 |
+| **ppLayoutClipArtAndVerticalText** | 26 | 剪贴画和竖排文字 |
+| **ppLayoutComparison** | 34 | 比较 |
+| **ppLayoutContentWithCaption** | 35 | 带标题的内容 |
+| **ppLayoutCustom** | 32 | 自定义 |
+| **ppLayoutFourObjects** | 24 | 四个对象 |
+| **ppLayoutLargeObject** | 15 | 大型对象 |
+| **ppLayoutMediaClipAndText** | 18 | 媒体剪辑和文字 |
+| **ppLayoutMixed** | -2 | 混合 |
+| **ppLayoutObject** | 16 | 对象 |
+| **ppLayoutObjectAndText** | 14 | 对象和文字 |
+| **ppLayoutObjectAndTwoObjects** | 30 | 对象和两个对象 |
+| **ppLayoutObjectOverText** | 19 | 对象在文字之上 |
+| **ppLayoutOrgchart** | 7 | 组织结构图 |
+| **ppLayoutPictureWithCaption** | 36 | 带标题的图片 |
+| **ppLayoutSectionHeader** | 33 | 节标头 |
+| **ppLayoutTable** | 4 | 表格 |
+| **ppLayoutText** | 2 | 文本 |
+| **ppLayoutTextAndChart** | 5 | 文字和图表 |
+| **ppLayoutTextAndClipArt** | 9 | 文本和剪贴画 |
+| **ppLayoutTextAndMediaClip** | 17 | 文字和媒体剪辑 |
+| **ppLayoutTextAndObject** | 13 | 文字和对象 |
+| **ppLayoutTextAndTwoObjects** | 21 | 文字和两个对象 |
+| **ppLayoutTextOverObject** | 20 | 文字在对象之上 |
+| **ppLayoutTitle** | 1 | 标题 |
+| **ppLayoutTitleOnly** | 11 | 只有标题 |
+| **ppLayoutTwoColumnText** | 3 | 两列文字 |
+| **ppLayoutTwoObjects** | 29 | 两个对象 |
+| **ppLayoutTwoObjectsAndObject** | 31 | 两个对象和对象 |
+| **ppLayoutTwoObjectsAndText** | 22 | 两个对象和文字 |
+| **ppLayoutTwoObjectsOverText** | 23 | 两个对象在文字之上 |
+| **ppLayoutVerticalText** | 25 | 竖排文字 |
+| **ppLayoutVerticalTitleAndText** | 27 | 竖排标题和文字 |
+| **ppLayoutVerticalTitleAndTextOverChart** | 28 | 竖排标题和文字在图表之上 |

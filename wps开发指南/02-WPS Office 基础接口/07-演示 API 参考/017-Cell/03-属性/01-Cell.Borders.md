@@ -1,0 +1,37 @@
+# Cell.Borders
+
+返回 **[Borders](/app-integration-dev/wps365/client/wpsoffice/jsapi/wpp/Borders/obj)** 集合，该集合代表指定 **Cell** 对象或 **CellRange** 集合中的边框和对角线。只读。
+
+
+
+## 语法
+
+express.**Borders**
+
+express   一个代表 **Cell** 对象的变量。
+
+## 类型
+
+Borders
+
+## 示例
+
+
+```JavaScript
+/*本示例将活动演示文稿的第一张幻灯片的第一个表格的第一个单元格的底边线框的颜色设置为红色。*/
+function test() {
+    let shape = ActivePresentation.Slides.Item(1).Shapes.Item(1)
+    let cell = shape.Table.Cell(1, 1)
+    cell.Borders.Item(ppBorderBottom).ForeColor.RGB = RGB(255, 0, 0)
+}
+```
+
+
+```JavaScript
+/*本示例显示第一个演示文稿的第一张幻灯片的第一个表格的第一个单元格的上边线框的宽度。*/
+function test() {
+    let shape = Presentations.Item(1).Slides.Item(1).Shapes.Item(1)
+    let cell = shape.Table.Cell(1, 1)
+    alert(cell.Borders.Item(ppBorderTop).Weight + " 磅")
+}
+```

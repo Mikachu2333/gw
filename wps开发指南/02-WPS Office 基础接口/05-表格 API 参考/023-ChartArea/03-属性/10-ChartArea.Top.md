@@ -1,0 +1,35 @@
+# ChartArea.Top
+
+返回一个 **Double** 值，它代表从对象的上边缘到工作表第一行顶部或图表上的图表区顶部的距离（以磅为单位）。
+
+
+
+## 语法
+
+express.**Top**
+
+express   一个代表 **ChartArea** 对象的变量。
+
+## 类型
+
+number（double 精度）
+
+## 示例
+
+
+```JavaScript
+/*此示例显示工作表 Sheet1 中第一个内嵌图表的图表区到工作表顶部的距离。*/
+function test() {
+    let chartarea = Application.Worksheets.Item("Sheet1").ChartObjects(1).Chart.ChartArea
+    alert(chartarea.Top)
+}
+```
+
+
+```JavaScript
+/*此示例设置图表工作表 Chart1 图表区到顶部的距离为 50 磅。*/
+function test() {
+    let chartarea = Application.Charts.Item("Chart1").ChartObjects(1).Chart.ChartArea
+    chartarea.Top = 50
+}
+```
