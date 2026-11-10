@@ -91,7 +91,8 @@ The output folder also receives `VBA Script\` and `Resources\公文部件.dotx`.
 
 VSTO validation remains a successful build plus host smoke tests. Installer regression checks:
 `python tools/test-js-installers.py` (temporary directories only), `node tools/test-js-host.mjs`
-and `node tools/test-js-macros.mjs`.
+and `node tools/test-js-macros.mjs`. WPS formatting parity regressions run with
+`node tools/test-js-parity.mjs` (text/font/paragraph state and section-layout snapshots).
 Run the Python checks on Linux as well when changing the Linux installer; GUI behavior still needs WPS smoke tests.
 
 ### Packaging (make.bat)
@@ -143,6 +144,12 @@ image-to-PPT, external scanned-PDF conversion, PDF merging and arbitrary VBA exe
 Script history uses `.gw_mika-script-history.json`. Batch jobs skip already-open documents, close only
 documents they opened, and use collision-free output names. Speech is disabled when the embedded browser lacks the
 speech synthesis API. Installed WPS must already include the text JS add-in runtime.
+Range export snapshots each intersecting section before creating the output, removes only a terminal
+section marker, and copies each output section's geometry, gutter/mirror settings, columns and line numbering.
+A section-count mismatch or a rejected layout property leaves the new document open without saving it.
+The classic and 2026 autoformat ports use their respective VBA signature-position tables and three blank
+paragraphs before a signature; 2026 clears section page-number restarts and rebuilds enabled independent
+first/even footers. Complex attachment and multi-signature rearrangement remains partial.
 
 WPS JSAPI is case-sensitive: collection access is `Item`, not `item`. `Find.Execute` takes `Replace`
 as its 11th positional argument; replacement uses a duplicate of the requested Range with `wdFindStop`.
@@ -164,6 +171,12 @@ and merged with defaults. Grid line/character counts accept integers 1–200 (`m
 legacy fractional counts fall back to 22/28 independently, preserving other settings.
 Footer fields are inserted before the final paragraph mark; linked footers
 are skipped, and independent sections and first-page footers are handled explicitly.
+Outside page numbers retain the original one-character inward indent. The circled-number command
+applies an automatic list; individual circled characters remain available in the symbol menu.
+Preset font commands preserve existing bold/italic unless the preset enables them. JS font-size rounding
+uses midpoint-to-even like .NET, with the original 10.5 pt exception. Custom-style refresh separately
+sets configured emphasis and copies Normal's western font slots/alignment, keeping the Chinese font preset.
+The main empty-line command uses the selection, asking for confirmation before processing the whole document.
 
 ## Runtime architecture
 
