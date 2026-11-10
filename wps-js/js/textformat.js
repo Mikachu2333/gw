@@ -40,7 +40,8 @@ function gwDeleteEmptyLines(selectionOnly) {
         if (scope.Start === scope.End) { alert('请先选中要处理的范围。'); return; }
         paras = scope.Paragraphs;
     } else {
-        scope = doc().Content.Duplicate;
+        scope = scopeOrNull();
+        if (scope === null) return;
         paras = scope.Paragraphs;
     }
     var doomed = [];

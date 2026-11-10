@@ -123,6 +123,7 @@ check('empty paragraph cleanup preserves table, picture, field and final paragra
     table.Tables={Count:1};image.InlineShapes={Count:1};
     Object.defineProperty(field,'Fields',{value:{Count:1}});
     Object.defineProperty(f.document,'Content',{get:()=>({Start:0,End:9,Duplicate:{Start:0,End:9,Paragraphs:collection(all.map(Range=>({Range})))}})});
+    f.selection.SetRange(0,0);
     c.gwDeleteEmptyLines(false);assert.deepEqual(deleted,[0]);
 });
 check('font flags and paragraph pagination toggle in both directions',()=>{

@@ -1,5 +1,5 @@
 // 只记录命令和接口状态，不读取文档正文、文件名、选中文字或密码输入。
-var GW_DIAGNOSTIC_REVISION = 'wps-api-20261110-5';
+var GW_DIAGNOSTIC_REVISION = 'wps-api-20261110-6';
 var GW_LOG_KEY = 'gw_mika-diagnostics-v1';
 var gwLogEntries = [];
 var gwLogSession = Date.now().toString(36) + Math.random().toString(36).slice(2, 8);

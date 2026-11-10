@@ -1,6 +1,5 @@
 // 标题层级与正文：对应 src\Ribbon1.Fonts.cs 的 SetFont / SetTitle / BtnNormal_Click。
-// 与 C# 的差异只有一处并且是有意为之：C# 把"设字体"和"设居中/取消编号"分成两个
-// WithUndo，于是一次点击留下两个撤销单元，Ctrl+Z 要按两次；这里合并成一个。
+// 对照 84d9734f5ce6，合并一次点击的撤销记录；正文额外首行缩进 2 字符。
 var GW_HEADINGS = {
     1: { font: '一级标题', style: Wd.wdListNumberStyleSimpChinNum3, format: '%1、', outline: Wd.wdOutlineLevel1 },
     2: { font: '二级标题', style: Wd.wdListNumberStyleSimpChinNum3, format: '（%1）', outline: Wd.wdOutlineLevel2 },

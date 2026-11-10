@@ -8,7 +8,8 @@ function gwMacroPick(kind,title,multiple,label,filter,initial) {
     return files.length?files:null;
 }
 function gwMacroPath(folder,name){return String(folder).replace(/[\\/]$/,'')+'/'+name;}
-function gwMacroBase(name){return String(name).replace(/\.[^.]+$/,'').replace(/[<>:"/\\|?*\x00-\x1f]/g,'_').replace(/[. ]+$/,'').slice(0,100) || '未命名文档';}
+function gwMacroFileName(name){return String(name).replace(/[<>:"/\\|?*\x00-\x1f]/g,'_').replace(/[. ]+$/,'').slice(0,100) || '未命名文档';}
+function gwMacroBase(name){return gwMacroFileName(String(name).replace(/\.[^.]+$/,''));}
 function gwMacroUnique(path) {
     var fs=gwHost('FileSystem'),extension=/\.[^./\\]+$/.exec(path),ext=extension?extension[0]:'',base=ext?path.slice(0,-ext.length):path;
     for(var i=0;i<10000;i++){var candidate=i?base+'_'+i+ext:path;if(!fs.Exists(candidate))return candidate;}
@@ -16,16 +17,84 @@ function gwMacroUnique(path) {
 }
 function gwMacroPathKey(path){var s=String(path).replace(/\\/g,'/');return /^[a-z]:\//i.test(s)||/^\/\//.test(s)?s.toLowerCase():s;}
 function gwMacroRequireMethod(object,name) { if(!object || typeof object[name]!=='function')throw new Error('当前 WPS 未提供 '+name+' 接口。'); }
-function gwMacroPageSetup(source,target) {
-    ['Orientation','PageWidth','PageHeight','TopMargin','BottomMargin','LeftMargin','RightMargin','HeaderDistance','FooterDistance','LayoutMode'].forEach(function(k){target[k]=source[k];});
-    if(source.LayoutMode){target.CharsLine=source.CharsLine;target.LinesPage=source.LinesPage;}
+// 逐节读取，避免跨节 Range.PageSetup 返回混合值；快照也不会随活动文档切换而变化。
+function gwMacroPageProperties(source,names) {
+    var values={};
+    names.forEach(function(key){
+        var value=gwStep('读取页面设置 '+key,function(){return source[key];});
+        if(value===undefined || value===null)return;
+        if(value===9999999)throw new Error('页面设置 '+key+' 是混合值，无法完整复制。');
+        values[key]=value;
+    });
+    return values;
+}
+function gwMacroCapturePageSetup(source) {
+    var values=gwMacroPageProperties(source,[
+        'Orientation','TwoPagesOnOne','BookFoldPrinting','BookFoldRevPrinting','BookFoldPrintingSheets',
+        'MirrorMargins','GutterPos','GutterOnTop','SectionDirection','PageWidth','PageHeight',
+        'TopMargin','BottomMargin','LeftMargin','RightMargin','Gutter','HeaderDistance','FooterDistance',
+        'VerticalAlignment','SectionStart','DifferentFirstPageHeaderFooter','OddAndEvenPagesHeaderFooter',
+        'SuppressEndnotes','FirstPageTray','OtherPagesTray','LayoutMode'
+    ]);
+    if(source.LayoutMode)Object.assign(values,gwMacroPageProperties(source,['CharsLine','LinesPage']));
+    if(source.TextColumns) {
+        var columns=source.TextColumns;
+        values.TextColumns=gwMacroPageProperties(columns,['Count','EvenlySpaced','LineBetween','FlowDirection']);
+        if(columns.EvenlySpaced)Object.assign(values.TextColumns,gwMacroPageProperties(columns,['Spacing']));
+        else {
+            values.TextColumns.items=[];
+            for(var i=1;i<=columns.Count;i++)values.TextColumns.items.push(gwMacroPageProperties(columns.Item(i),['Width','SpaceAfter']));
+        }
+    }
+    if(source.LineNumbering)values.LineNumbering=gwMacroPageProperties(source.LineNumbering,
+        ['RestartMode','StartingNumber','DistanceFromText','CountBy','Active']);
+    return values;
+}
+function gwMacroApplyPageSetup(values,target) {
+    function apply(from,to,label) {
+        Object.keys(from).forEach(function(key){gwStep(label+'.'+key,function(){to[key]=from[key];});});
+    }
+    Object.keys(values).forEach(function(key){
+        if(key!=='TextColumns' && key!=='LineNumbering')gwStep('复制页面设置 '+key,function(){target[key]=values[key];});
+    });
+    if(values.TextColumns) {
+        var spec=values.TextColumns,columns=target.TextColumns;
+        gwMacroRequireMethod(columns,'SetCount');columns.SetCount(spec.Count);
+        ['EvenlySpaced','LineBetween','FlowDirection'].forEach(function(key){
+            if(spec[key]!==undefined)gwStep('复制分栏 '+key,function(){columns[key]=spec[key];});
+        });
+        if(spec.EvenlySpaced) {
+            if(spec.Spacing!==undefined)columns.Spacing=spec.Spacing;
+        } else spec.items.forEach(function(item,index){apply(item,columns.Item(index+1),'分栏 '+(index+1));});
+    }
+    if(values.LineNumbering)apply(values.LineNumbering,target.LineNumbering,'行号');
+}
+function gwMacroRangeLayouts(source,range) {
+    // 页眉、页脚等故事的坐标不能与正文节的坐标比较。
+    if(range.StoryType!==undefined && range.StoryType!==1)return [gwMacroCapturePageSetup(range.PageSetup)];
+    var layouts=[];
+    gwMacroEach(source.Sections,function(section){
+        var part=section.Range;
+        if(part.Start<range.End && part.End>range.Start)layouts.push(gwMacroCapturePageSetup(section.PageSetup));
+    });
+    if(!layouts.length)throw new Error('没有找到选区所在的节。');
+    return layouts;
 }
 function gwMacroWriteRange(source,range,path,removeSectionBreaks) {
+    var copy=range.Duplicate,layouts=gwMacroRangeLayouts(source,range);
+    // 节末标记属于前一节；不把末尾标记粘贴成一个多余的空白节。
+    if((range.StoryType===undefined || range.StoryType===1) && copy.End<source.Content.End)gwMacroEach(source.Sections,function(section){
+        if(section.Range.End===range.End && copy.End>copy.Start)copy.SetRange(copy.Start,range.End-1);
+    });
+    if(removeSectionBreaks && layouts.length!==1)throw new Error('按节拆分的范围包含多个节，已停止以保留原版式。');
     var output=app().Documents.Add();
     try {
-        range.Copy();output.Content.PasteAndFormat(16);
+        copy.Copy();output.Content.PasteAndFormat(16);
         if(removeSectionBreaks)wordReplace(false,'^b','',output.Content);
-        gwMacroPageSetup(range.PageSetup,output.PageSetup);
+        if(output.Sections.Count!==layouts.length)throw new Error('粘贴后的节数与源选区不一致，无法完整保留页面设置。');
+        layouts.forEach(function(layout,index){
+            gwStep('复制第 '+(index+1)+' 节版式',function(){gwMacroApplyPageSetup(layout,output.Sections.Item(index+1).PageSetup);});
+        });
         output.SaveAs2(path,16);
         output.Close(0);
     } catch(e) {
@@ -68,7 +137,7 @@ function gwMacroSaveSelection() {
     gwMacroWriteRange(source,range,path,false);return {message:'已保存：'+path};
 }
 function gwMacroSaveName() {
-    var name=gwMacroBase(gwMacroSelection().Text.replace(/[\r\n]/g,''));
+    var name=gwMacroFileName(gwMacroSelection().Text.replace(/[\r\n]/g,''));
     var targets=gwMacroPick(2,'用所选文字另存文档',false,null,null,name+'.docx');if(!targets)return false;
     var path=targets[0];if(!/\.docx$/i.test(path))path+='.docx';
     path=gwMacroUnique(path);doc().SaveAs2(path,16);return {message:'已另存为：'+path};

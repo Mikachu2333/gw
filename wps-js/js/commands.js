@@ -6,7 +6,8 @@ function gwPresetFont(key) {
 function gwToggleFont(property) {
   withUndo("设置文字格式", function() {
     var f = sel().Font;
-    f[property] = f[property] ? 0 : (property === "EmphasisMark" ? 4 : -1);
+    var enabled = property === "EmphasisMark" ? 4 : -1;
+    f[property] = f[property] === enabled ? 0 : enabled;
   });
 }
 function gwFontNames() {
@@ -64,7 +65,8 @@ function gwLatinFont(kind, name) {
 }
 function gwStyles() {
   withUndo("创建或刷新公文样式", function() {
-    var s = gwLoadSettings(), specs = [["公文:标题", "公文标题", 10, 1, 0], ["公文:正文", "正文", 10, 0, 0], ["公文:正文(缩进)", "正文", 10, 0, 2], ["公文:1级标题", "一级标题", 1, 0, 0], ["公文:2级标题", "二级标题", 2, 0, 0], ["公文:3级标题", "三级标题", 3, 0, 0], ["公文:4级标题", "四级标题", 4, 0, 0]];
+    var s = gwLoadSettings(), normal = doc().Styles.Item(-1);
+    var specs = [["公文:标题", "公文标题", 10, 0], ["公文:正文", "正文", 10, 0], ["公文:正文(缩进)", "正文", 10, 2], ["公文:1级标题", "一级标题", 1, 0], ["公文:2级标题", "二级标题", 2, 0], ["公文:3级标题", "三级标题", 3, 0], ["公文:4级标题", "四级标题", 4, 0]];
     specs.forEach(function(x) {
       var st;
       for (var i = 1; i <= doc().Styles.Count; i++) {
@@ -75,10 +77,19 @@ function gwStyles() {
         }
       }
       if (!st) st = doc().Styles.Add(x[0], 1);
-      setRangeFont(st, s.字体[x[1]]);
+      st.BaseStyle = -1;
+      var spec = s.字体[x[1]];
+      st.Font.NameFarEast = spec.name;
+      // 刷新时修复旧版 Font.Name 带来的西文字体覆盖，跟随当前基样式。
+      ['NameAscii', 'NameOther', 'NameBi'].forEach(function(key) {
+        if (normal.Font[key]) st.Font[key] = normal.Font[key];
+      });
+      st.Font.Size = formatFontSize(spec.size);
+      st.Font.Bold = spec.bold ? -1 : 0;
+      st.Font.Italic = spec.italic ? -1 : 0;
       st.ParagraphFormat.OutlineLevel = x[2];
-      st.ParagraphFormat.Alignment = x[3];
-      st.ParagraphFormat.CharacterUnitFirstLineIndent = x[4];
+      st.ParagraphFormat.Alignment = x[0] === '公文:标题' ? 1 : normal.ParagraphFormat.Alignment;
+      st.ParagraphFormat.CharacterUnitFirstLineIndent = x[3];
       if (x[2] <= 4) {
         var cfg = GW_HEADINGS[x[2]];
         st.LinkToListTemplate(gwFindListTemplate(cfg, 1) || gwCreateListTemplate(cfg, 1), 1);
@@ -143,7 +154,10 @@ function gwInsertText(text) {
 function gwCircleNumber() {
   var t = String(sel().Text).trim(), n = Number(t);
   if (!/^\d+$/.test(t) || n < 1 || n > 20) throw new Error("请选中一个 1–20 的数字。");
-  gwInsertText(String.fromCharCode(9312 + n - 1));
+  withUndo("带圈数字序列", function() {
+    var cfg = { style: 18, format: '%1' };
+    sel().Range.ListFormat.ApplyListTemplate(gwFindListTemplate(cfg, n) || gwCreateListTemplate(cfg, n));
+  });
 }
 function gwBrackets(k) {
   var r = scopeOrNull();
