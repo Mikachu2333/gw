@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>公文准式诊断日志</title>
+    <link rel="stylesheet" href="settings.css">
+    <style>
+        textarea { width: 100%; height: 280px; font: 12px/1.5 monospace; white-space: pre; }
+        .icons { display: flex; gap: 20px; align-items: center; }
+        .icons img { width: 32px; height: 32px; object-fit: contain; }
+        #message { overflow-wrap: anywhere; }
+    </style>
+</head>
+<body>
+    <main>
+        <h1>诊断日志</h1>
+        <p>先重现异常，再点击“刷新并保存”。报告含 WPS 版本、接口能力、出错步骤和脚本栈，不主动读取正文、选中文字或密码。</p>
+        <p>下列图标用于检查网页资源；反馈时请同时说明功能区是否仍显示问号。</p>
+        <div class="icons">
+            <img src="../images/PageMarginsGallery.png" alt="页面设置">
+            <img src="../images/_1.png" alt="一级标题">
+            <img src="../images/Info.png" alt="关于">
+        </div>
+        <p id="message" role="status"></p>
+        <textarea id="report" readonly aria-label="诊断报告"></textarea>
+        <footer>
+            <button id="refresh" type="button">刷新并保存</button>
+            <button id="copy" type="button">复制日志</button>
+            <span class="spacer"></span>
+            <button id="close" type="button">关闭</button>
+        </footer>
+    </main>
+    <script src="../js/util.js"></script>
+    <script src="../js/diagnostics.js"></script>
+    <script src="diagnostics.js"></script>
+</body>
+</html>

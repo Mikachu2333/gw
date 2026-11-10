@@ -163,6 +163,7 @@ namespace gw_mika
             this.btnInsertSignPicSave = this.Factory.CreateRibbonButton();
             this.group6 = this.Factory.CreateRibbonGroup();
             this.glyBak = this.Factory.CreateRibbonGallery();
+            this.btnSaveImagePdf = this.Factory.CreateRibbonButton();
             this.btnSaveAsPDF = this.Factory.CreateRibbonButton();
             this.btnSaveAsDoc = this.Factory.CreateRibbonButton();
             this.btnSaveAsPic = this.Factory.CreateRibbonButton();
@@ -1117,6 +1118,7 @@ namespace gw_mika
             // 
             // glyBak
             // 
+            this.glyBak.Buttons.Add(this.btnSaveImagePdf);
             this.glyBak.Buttons.Add(this.btnSaveAsPDF);
             this.glyBak.Buttons.Add(this.btnSaveAsDoc);
             this.glyBak.Buttons.Add(this.btnSaveAsPic);
@@ -1149,6 +1151,15 @@ namespace gw_mika
             this.glyBak.Click += new Microsoft.Office.Tools.Ribbon.RibbonControlEventHandler(this.GlyBak_Click);
             this.glyBak.ItemsLoading += new Microsoft.Office.Tools.Ribbon.RibbonControlEventHandler(this.GlyBak_ItemsLoading);
             // 
+            // btnSaveImagePdf
+            //
+            this.btnSaveImagePdf.Label = "生成图片型 PDF 副本";
+            this.btnSaveImagePdf.Name = "btnSaveImagePdf";
+            this.btnSaveImagePdf.OfficeImageId = "FileEmailAsPdfEmailAttachment";
+            this.btnSaveImagePdf.ShowImage = true;
+            this.btnSaveImagePdf.SuperTip = "将每页渲染为图像，生成不含文字层的 PDF；保留各页纸张尺寸。";
+            this.btnSaveImagePdf.Click += new Microsoft.Office.Tools.Ribbon.RibbonControlEventHandler(this.btnSaveImagePdf_Click);
+            //
             // btnSaveAsPDF
             // 
             this.btnSaveAsPDF.Label = "生成 PDF 副本";
@@ -1600,6 +1611,7 @@ namespace gw_mika
         private Microsoft.Office.Tools.Ribbon.RibbonButton btnLine1;
         internal Microsoft.Office.Tools.Ribbon.RibbonGroup group6;
         internal Microsoft.Office.Tools.Ribbon.RibbonGallery glyBak;
+        internal Microsoft.Office.Tools.Ribbon.RibbonButton btnSaveImagePdf;
         private Microsoft.Office.Tools.Ribbon.RibbonButton btnSaveAsPDF;
         private Microsoft.Office.Tools.Ribbon.RibbonButton btnSaveAsDoc;
         internal Microsoft.Office.Tools.Ribbon.RibbonToggleButton btnProtectDoc;

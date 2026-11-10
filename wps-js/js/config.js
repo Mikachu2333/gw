@@ -17,44 +17,65 @@ var GW_DEFAULTS = {
         版记: { name: '仿宋', size: 14.25 },
         页码: { name: '宋体', size: 14.25 }
     },
+    数字字体: 'Times New Roman',
     英文字体: 'Times New Roman'
 };
 
-// 用户覆盖值存在 localStorage 里：JSAPI 的 PluginStorage 只在本次会话有效，
-// 而 C# 版的对应物是 Properties.Settings（user.config），这里取最接近的持久化手段。
+// 文件为跨版本持久化；PluginStorage 负责多个窗口即时共享；localStorage 兼容旧设置。
 var GW_STORE_KEY = 'gw-layout-settings';
-
-function gwLoadSettings() {
-    try {
-        var raw = window.localStorage.getItem(GW_STORE_KEY);
-        if (!raw) return JSON.parse(JSON.stringify(GW_DEFAULTS));
-        var saved = JSON.parse(raw);
-        // 逐层合并，避免以后新增设置项时老存档缺字段导致 undefined
-        var merged = JSON.parse(JSON.stringify(GW_DEFAULTS));
-        for (var k in saved) {
-            if (k === '字体') {
-                for (var f in saved.字体) merged.字体[f] = saved.字体[f];
-            } else if (Object.prototype.hasOwnProperty.call(merged, k)) {
-                merged[k] = saved[k];
-            }
-        }
-        return merged;
-    } catch (e) {
-        return JSON.parse(JSON.stringify(GW_DEFAULTS));
-    }
+function gwSettingsFile() {
+    var root = gwHost('Env').GetHomePath();
+    if (!root) throw new Error('无法取得用户目录。');
+    return root.replace(/[\\\/]$/, '') + '/.gw_mika-settings.json';
 }
-
+function gwNormalizeSettings(saved) {
+    var result = JSON.parse(JSON.stringify(GW_DEFAULTS));
+    if (!saved || typeof saved !== 'object') return result;
+    Object.keys(result).forEach(function (k) {
+        if (k === '字体') {
+            Object.keys(result.字体).forEach(function (name) {
+                var f = saved.字体 && saved.字体[name];
+                if (f && typeof f.name === 'string' && f.name.trim() && isFinite(f.size) && f.size >= 1 && f.size <= 200)
+                    result.字体[name] = { name: f.name.trim(), size: Number(f.size), bold: !!f.bold, italic: !!f.italic };
+            });
+        } else if (typeof result[k] === 'number') {
+            var n = Number(saved[k]);
+            // 旧版表单可能保存了 21.1/27.1 等值；无效计数回到默认值，保留其他设置。
+            if ((k === '行数' || k === '字数') && n % 1 !== 0) return;
+            if (saved[k] !== undefined && isFinite(n) && n > 0 && n <= 200) result[k] = n;
+        } else if (typeof saved[k] === typeof result[k]) result[k] = saved[k];
+    });
+    return result;
+}
+function gwLoadSettings() {
+    var raw;
+    try { raw = gwHost('PluginStorage').getItem(GW_STORE_KEY); } catch (e) { }
+    if (!raw) try {
+        var fs = gwHost('FileSystem'), path = gwSettingsFile();
+        if (fs.Exists(path)) raw = fs.ReadFile(path);
+    } catch (e) { }
+    if (!raw) try { raw = window.localStorage.getItem(GW_STORE_KEY); } catch (e) { }
+    try { return gwNormalizeSettings(JSON.parse(raw || '{}')); }
+    catch (e) { return gwNormalizeSettings(null); }
+}
 function gwSaveSettings(patch) {
+    var cur = gwLoadSettings();
+    Object.keys(patch).forEach(function (k) {
+        if (k === '字体') Object.keys(patch.字体).forEach(function (f) { cur.字体[f] = patch.字体[f]; });
+        else cur[k] = patch[k];
+    });
+    cur = gwNormalizeSettings(cur);
+    // WriteFile 是 UTF-8，ReadFile 是 Latin-1；ASCII JSON 可在两者间无损往返。
+    var raw = JSON.stringify(cur).replace(/[\u007f-\uffff]/g, function (c) {
+        return '\\u' + ('0000' + c.charCodeAt(0).toString(16)).slice(-4);
+    }), persisted = false;
     try {
-        var cur = gwLoadSettings();
-        for (var k in patch) {
-            if (k === '字体') {
-                for (var f in patch.字体) cur.字体[f] = patch.字体[f];
-            } else cur[k] = patch[k];
-        }
-        window.localStorage.setItem(GW_STORE_KEY, JSON.stringify(cur));
-    } catch (e) {
-        // 无痕模式或配额满时静默失败：排版动作本身已经生效，只是下次启动回到默认值
-    }
-    return gwLoadSettings();
+        var fs = gwHost('FileSystem'), path = gwSettingsFile();
+        fs.WriteFile(path, raw);
+        persisted = fs.ReadFile(path) === raw;
+    } catch (e) { gwLogError('保存设置文件', e); }
+    try { window.localStorage.setItem(GW_STORE_KEY, raw); persisted = true; } catch (e) { }
+    if (!persisted) throw new Error('设置无法保存，请检查用户目录写入权限。');
+    try { gwHost('PluginStorage').setItem(GW_STORE_KEY, raw); } catch (e) { }
+    return cur;
 }

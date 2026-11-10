@@ -146,6 +146,7 @@ namespace gw_mika
             rb.btnName.Enabled = enable;
 
             rb.glyBak.Enabled = enable;
+            rb.btnSaveImagePdf.Enabled = enable;
             rb.glyFormat.Enabled = enable;
             rb.glyFoot.Enabled = enable;
             rb.glyFont.Enabled = enable;

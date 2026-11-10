@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>页面图片副本</title><link rel="stylesheet" href="settings.css"></head>
+<body><main>
+<h1>页面图片副本</h1>
+<p>保留页面、页眉页脚和纸张方向，在本机渲染。图片型 PDF 每页只有图像，不包含可选择的文字层。</p>
+<form id="exportForm"><div class="stack">
+<label>输出格式<select id="format"><option value="png">PNG 图片（每页一个文件）</option><option value="jpg">JPG 图片（每页一个文件）</option><option value="pdf">图片型 PDF 副本</option></select></label>
+<label>分辨率<select id="dpi"><option>100</option><option>150</option><option selected>200</option><option>300</option><option>400</option><option>600</option></select></label>
+</div><footer><button id="start" class="primary" type="submit">选择位置并导出</button><button id="cancel" type="button" disabled>取消导出</button><button id="close" type="button">关闭</button></footer></form>
+<p id="message" role="status" style="white-space:pre-wrap;overflow-wrap:anywhere"></p>
+</main>
+<script src="../js/util.js"></script><script src="../js/diagnostics.js"></script><script src="../js/macro-files.js"></script>
+<script src="../js/image-pdf.js"></script><script src="../vendor/pdfjs/renderer.js"></script><script src="export.js"></script>
+</body></html>

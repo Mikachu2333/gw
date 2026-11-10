@@ -5,14 +5,18 @@
   "private": true,
   "description": "公文准式 WPS JS 加载项（Linux WPS 与 Windows WPS 通用）",
   "scripts": {
+    "prebuild": "node ../tools/build-pdf-renderer.mjs",
+    "predev": "node ../tools/build-pdf-renderer.mjs",
+    "predebug": "node ../tools/build-pdf-renderer.mjs",
     "dev": "vite",
     "build": "vite build",
     "debug": "wpsjs debug",
     "publish": "wpsjs publish"
   },
   "devDependencies": {
+    "pdfjs-dist": "4.10.38",
     "vite": "^5.3.1",
-    "wpsjs": "latest",
-    "wps-jsapi-declare": "latest"
+    "wps-jsapi-declare": "latest",
+    "wpsjs": "latest"
   }
 }

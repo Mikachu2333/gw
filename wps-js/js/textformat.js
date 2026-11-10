@@ -34,16 +34,21 @@ function gwDeleteSpaces() {
 // 否则前面的段落一变，后面拿到的 Range 全部失效。
 function gwDeleteEmptyLines(selectionOnly) {
     if (!hasDocument()) { alert('没有打开的文档'); return; }
-    var paras;
+    var paras, scope;
     if (selectionOnly) {
-        if (sel().Characters.Count <= 1) { alert('请先选中要处理的范围。'); return; }
-        paras = sel().Paragraphs;
+        scope = sel().Range.Duplicate;
+        if (scope.Start === scope.End) { alert('请先选中要处理的范围。'); return; }
+        paras = scope.Paragraphs;
     } else {
-        paras = doc().Paragraphs;
+        scope = doc().Content.Duplicate;
+        paras = scope.Paragraphs;
     }
     var doomed = [];
     for (var i = 1; i <= paras.Count; i++) {
-        var p = paras.item(i);
+        var p = paras.Item(i);
+        // 不删除选区边缘未完整选中的段落、表格单元格或文档最终段落。
+        if (p.Range.Start < scope.Start || p.Range.End > scope.End || p.Range.End >= doc().Content.End) continue;
+        if (p.Range.Tables.Count || p.Range.InlineShapes.Count || p.Range.Fields.Count) continue;
         var text = '';
         try { text = p.Range.Text || ''; } catch (e) { continue; }
         if (text.replace(/[\r\n\t 　]/g, '').length > 0) continue;
@@ -54,7 +59,7 @@ function gwDeleteEmptyLines(selectionOnly) {
     if (!doomed.length) { app().StatusBar = '没有需要删除的空行'; return; }
     withUndo(selectionOnly ? '删除选区空行' : '删除空行', function () {
         for (var j = doomed.length - 1; j >= 0; j--) {
-            try { doomed[j].Range.Delete(); } catch (e) { /* 段落已失效 */ }
+            doomed[j].Range.Delete();
         }
         app().StatusBar = '已删除 ' + doomed.length + ' 个空行!';
     });

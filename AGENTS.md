@@ -48,10 +48,15 @@ it when the architecture, build steps, or domain constants change.
 | `src\Properties\Settings.Designer.cs` | Generated strongly typed settings. `Settings.cs` adds `ResetNames(...)`. |
 | `src\app.config` | Default values for `userSettings` and `applicationSettings`. |
 | `src\Resources\` | Icons plus `公文部件.dotx` (copied to output `Always`). |
-| `VBA Script\` | 42 example `.vba` scripts, linked into the build as `VBA Script\*.vba`. |
+| `VBA Script\` | 43 `.vba` scripts: 42 baseline examples plus image-only PDF export, linked as `VBA Script\*.vba`. |
+| `src/Resources/ImagePdfWriter.cs` / `render-image-pdf.ps1` | Shared JPEG-only PDF writer, compiled into VSTO and shipped as source for the Windows VBA EMF rasterization helper. No NuGet dependency. |
 | `tools\make-dev-cert.ps1` | Creates/imports the dev signing certificate and writes `ManifestCertificateThumbprint` into `gw_mika.csproj.user`. |
 | `make.bat` / `tools\build.ps1` | Build Word/VSTO and WPS/JS, then package the Windows dispatcher, two child installers, and Linux tar.gz. |
-| `wps-js\` | WPS JS implementation. `addonType=wps`; Vite ESM config copies resources and emits `install.json`. |
+| `wps-js\` | WPS JS implementation with six Ribbon groups, numbering menus and HTML settings dialogs. `addonType=wps`; Vite copies scripts, PNGs and DOCX parts and emits `install.json`. |
+| `wps-js/js/macros.js` / `macro-*.js` | Catalog of all 42 scripts at `84d9734f5ce6`; 38 runnable ports/adaptations, four unavailable integrations, plus a new image-only PDF tool. `ui/scripts.html` provides search, validated parameters and history. `VBA-PORTING.md` records differences. |
+| `wps-js/js/image-pdf.js` / `ui/export.*` | Local PNG/JPG and image-only PDF export through a temporary Word-exported PDF, PDF.js rasterization, and a JPEG-only PDF writer. |
+| `tools/build-pdf-renderer.mjs` | Builds pinned PDF.js legacy as a classic offline script for Chromium 104; generated `wps-js/vendor/pdfjs` includes CMaps, standard fonts and licenses. Runs before npm build/dev/debug. |
+| `tools\extract-wps-parts.py` | Extracts five original building blocks from `公文部件.dotx` into deterministic macro-free DOCX files in `wps-js/templates`. Rerun after changing the original template. |
 | `Installer\installer.iss` / `host-detection.iss` | Unelevated Windows dispatcher: auto-select WPS JS and/or Word VSTO by detected hosts; no installation state of its own. |
 | `Installer\word.iss` | Machine-wide Word VSTO installer, retaining the original AppId for upgrades; never enables the WPS VSTO whitelist. |
 | `Installer\wps-js.iss` / `register-wps-js.ps1` | Per-user WPS JS installer; merge `publish.xml`, migrate only this project's WPS VSTO entries, restore prior registry values on uninstall. |
@@ -85,7 +90,8 @@ Expected result: `gw_mika -> src\bin\Debug\gw_mika.dll`, zero errors and warning
 The output folder also receives `VBA Script\` and `Resources\公文部件.dotx`.
 
 VSTO validation remains a successful build plus host smoke tests. Installer regression checks:
-`python tools/test-js-installers.py` (temporary directories only) and `node tools/test-js-host.mjs`.
+`python tools/test-js-installers.py` (temporary directories only), `node tools/test-js-host.mjs`
+and `node tools/test-js-macros.mjs`.
 Run the Python checks on Linux as well when changing the Linux installer; GUI behavior still needs WPS smoke tests.
 
 ### Packaging (make.bat)
@@ -119,9 +125,45 @@ The Word package retains its original AppId and imports the VSTO signing certifi
 stores. It uses bundled `Installer/redist/vstor_redist.exe` if present, otherwise the pinned download.
 
 `dist/payload` must remain the complete Word build payload (excluding pdb, diagnostic logs, and cer):
-the VSTO manifest lists all 42 VBA scripts, config, and template hashes. JS payloads contain no VBA.
-JS covers only its existing basic formatting commands; the 42 VBA scripts and other VSTO features
-have not been ported. Installed WPS must already include the text JS add-in runtime.
+the VSTO manifest lists all 43 VBA scripts, config, helper and template hashes. JS payloads contain no VBA.
+JS covers the main formatting workflow: page/font settings, four heading menus (1–20), font conversion,
+seven styles, cleanup, five original document parts, imprints, landscape pages, symbols, stamps,
+section-aware page numbers, PDF/DOC copies and protection/passwords. Image export uses a dedicated
+dialog with PNG/JPG and image-only PDF options, 100/150/200/300/400/600 DPI (default 200). It exports the captured
+source document to a unique temporary PDF, rasterizes locally with pinned PDF.js 4.10.38 legacy
+(`isEvalSupported=false`), writes via `writeAsBinaryString` (the installed WPS `WriteFile` only
+accepts text), verifies every output byte with independent reader fallbacks, and cleans the
+temporary PDF in finally. Diagnostic reports include filesystem methods and write/verify results.
+VBA and VSTO image-only PDF export offer the same six DPI choices. The 40-million-pixel per-page
+limit permits A4 at 600 DPI and rejects oversized pages before allocating a canvas/bitmap.
+`FileSaveAsPicture` is not used: it silently did nothing on the tested WPS build.
+The script catalog exposes 38 ports/adaptations out of 42 baseline scripts plus image-only PDF;
+both autoformat variants remain partial main-flow adaptations. Excel integrations (two scripts),
+image-to-PPT, external scanned-PDF conversion, PDF merging and arbitrary VBA execution remain unported.
+Script history uses `.gw_mika-script-history.json`. Batch jobs skip already-open documents, close only
+documents they opened, and use collision-free output names. Speech is disabled when the embedded browser lacks the
+speech synthesis API. Installed WPS must already include the text JS add-in runtime.
+
+WPS JSAPI is case-sensitive: collection access is `Item`, not `item`. `Find.Execute` takes `Replace`
+as its 11th positional argument; replacement uses a duplicate of the requested Range with `wdFindStop`.
+Ribbon `GetImage` returns relative `images/*.png` paths, as in the official text add-in template;
+HTML dialogs use absolute asset URLs. Controls share `OnGetEnabled` / execution-time guards.
+Text APIs use `app()`; add-in root APIs (`ShowDialog`, `FileSystem`, `Env`, `PluginStorage`,
+`ApiEvent`, `ribbonUI`, `OAAssist`) use `gwHost` / `gwHostOwner`, checking `wps` and
+`window.Application` before the compatibility fallback. Do not assume `WpsApplication()`
+exposes add-in root APIs. `FileDialog` remains a text API; the new-document event is `DocumentNew`.
+`js/diagnostics.js` retains 120 recent events in PluginStorage and exports
+`Env.GetHomePath()/.gw_mika-diagnostics.json` on errors or via “诊断日志”. Reports include
+API capabilities, command IDs, error stacks and page-setup property steps, without reading
+document text or password inputs. `wps-js/README.md` documents collection and Alt+F12 fallback.
+Optional UndoRecord access is guarded; `withUndo` restores the original ScreenUpdating and SeekView.
+Settings dialogs use the same JS modules and PluginStorage as the Ribbon. Persistent settings live at
+`Env.GetHomePath()/.gw_mika-settings.json`; ASCII-escaped JSON avoids the documented UTF-8 WriteFile /
+Latin-1 ReadFile mismatch. localStorage is retained as a compatibility fallback. Settings are validated
+and merged with defaults. Grid line/character counts accept integers 1–200 (`min=1`, `step=1`);
+legacy fractional counts fall back to 22/28 independently, preserving other settings.
+Footer fields are inserted before the final paragraph mark; linked footers
+are skipped, and independent sections and first-page footers are handled explicitly.
 
 ## Runtime architecture
 
@@ -248,8 +290,10 @@ have not been ported. Installed WPS must already include the text JS add-in runt
   keeps such styles and calls `ApplyStyleSettings()` afterwards, which refreshes all
   seven "公文:" styles from the current settings (including the early-return path when
   they all exist). `LinkToListTemplate` still leaves list templates in the document.
-- `FontSwitch` matches only `Font.NameFarEast`, so digits/Latin characters set to the
+- VSTO `FontSwitch` matches only `Font.NameFarEast`, so digits/Latin characters set to the
   same name in `Font.Name` are not converted — that is what "指定字体更改..." is for.
+  WPS JS deliberately fixes this: independent `Find.Font.NameAscii`, `NameOther` and `NameFarEast`
+  passes preserve nonmatching font slots and use `^&` to retain text. Diagnostics log each pass.
 - Exporting a `.doc` copy of a `.doc` source would target the source path; the code now
   falls back to `<name>_副本.doc`. `SaveAs2` does not exist in Word 2007, so
   `SaveAsCompat` calls `SaveAs` when `hostVersion` starts with `12.`.
