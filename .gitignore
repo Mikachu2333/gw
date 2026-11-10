@@ -34,3 +34,4 @@ Installer/redist/
 # WPS JS 加载项的依赖与打包产物（都可再生；package-lock.json 要入库以固定版本）
 wps-js/node_modules/
 wps-js/dist/
+wps-js/vendor/

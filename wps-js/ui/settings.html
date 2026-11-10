@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>公文准式设置</title>
+    <link rel="stylesheet" href="settings.css">
+</head>
+<body>
+    <main>
+        <h1 id="title">公文准式设置</h1>
+        <p id="description"></p>
+        <form id="settingsForm">
+            <div id="fields"></div>
+            <p id="message" role="status" aria-live="polite"></p>
+            <footer>
+                <button id="restore" type="button">恢复默认值</button>
+                <span class="spacer"></span>
+                <button id="close" type="button">关闭</button>
+                <button id="save" type="submit" class="primary">保存</button>
+            </footer>
+        </form>
+        <datalist id="fontNames"></datalist>
+    </main>
+    <script src="../js/enums.js"></script>
+    <script src="../js/util.js"></script>
+    <script src="../js/diagnostics.js"></script>
+    <script src="../js/config.js"></script>
+    <script src="../js/pagesetup.js"></script>
+    <script src="../js/title.js"></script>
+    <script src="../js/commands.js"></script>
+    <script src="../js/other.js"></script>
+    <script src="settings.js"></script>
+</body>
+</html>

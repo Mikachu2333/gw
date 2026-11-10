@@ -253,6 +253,13 @@
     <Compile Include="Ribbon1.Shapes.cs">
       <SubType>Component</SubType>
     </Compile>
+    <Compile Include="Resources\ImagePdfWriter.cs" />
+    <Content Include="Resources\ImagePdfWriter.cs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Resources\render-image-pdf.ps1">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <Compile Include="Ribbon1.Export.cs">
       <SubType>Component</SubType>
     </Compile>

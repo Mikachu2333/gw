@@ -325,6 +325,122 @@ namespace gw_mika
             }
         }
 
+        private int? ChooseImagePdfDpi()
+        {
+            using (var form = new Form())
+            using (var options = new ComboBox())
+            using (var label = new Label())
+            using (var ok = new Button())
+            using (var cancel = new Button())
+            {
+                form.Text = "图片型 PDF 分辨率";
+                form.ClientSize = new Size(340, 135);
+                form.FormBorderStyle = FormBorderStyle.FixedDialog;
+                form.StartPosition = FormStartPosition.CenterScreen;
+                form.MaximizeBox = false; form.MinimizeBox = false;
+                label.Text = "分辨率（DPI）"; label.AutoSize = true; label.Location = new Point(18, 24);
+                options.DropDownStyle = ComboBoxStyle.DropDownList;
+                options.Location = new Point(145, 20); options.Width = 170;
+                options.Items.AddRange(new object[] { 100, 150, 200, 300, 400, 600 });
+                int configured = (int)Properties.Settings.Default.DPI;
+                options.SelectedItem = options.Items.Contains(configured) ? configured : 200;
+                ok.Text = "继续"; ok.DialogResult = DialogResult.OK; ok.Location = new Point(145, 85);
+                cancel.Text = "取消"; cancel.DialogResult = DialogResult.Cancel; cancel.Location = new Point(240, 85);
+                form.Controls.AddRange(new Control[] { label, options, ok, cancel });
+                form.AcceptButton = ok; form.CancelButton = cancel;
+                return form.ShowDialog() == DialogResult.OK ? (int?)options.SelectedItem : null;
+            }
+        }
+
+        private void btnSaveImagePdf_Click(object sender, RibbonControlEventArgs e)
+        {
+            if (WordApp.Documents.Count == 0) return;
+            MSWord.Document source = WordApp.ActiveDocument;
+            int? selectedDpi = ChooseImagePdfDpi();
+            if (!selectedDpi.HasValue) return;
+            using (var dialog = new SaveFileDialog())
+            {
+                dialog.Title = "生成图片型 PDF 副本";
+                dialog.Filter = "图片型 PDF (*.pdf)|*.pdf";
+                dialog.DefaultExt = "pdf";
+                dialog.FileName = Path.GetFileNameWithoutExtension(source.Name) + "_图片型.pdf";
+                if (!string.IsNullOrEmpty(source.Path)) dialog.InitialDirectory = source.Path;
+                if (dialog.ShowDialog() != DialogResult.OK) return;
+                if (!string.Equals(Path.GetExtension(dialog.FileName), ".pdf", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(dialog.FileName, source.FullName, StringComparison.OrdinalIgnoreCase))
+                {
+                    MessageBox.Show("请选择扩展名为 .pdf 且不同于源文档的文件名。", "图片型 PDF 副本",
+                        MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    return;
+                }
+                string temporary = dialog.FileName + "." + Guid.NewGuid().ToString("N") + ".tmp";
+                var view = source.ActiveWindow.ActivePane.View;
+                MSWord.WdViewType previousView = view.Type;
+                MSWord.WdSeekView previousSeek = view.SeekView;
+                bool updating = WordApp.ScreenUpdating;
+                int done = 0;
+                try
+                {
+                    WordApp.ScreenUpdating = false;
+                    view.Type = MSWord.WdViewType.wdPrintView;
+                    view.SeekView = MSWord.WdSeekView.wdSeekMainDocument;
+                    source.Repaginate();
+                    var pages = source.ActiveWindow.ActivePane.Pages;
+                    int count = pages.Count;
+                    float dpi = selectedDpi.Value;
+                    using (var output = new ImagePdfWriter(temporary))
+                    {
+                        for (int i = 1; i <= count; i++)
+                        {
+                            WordApp.StatusBar = "正在生成图片型 PDF：" + i + " / " + count;
+                            var page = pages[i];
+                            double width = page.Width, height = page.Height;
+                            int pixelsWide = (int)Math.Ceiling(width * dpi / 72);
+                            int pixelsHigh = (int)Math.Ceiling(height * dpi / 72);
+                            if (pixelsWide <= 0 || pixelsHigh <= 0 || (long)pixelsWide * pixelsHigh > 40000000)
+                                throw new InvalidDataException("页面尺寸过大，请降低 DPI 设置。");
+                            using (var stream = new MemoryStream((byte[])page.EnhMetaFileBits))
+                            using (var image = Image.FromStream(stream))
+                            using (var bitmap = new Bitmap(pixelsWide, pixelsHigh, PixelFormat.Format24bppRgb))
+                            {
+                                bitmap.SetResolution(dpi, dpi);
+                                using (var graphics = Graphics.FromImage(bitmap))
+                                {
+                                    graphics.Clear(Color.White);
+                                    graphics.DrawImage(image, 0, 0, pixelsWide, pixelsHigh);
+                                }
+                                using (var jpeg = new MemoryStream())
+                                {
+                                    bitmap.Save(jpeg, ImageFormat.Jpeg);
+                                    output.AddPage(jpeg.ToArray(), pixelsWide, pixelsHigh, width, height);
+                                }
+                            }
+                            done++;
+                        }
+                        output.Complete();
+                    }
+                    // 在目标目录写入完整临时文件后再发布，转换失败不损坏原有输出。
+                    if (File.Exists(dialog.FileName)) File.Replace(temporary, dialog.FileName, null);
+                    else File.Move(temporary, dialog.FileName);
+                    WordApp.StatusBar = "图片型 PDF 已生成：" + dialog.FileName;
+                    MessageBox.Show("已导出 " + done + " 页：\r\n" + dialog.FileName,
+                        "图片型 PDF 副本", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("已渲染 " + done + " 页，导出未完成。\r\n" + ex,
+                        "图片型 PDF 导出失败", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                }
+                finally
+                {
+                    try { if (File.Exists(temporary)) File.Delete(temporary); } catch (Exception ex) { System.Diagnostics.Debug.WriteLine(ex); }
+                    try { view.Type = previousView; view.SeekView = previousSeek; }
+                    catch (Exception ex) { System.Diagnostics.Debug.WriteLine("恢复导出前视图失败：" + ex); }
+                    finally { WordApp.ScreenUpdating = updating; }
+                }
+            }
+        }
+
         private void GlyBak_Click(object sender, RibbonControlEventArgs e)
         {
             switch (glyBak.SelectedItemIndex)

@@ -1,50 +1,259 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!--
-  「公文准式」WPS JS 加载项功能区。
-  架构与 Office 2006 customUI 相同（和 C# 版 VSTO 功能区同源），回调函数由 js/ribbon.js 提供。
-  MVP 覆盖 GB/T 9704—2012 的一条完整排版流程：页面设置 → 标题层级 → 正文 → 文字清理 → 页码 → 页眉。
-  插入红线/版头/落款/印章、导出与语音等仍只在 Windows 的 C# 版里，Linux WPS 无对应能力。
--->
 <customUI xmlns="http://schemas.microsoft.com/office/2006/01/customui" onLoad="OnAddinLoad">
-    <ribbon startFromScratch="false">
+    <ribbon>
         <tabs>
             <tab id="gwTabMika" label="公文准式">
-                <group id="gwGroupPage" label="版面">
-                    <button id="btnPageSetup" label="页面设置" onAction="OnAction" getImage="GetImage" size="large"/>
-                    <button id="btnToggleGrid" label="公文版式" onAction="OnAction" getImage="GetImage" size="large"/>
-                    <button id="btnIndent2" label="中文缩进" onAction="OnAction" getImage="GetImage" size="large"/>
-                    <button id="btnFlush" label="段落顶格" onAction="OnAction" getImage="GetImage" size="large"/>
+                <group id="gwPage" label="版面">
+                    <button id="btnPageSetup" label="页面设置" tag="PageMarginsGallery.png" getImage="GetImage" onAction="OnAction" getEnabled="OnGetEnabled" size="large" />
+                    <button id="btnIndent2" label="中文缩进" tag="AlignJustifyMedium.png" getImage="GetImage" onAction="OnAction" getEnabled="OnGetEnabled" size="large" />
+                    <box id="pageTools" boxStyle="vertical">
+                        <button id="btnFlush" label="段落顶格" tag="IndentDecrease.png" getImage="GetImage" onAction="OnAction" getEnabled="OnGetEnabled" />
+                        <button id="btnDelHeaderLine" label="删除页眉横线" tag="HeaderFooterEditHeader.png" getImage="GetImage" onAction="OnAction" getEnabled="OnGetEnabled" />
+                        <menu id="formatMenu" label="排版" tag="AsianTypography.png" getImage="GetImage">
+                            <button id="btnReflow" label="断行重排" tag="AsianTypography.png" getImage="GetImage" onAction="OnAction" getEnabled="OnGetEnabled" />
+                            <button id="btnLineBreak" label="换行符转回车" tag="AsianTypography.png" getImage="GetImage" onAction="OnAction" getEnabled="OnGetEnabled" />
+                            <button id="btnDelSpace" label="删除空白" tag="AsianTypography.png" getImage="GetImage" onAction="OnAction" getEnabled="OnGetEnabled" />
+                            <button id="btnDelHalfSpace" label="删除半角空格" tag="AsianTypography.png" getImage="GetImage" onAction="OnAction" getEnabled="OnGetEnabled" />
+                            <button id="btnDelEmptyLine" label="删除空行" tag="AsianTypography.png" getImage="GetImage" onAction="OnAction" getEnabled="OnGetEnabled" />
+                            <button id="btnDelSelEmptyLine" label="删除空段落（选择范围）" tag="AsianTypography.png" getImage="GetImage" onAction="OnAction" getEnabled="OnGetEnabled" />
+                            <button id="btnDelGraphic" label="删除图形" tag="AsianTypography.png" getImage="GetImage" onAction="OnAction" getEnabled="OnGetEnabled" />
+                            <button id="btnRemoveURL" label="移除超链接" tag="AsianTypography.png" getImage="GetImage" onAction="OnAction" getEnabled="OnGetEnabled" />
+                            <button id="btnCnEnSpace" label="中英文之间添加空格" tag="AsianTypography.png" getImage="GetImage" onAction="OnAction" getEnabled="OnGetEnabled" />
+                            <button id="btnPunctEn2Cn" label="标点符号（英转中）" tag="AsianTypography.png" getImage="GetImage" onAction="OnAction" getEnabled="OnGetEnabled" />
+                            <button id="btnPunctCn2En" label="标点符号（中转英）" tag="AsianTypography.png" getImage="GetImage" onAction="OnAction" getEnabled="OnGetEnabled" />
+                            <button id="btnFrameText" label="文本框转文字" tag="AsianTypography.png" getImage="GetImage" onAction="OnAction" getEnabled="OnGetEnabled" />
+                            <button id="btnParaPage" label="段前分页" tag="AsianTypography.png" getImage="GetImage" onAction="OnAction" getEnabled="OnGetEnabled" />
+                            <button id="btnDelHeader" label="删除页眉" tag="AsianTypography.png" getImage="GetImage" onAction="OnAction" getEnabled="OnGetEnabled" />
+                        </menu>
+                    </box>
                 </group>
-                <group id="gwGroupTitle" label="标题">
-                    <button id="btnMainTitle" label="公文标题" onAction="OnAction" getImage="GetImage" size="large"/>
-                    <button id="btnHeading1" label="标题一、" onAction="OnAction" getImage="GetImage" size="large"/>
-                    <button id="btnHeading2" label="标题（一）" onAction="OnAction" getImage="GetImage" size="large"/>
-                    <button id="btnHeading3" label="标题1." onAction="OnAction" getImage="GetImage" size="large"/>
-                    <button id="btnHeading4" label="标题（1）" onAction="OnAction" getImage="GetImage" size="large"/>
-                    <button id="btnBody" label="正文" onAction="OnAction" getImage="GetImage" size="large"/>
+                <group id="gwTitle" label="公文标题">
+                    <button id="btnMainTitle" label="公文标题" tag="TableCellAlignTop.png" getImage="GetImage" onAction="OnAction" getEnabled="OnGetEnabled" size="large" />
+                    <comboBox id="titleFonts" label="二号" getText="GetFontText" getItemCount="GetFontCount" getItemLabel="GetFontLabel" onChange="gwTitleFont" getEnabled="OnGetEnabled" sizeString="方正小标宋简体" />
                 </group>
-                <group id="gwGroupText" label="文字">
-                    <button id="btnDelSpace" label="删除空白" onAction="OnAction" getImage="GetImage" size="large"/>
-                    <button id="btnDelEmptyLine" label="删除空行" onAction="OnAction" getImage="GetImage" size="large"/>
-                    <button id="btnDelSelEmptyLine" label="删除选区空行" onAction="OnAction" getImage="GetImage" size="large"/>
-                    <button id="btnLineBreak" label="换行符转回车" onAction="OnAction" getImage="GetImage" size="large"/>
-                    <button id="btnReflow" label="断行重排" onAction="OnAction" getImage="GetImage" size="large"/>
-                    <button id="btnCnEnSpace" label="中英加空格" onAction="OnAction" getImage="GetImage" size="large"/>
-                    <button id="btnPunctEn2Cn" label="标点英转中" onAction="OnAction" getImage="GetImage" size="large"/>
-                    <button id="btnPunctCn2En" label="标点中转英" onAction="OnAction" getImage="GetImage" size="large"/>
+                <group id="gwText" label="文字格式">
+                    <button id="btnBody" label="正文" tag="GroupTextBoxText.png" getImage="GetImage" onAction="OnAction" getEnabled="OnGetEnabled" size="large" />
+                    <box id="heading12" boxStyle="vertical">
+                        <splitButton id="heading1Split">
+                            <button id="btnHeading1" label="标题一、" tag="_1.png" getImage="GetImage" onAction="OnAction" getEnabled="OnGetEnabled" />
+                            <menu id="heading1Menu">
+                                <button id="heading1_1" label="一、" onAction="OnAction" getEnabled="OnGetEnabled" tag="_1.png" getImage="GetImage" />
+                                <button id="heading1_2" label="二、" onAction="OnAction" getEnabled="OnGetEnabled" tag="_1.png" getImage="GetImage" />
+                                <button id="heading1_3" label="三、" onAction="OnAction" getEnabled="OnGetEnabled" tag="_1.png" getImage="GetImage" />
+                                <button id="heading1_4" label="四、" onAction="OnAction" getEnabled="OnGetEnabled" tag="_1.png" getImage="GetImage" />
+                                <button id="heading1_5" label="五、" onAction="OnAction" getEnabled="OnGetEnabled" tag="_1.png" getImage="GetImage" />
+                                <button id="heading1_6" label="六、" onAction="OnAction" getEnabled="OnGetEnabled" tag="_1.png" getImage="GetImage" />
+                                <button id="heading1_7" label="七、" onAction="OnAction" getEnabled="OnGetEnabled" tag="_1.png" getImage="GetImage" />
+                                <button id="heading1_8" label="八、" onAction="OnAction" getEnabled="OnGetEnabled" tag="_1.png" getImage="GetImage" />
+                                <button id="heading1_9" label="九、" onAction="OnAction" getEnabled="OnGetEnabled" tag="_1.png" getImage="GetImage" />
+                                <button id="heading1_10" label="十、" onAction="OnAction" getEnabled="OnGetEnabled" tag="_1.png" getImage="GetImage" />
+                                <button id="heading1_11" label="十一、" onAction="OnAction" getEnabled="OnGetEnabled" tag="_1.png" getImage="GetImage" />
+                                <button id="heading1_12" label="十二、" onAction="OnAction" getEnabled="OnGetEnabled" tag="_1.png" getImage="GetImage" />
+                                <button id="heading1_13" label="十三、" onAction="OnAction" getEnabled="OnGetEnabled" tag="_1.png" getImage="GetImage" />
+                                <button id="heading1_14" label="十四、" onAction="OnAction" getEnabled="OnGetEnabled" tag="_1.png" getImage="GetImage" />
+                                <button id="heading1_15" label="十五、" onAction="OnAction" getEnabled="OnGetEnabled" tag="_1.png" getImage="GetImage" />
+                                <button id="heading1_16" label="十六、" onAction="OnAction" getEnabled="OnGetEnabled" tag="_1.png" getImage="GetImage" />
+                                <button id="heading1_17" label="十七、" onAction="OnAction" getEnabled="OnGetEnabled" tag="_1.png" getImage="GetImage" />
+                                <button id="heading1_18" label="十八、" onAction="OnAction" getEnabled="OnGetEnabled" tag="_1.png" getImage="GetImage" />
+                                <button id="heading1_19" label="十九、" onAction="OnAction" getEnabled="OnGetEnabled" tag="_1.png" getImage="GetImage" />
+                                <button id="heading1_20" label="二十、" onAction="OnAction" getEnabled="OnGetEnabled" tag="_1.png" getImage="GetImage" />
+                            </menu>
+                        </splitButton>
+                        <splitButton id="heading2Split">
+                            <button id="btnHeading2" label="标题（一）" tag="_2.png" getImage="GetImage" onAction="OnAction" getEnabled="OnGetEnabled" />
+                            <menu id="heading2Menu">
+                                <button id="heading2_1" label="（一）" onAction="OnAction" getEnabled="OnGetEnabled" tag="_2.png" getImage="GetImage" />
+                                <button id="heading2_2" label="（二）" onAction="OnAction" getEnabled="OnGetEnabled" tag="_2.png" getImage="GetImage" />
+                                <button id="heading2_3" label="（三）" onAction="OnAction" getEnabled="OnGetEnabled" tag="_2.png" getImage="GetImage" />
+                                <button id="heading2_4" label="（四）" onAction="OnAction" getEnabled="OnGetEnabled" tag="_2.png" getImage="GetImage" />
+                                <button id="heading2_5" label="（五）" onAction="OnAction" getEnabled="OnGetEnabled" tag="_2.png" getImage="GetImage" />
+                                <button id="heading2_6" label="（六）" onAction="OnAction" getEnabled="OnGetEnabled" tag="_2.png" getImage="GetImage" />
+                                <button id="heading2_7" label="（七）" onAction="OnAction" getEnabled="OnGetEnabled" tag="_2.png" getImage="GetImage" />
+                                <button id="heading2_8" label="（八）" onAction="OnAction" getEnabled="OnGetEnabled" tag="_2.png" getImage="GetImage" />
+                                <button id="heading2_9" label="（九）" onAction="OnAction" getEnabled="OnGetEnabled" tag="_2.png" getImage="GetImage" />
+                                <button id="heading2_10" label="（十）" onAction="OnAction" getEnabled="OnGetEnabled" tag="_2.png" getImage="GetImage" />
+                                <button id="heading2_11" label="（十一）" onAction="OnAction" getEnabled="OnGetEnabled" tag="_2.png" getImage="GetImage" />
+                                <button id="heading2_12" label="（十二）" onAction="OnAction" getEnabled="OnGetEnabled" tag="_2.png" getImage="GetImage" />
+                                <button id="heading2_13" label="（十三）" onAction="OnAction" getEnabled="OnGetEnabled" tag="_2.png" getImage="GetImage" />
+                                <button id="heading2_14" label="（十四）" onAction="OnAction" getEnabled="OnGetEnabled" tag="_2.png" getImage="GetImage" />
+                                <button id="heading2_15" label="（十五）" onAction="OnAction" getEnabled="OnGetEnabled" tag="_2.png" getImage="GetImage" />
+                                <button id="heading2_16" label="（十六）" onAction="OnAction" getEnabled="OnGetEnabled" tag="_2.png" getImage="GetImage" />
+                                <button id="heading2_17" label="（十七）" onAction="OnAction" getEnabled="OnGetEnabled" tag="_2.png" getImage="GetImage" />
+                                <button id="heading2_18" label="（十八）" onAction="OnAction" getEnabled="OnGetEnabled" tag="_2.png" getImage="GetImage" />
+                                <button id="heading2_19" label="（十九）" onAction="OnAction" getEnabled="OnGetEnabled" tag="_2.png" getImage="GetImage" />
+                                <button id="heading2_20" label="（二十）" onAction="OnAction" getEnabled="OnGetEnabled" tag="_2.png" getImage="GetImage" />
+                            </menu>
+                        </splitButton>
+                        <button id="btnUnderDot" label="着重号" tag="E.png" getImage="GetImage" onAction="OnAction" getEnabled="OnGetEnabled" />
+                    </box>
+                    <box id="heading34" boxStyle="vertical">
+                        <splitButton id="heading3Split">
+                            <button id="btnHeading3" label="标题1." tag="_3.png" getImage="GetImage" onAction="OnAction" getEnabled="OnGetEnabled" />
+                            <menu id="heading3Menu">
+                                <button id="heading3_1" label="1．" onAction="OnAction" getEnabled="OnGetEnabled" tag="_3.png" getImage="GetImage" />
+                                <button id="heading3_2" label="2．" onAction="OnAction" getEnabled="OnGetEnabled" tag="_3.png" getImage="GetImage" />
+                                <button id="heading3_3" label="3．" onAction="OnAction" getEnabled="OnGetEnabled" tag="_3.png" getImage="GetImage" />
+                                <button id="heading3_4" label="4．" onAction="OnAction" getEnabled="OnGetEnabled" tag="_3.png" getImage="GetImage" />
+                                <button id="heading3_5" label="5．" onAction="OnAction" getEnabled="OnGetEnabled" tag="_3.png" getImage="GetImage" />
+                                <button id="heading3_6" label="6．" onAction="OnAction" getEnabled="OnGetEnabled" tag="_3.png" getImage="GetImage" />
+                                <button id="heading3_7" label="7．" onAction="OnAction" getEnabled="OnGetEnabled" tag="_3.png" getImage="GetImage" />
+                                <button id="heading3_8" label="8．" onAction="OnAction" getEnabled="OnGetEnabled" tag="_3.png" getImage="GetImage" />
+                                <button id="heading3_9" label="9．" onAction="OnAction" getEnabled="OnGetEnabled" tag="_3.png" getImage="GetImage" />
+                                <button id="heading3_10" label="10．" onAction="OnAction" getEnabled="OnGetEnabled" tag="_3.png" getImage="GetImage" />
+                                <button id="heading3_11" label="11．" onAction="OnAction" getEnabled="OnGetEnabled" tag="_3.png" getImage="GetImage" />
+                                <button id="heading3_12" label="12．" onAction="OnAction" getEnabled="OnGetEnabled" tag="_3.png" getImage="GetImage" />
+                                <button id="heading3_13" label="13．" onAction="OnAction" getEnabled="OnGetEnabled" tag="_3.png" getImage="GetImage" />
+                                <button id="heading3_14" label="14．" onAction="OnAction" getEnabled="OnGetEnabled" tag="_3.png" getImage="GetImage" />
+                                <button id="heading3_15" label="15．" onAction="OnAction" getEnabled="OnGetEnabled" tag="_3.png" getImage="GetImage" />
+                                <button id="heading3_16" label="16．" onAction="OnAction" getEnabled="OnGetEnabled" tag="_3.png" getImage="GetImage" />
+                                <button id="heading3_17" label="17．" onAction="OnAction" getEnabled="OnGetEnabled" tag="_3.png" getImage="GetImage" />
+                                <button id="heading3_18" label="18．" onAction="OnAction" getEnabled="OnGetEnabled" tag="_3.png" getImage="GetImage" />
+                                <button id="heading3_19" label="19．" onAction="OnAction" getEnabled="OnGetEnabled" tag="_3.png" getImage="GetImage" />
+                                <button id="heading3_20" label="20．" onAction="OnAction" getEnabled="OnGetEnabled" tag="_3.png" getImage="GetImage" />
+                            </menu>
+                        </splitButton>
+                        <splitButton id="heading4Split">
+                            <button id="btnHeading4" label="标题（1）" tag="_4.png" getImage="GetImage" onAction="OnAction" getEnabled="OnGetEnabled" />
+                            <menu id="heading4Menu">
+                                <button id="heading4_1" label="（1）" onAction="OnAction" getEnabled="OnGetEnabled" tag="_4.png" getImage="GetImage" />
+                                <button id="heading4_2" label="（2）" onAction="OnAction" getEnabled="OnGetEnabled" tag="_4.png" getImage="GetImage" />
+                                <button id="heading4_3" label="（3）" onAction="OnAction" getEnabled="OnGetEnabled" tag="_4.png" getImage="GetImage" />
+                                <button id="heading4_4" label="（4）" onAction="OnAction" getEnabled="OnGetEnabled" tag="_4.png" getImage="GetImage" />
+                                <button id="heading4_5" label="（5）" onAction="OnAction" getEnabled="OnGetEnabled" tag="_4.png" getImage="GetImage" />
+                                <button id="heading4_6" label="（6）" onAction="OnAction" getEnabled="OnGetEnabled" tag="_4.png" getImage="GetImage" />
+                                <button id="heading4_7" label="（7）" onAction="OnAction" getEnabled="OnGetEnabled" tag="_4.png" getImage="GetImage" />
+                                <button id="heading4_8" label="（8）" onAction="OnAction" getEnabled="OnGetEnabled" tag="_4.png" getImage="GetImage" />
+                                <button id="heading4_9" label="（9）" onAction="OnAction" getEnabled="OnGetEnabled" tag="_4.png" getImage="GetImage" />
+                                <button id="heading4_10" label="（10）" onAction="OnAction" getEnabled="OnGetEnabled" tag="_4.png" getImage="GetImage" />
+                                <button id="heading4_11" label="（11）" onAction="OnAction" getEnabled="OnGetEnabled" tag="_4.png" getImage="GetImage" />
+                                <button id="heading4_12" label="（12）" onAction="OnAction" getEnabled="OnGetEnabled" tag="_4.png" getImage="GetImage" />
+                                <button id="heading4_13" label="（13）" onAction="OnAction" getEnabled="OnGetEnabled" tag="_4.png" getImage="GetImage" />
+                                <button id="heading4_14" label="（14）" onAction="OnAction" getEnabled="OnGetEnabled" tag="_4.png" getImage="GetImage" />
+                                <button id="heading4_15" label="（15）" onAction="OnAction" getEnabled="OnGetEnabled" tag="_4.png" getImage="GetImage" />
+                                <button id="heading4_16" label="（16）" onAction="OnAction" getEnabled="OnGetEnabled" tag="_4.png" getImage="GetImage" />
+                                <button id="heading4_17" label="（17）" onAction="OnAction" getEnabled="OnGetEnabled" tag="_4.png" getImage="GetImage" />
+                                <button id="heading4_18" label="（18）" onAction="OnAction" getEnabled="OnGetEnabled" tag="_4.png" getImage="GetImage" />
+                                <button id="heading4_19" label="（19）" onAction="OnAction" getEnabled="OnGetEnabled" tag="_4.png" getImage="GetImage" />
+                                <button id="heading4_20" label="（20）" onAction="OnAction" getEnabled="OnGetEnabled" tag="_4.png" getImage="GetImage" />
+                            </menu>
+                        </splitButton>
+                        <button id="btnHideFont" label="隐藏" tag="H.png" getImage="GetImage" onAction="OnAction" getEnabled="OnGetEnabled" />
+                    </box>
+                    <box id="fontTools" boxStyle="vertical">
+                        <menu id="fontMenu" label="字体更改" tag="FontsReplaceFonts.png" getImage="GetImage">
+                            <button id="fontFSgb" label="仿宋GB2312→仿宋" tag="FontsReplaceFonts.png" getImage="GetImage" onAction="OnAction" getEnabled="OnGetEnabled" />
+                            <button id="fontFS" label="仿宋→仿宋GB2312" tag="FontsReplaceFonts.png" getImage="GetImage" onAction="OnAction" getEnabled="OnGetEnabled" />
+                            <button id="fontKTgb" label="楷体GB2312→楷体" tag="FontsReplaceFonts.png" getImage="GetImage" onAction="OnAction" getEnabled="OnGetEnabled" />
+                            <button id="fontKT" label="楷体→楷体GB2312" tag="FontsReplaceFonts.png" getImage="GetImage" onAction="OnAction" getEnabled="OnGetEnabled" />
+                            <button id="fontBSgb" label="方正小标宋简体→方正小标宋_GBK" tag="FontsReplaceFonts.png" getImage="GetImage" onAction="OnAction" getEnabled="OnGetEnabled" />
+                            <button id="fontGBbs" label="方正小标宋_GBK→方正小标宋简体" tag="FontsReplaceFonts.png" getImage="GetImage" onAction="OnAction" getEnabled="OnGetEnabled" />
+                            <button id="fontBSh" label="方正小标宋→黑体" tag="FontsReplaceFonts.png" getImage="GetImage" onAction="OnAction" getEnabled="OnGetEnabled" />
+                            <button id="fontHbs" label="黑体→方正小标宋_GBK" tag="FontsReplaceFonts.png" getImage="GetImage" onAction="OnAction" getEnabled="OnGetEnabled" />
+                            <button id="btnLatinFont" label="指定字体更改…" tag="FontsReplaceFonts.png" getImage="GetImage" onAction="OnAction" getEnabled="OnGetEnabled" />
+                        </menu>
+                        <button id="btnNum2Text" label="编号转文字" tag="FormattingUnique.png" getImage="GetImage" onAction="OnAction" getEnabled="OnGetEnabled" />
+                    </box>
+                    <box id="fontPresets" boxStyle="vertical">
+                        <button id="btnHead" label="三号黑体" tag="HeaderFooterEditHeader.png" getImage="GetImage" onAction="OnAction" getEnabled="OnGetEnabled" />
+                        <button id="btnName" label="三号楷体" tag="GroupTextBoxText.png" getImage="GetImage" onAction="OnAction" getEnabled="OnGetEnabled" />
+                        <button id="btnFoot" label="四号仿宋" tag="GroupTextBoxText.png" getImage="GetImage" onAction="OnAction" getEnabled="OnGetEnabled" />
+                    </box>
+                    <splitButton id="styleSplit" size="large">
+                        <button id="btnStyles" label="样式" tag="ChangeStylesMenu.png" getImage="GetImage" onAction="OnAction" getEnabled="OnGetEnabled" />
+                        <menu id="stylesMenu">
+                            <button id="btnRefreshStyles" label="按设置重建公文样式" onAction="OnAction" getEnabled="OnGetEnabled" tag="PageMarginsGallery.png" getImage="GetImage" />
+                        </menu>
+                    </splitButton>
                 </group>
-                <group id="gwGroupPageNum" label="页码">
-                    <button id="btnNumCenter" label="居中页码" onAction="OnAction" getImage="GetImage" size="large"/>
-                    <button id="btnNumRight" label="居右页码" onAction="OnAction" getImage="GetImage" size="large"/>
-                    <button id="btnNumOutside" label="外侧页码" onAction="OnAction" getImage="GetImage" size="large"/>
+                <group id="gwInsert" label="插入">
+                    <menu id="partsMenu" label="公文部件" tag="QuickSearchSubject.png" getImage="GetImage" size="large">
+                        <button id="btnHeadSingle" label="单行发文机关" tag="GWHeadSingle_16.png" getImage="GetImage" onAction="OnAction" getEnabled="OnGetEnabled" />
+                        <button id="btnHeadMulti" label="联合发文机关" tag="GWHeadMutil_16.png" getImage="GetImage" onAction="OnAction" getEnabled="OnGetEnabled" />
+                        <button id="btnLineTop" label="函线（上）" tag="GWline2_16.png" getImage="GetImage" onAction="OnAction" getEnabled="OnGetEnabled" />
+                        <button id="btnLineBottom" label="函线（下）" tag="GWline3_16.png" getImage="GetImage" onAction="OnAction" getEnabled="OnGetEnabled" />
+                        <button id="btnBind" label="装订线" tag="LogicBoldItalicAction.png" getImage="GetImage" onAction="OnAction" getEnabled="OnGetEnabled" />
+                        <button id="btnRedLine" label="间隔线" tag="GWline2_16.png" getImage="GetImage" onAction="OnAction" getEnabled="OnGetEnabled" />
+                        <button id="btnImprint1" label="单行版记" tag="TableCellAlignTop.png" getImage="GetImage" onAction="OnAction" getEnabled="OnGetEnabled" />
+                        <button id="btnImprint2" label="双行版记" tag="TableCellAlignTop.png" getImage="GetImage" onAction="OnAction" getEnabled="OnGetEnabled" />
+                    </menu>
+                    <box id="insertTools" boxStyle="vertical">
+                        <button id="btnDate" label="日期" tag="DateAndTimeInsert.png" getImage="GetImage" onAction="OnAction" getEnabled="OnGetEnabled" />
+                        <button id="btnLandscape" label="横页" tag="PageOrientationPortraitLandscape.png" getImage="GetImage" onAction="OnAction" getEnabled="OnGetEnabled" />
+                    </box>
+                    <menu id="pageNumberMenu" label="页码" tag="HeaderFooterPageNumberInsert.png" getImage="GetImage" size="large">
+                        <button id="btnNumCenter" label="居中" tag="AlignCenter.png" getImage="GetImage" onAction="OnAction" getEnabled="OnGetEnabled" />
+                        <button id="btnNumRight" label="居右" tag="AlignRight.png" getImage="GetImage" onAction="OnAction" getEnabled="OnGetEnabled" />
+                        <button id="btnNumOutside" label="外侧" tag="AlignRight.png" getImage="GetImage" onAction="OnAction" getEnabled="OnGetEnabled" />
+                        <button id="btnNumHere" label="光标处" tag="CustomPageMargins.png" getImage="GetImage" onAction="OnAction" getEnabled="OnGetEnabled" />
+                    </menu>
+                    <menu id="symbolsMenu" label="符号" tag="StarUnratedFull.png" getImage="GetImage" size="large">
+                        <button id="symbol0" label="㎡" onAction="OnAction" getEnabled="OnGetEnabled" tag="StarUnratedFull.png" getImage="GetImage" />
+                        <button id="symbol1" label="m³" onAction="OnAction" getEnabled="OnGetEnabled" tag="StarUnratedFull.png" getImage="GetImage" />
+                        <button id="symbol2" label="‰" onAction="OnAction" getEnabled="OnGetEnabled" tag="StarUnratedFull.png" getImage="GetImage" />
+                        <button id="symbol3" label="℃" onAction="OnAction" getEnabled="OnGetEnabled" tag="StarUnratedFull.png" getImage="GetImage" />
+                        <button id="symbol4" label="·" onAction="OnAction" getEnabled="OnGetEnabled" tag="StarUnratedFull.png" getImage="GetImage" />
+                        <button id="symbol5" label="……" onAction="OnAction" getEnabled="OnGetEnabled" tag="StarUnratedFull.png" getImage="GetImage" />
+                        <button id="symbol6" label="——" onAction="OnAction" getEnabled="OnGetEnabled" tag="StarUnratedFull.png" getImage="GetImage" />
+                        <button id="symbol7" label="～" onAction="OnAction" getEnabled="OnGetEnabled" tag="StarUnratedFull.png" getImage="GetImage" />
+                        <button id="symbol8" label="〔〕" onAction="OnAction" getEnabled="OnGetEnabled" tag="StarUnratedFull.png" getImage="GetImage" />
+                        <button id="symbol9" label="《》" onAction="OnAction" getEnabled="OnGetEnabled" tag="StarUnratedFull.png" getImage="GetImage" />
+                        <button id="symbol10" label="〈〉" onAction="OnAction" getEnabled="OnGetEnabled" tag="StarUnratedFull.png" getImage="GetImage" />
+                        <button id="symbol11" label="×" onAction="OnAction" getEnabled="OnGetEnabled" tag="StarUnratedFull.png" getImage="GetImage" />
+                        <button id="symbol12" label="÷" onAction="OnAction" getEnabled="OnGetEnabled" tag="StarUnratedFull.png" getImage="GetImage" />
+                        <button id="symbol13" label="①" onAction="OnAction" getEnabled="OnGetEnabled" tag="StarUnratedFull.png" getImage="GetImage" />
+                        <button id="symbol14" label="②" onAction="OnAction" getEnabled="OnGetEnabled" tag="StarUnratedFull.png" getImage="GetImage" />
+                        <button id="symbol15" label="③" onAction="OnAction" getEnabled="OnGetEnabled" tag="StarUnratedFull.png" getImage="GetImage" />
+                        <button id="symbol16" label="④" onAction="OnAction" getEnabled="OnGetEnabled" tag="StarUnratedFull.png" getImage="GetImage" />
+                        <button id="symbol17" label="⑤" onAction="OnAction" getEnabled="OnGetEnabled" tag="StarUnratedFull.png" getImage="GetImage" />
+                        <button id="symbol18" label="⑥" onAction="OnAction" getEnabled="OnGetEnabled" tag="StarUnratedFull.png" getImage="GetImage" />
+                        <button id="symbol19" label="⑦" onAction="OnAction" getEnabled="OnGetEnabled" tag="StarUnratedFull.png" getImage="GetImage" />
+                        <button id="symbol20" label="⑧" onAction="OnAction" getEnabled="OnGetEnabled" tag="StarUnratedFull.png" getImage="GetImage" />
+                        <button id="symbol21" label="⑨" onAction="OnAction" getEnabled="OnGetEnabled" tag="StarUnratedFull.png" getImage="GetImage" />
+                        <button id="symbol22" label="⑩" onAction="OnAction" getEnabled="OnGetEnabled" tag="StarUnratedFull.png" getImage="GetImage" />
+                        <button id="symbol23" label="□" onAction="OnAction" getEnabled="OnGetEnabled" tag="StarUnratedFull.png" getImage="GetImage" />
+                        <button id="symbol24" label="★" onAction="OnAction" getEnabled="OnGetEnabled" tag="StarUnratedFull.png" getImage="GetImage" />
+                        <button id="symbol25" label="※" onAction="OnAction" getEnabled="OnGetEnabled" tag="StarUnratedFull.png" getImage="GetImage" />
+                        <button id="symbol26" label="￥" onAction="OnAction" getEnabled="OnGetEnabled" tag="StarUnratedFull.png" getImage="GetImage" />
+                        <button id="symbol27" label="√" onAction="OnAction" getEnabled="OnGetEnabled" tag="StarUnratedFull.png" getImage="GetImage" />
+                        <button id="symbol28" label="⚪" onAction="OnAction" getEnabled="OnGetEnabled" tag="StarUnratedFull.png" getImage="GetImage" />
+                        <button id="symbol29" label="☑" onAction="OnAction" getEnabled="OnGetEnabled" tag="StarUnratedFull.png" getImage="GetImage" />
+                        <button id="symbol30" label="☒" onAction="OnAction" getEnabled="OnGetEnabled" tag="StarUnratedFull.png" getImage="GetImage" />
+                        <button id="symbol31" label="☐" onAction="OnAction" getEnabled="OnGetEnabled" tag="StarUnratedFull.png" getImage="GetImage" />
+                        <button id="btnBrackets" label="将 [] 替换为〔〕" onAction="OnAction" getEnabled="OnGetEnabled" tag="StarUnratedFull.png" getImage="GetImage" />
+                        <button id="btnBracketsBlack" label="将【】替换为〔〕" onAction="OnAction" getEnabled="OnGetEnabled" tag="StarUnratedFull.png" getImage="GetImage" />
+                        <button id="btnCircle" label="转换数字为带圈序号" onAction="OnAction" getEnabled="OnGetEnabled" tag="StarUnratedFull.png" getImage="GetImage" />
+                    </menu>
+                    <splitButton id="stampSplit" size="large">
+                        <button id="btnStamp" label="公章" tag="StampTool.png" getImage="GetImage" onAction="OnAction" getEnabled="OnGetEnabled" />
+                        <menu id="stampMenu">
+                            <button id="btnStampLink" label="连接公章" onAction="OnAction" getEnabled="OnGetEnabled" tag="PageMarginsGallery.png" getImage="GetImage" />
+                            <button id="btnStampEmbed" label="插入公章" onAction="OnAction" getEnabled="OnGetEnabled" tag="PageMarginsGallery.png" getImage="GetImage" />
+                        </menu>
+                    </splitButton>
                 </group>
-                <group id="gwGroupHeader" label="页眉">
-                    <button id="btnDelHeader" label="删除页眉" onAction="OnAction" getImage="GetImage" size="large"/>
-                    <button id="btnDelHeaderLine" label="删除页眉横线" onAction="OnAction" getImage="GetImage" size="large"/>
+                <group id="gwOther" label="其他">
+                    <menu id="copyMenu" label="副本" tag="FileSaveAs.png" getImage="GetImage" size="large">
+                        <button id="btnPDF" label="生成 PDF 副本" tag="FileEmailAsPdfEmailAttachment.png" getImage="GetImage" onAction="OnAction" getEnabled="OnGetEnabled" />
+                        <button id="btnDOC" label="生成 DOC 副本" tag="FileSaveAsWord97_2003.png" getImage="GetImage" onAction="OnAction" getEnabled="OnGetEnabled" />
+                        <button id="btnSaveImages" label="输出为图片…" tag="SaveAsPng.png" getImage="GetImage" onAction="OnAction" getEnabled="OnGetEnabled" />
+                        <button id="btnImagePDF" label="图片型 PDF 副本…" tag="FileEmailAsPdfEmailAttachment.png" getImage="GetImage" onAction="OnAction" getEnabled="OnGetEnabled" />
+                    </menu>
+                    <button id="btnScripts" label="脚本工具" tag="FormattingUnique.png" getImage="GetImage" onAction="OnAction" getEnabled="OnGetEnabled" size="large" />
+                    <box id="otherTools" boxStyle="vertical">
+                        <button id="btnProtect" label="限制编辑" tag="ProtectDocument.png" getImage="GetImage" onAction="OnAction" getEnabled="OnGetEnabled" />
+                        <menu id="passwordMenu" label="文档加密" tag="WebControlPassword.png" getImage="GetImage">
+                            <button id="btnPassword" label="设置密码" onAction="OnAction" getEnabled="OnGetEnabled" tag="PageMarginsGallery.png" getImage="GetImage" />
+                            <button id="btnClearOpenPassword" label="清除打开密码" onAction="OnAction" getEnabled="OnGetEnabled" tag="PageMarginsGallery.png" getImage="GetImage" />
+                            <button id="btnClearWritePassword" label="清除修改密码" onAction="OnAction" getEnabled="OnGetEnabled" tag="PageMarginsGallery.png" getImage="GetImage" />
+                        </menu>
+                        <button id="btnSpeak" label="朗读／停止" tag="SpeakCells.png" getImage="GetImage" onAction="OnAction" getEnabled="OnGetEnabled" />
+                    </box>
                 </group>
-                <group id="gwGroupHelp" label="帮助">
-                    <button id="btnAbout" label="关于" onAction="OnAction" getImage="GetImage" size="large"/>
-                    <button id="btnHelp" label="在线帮助" onAction="OnAction" getImage="GetImage" size="large"/>
+                <group id="gwHelp" label="关于">
+                    <button id="btnAbout" label="关于插件" tag="Info.png" getImage="GetImage" onAction="OnAction" getEnabled="OnGetEnabled" />
+                    <button id="btnAdvancedSettings" label="高级设置" tag="CustomPageMargins.png" getImage="GetImage" onAction="OnAction" getEnabled="OnGetEnabled" />
+                    <button id="btnDiagnostics" label="诊断日志" tag="Info.png" getImage="GetImage" onAction="OnAction" getEnabled="OnGetEnabled" />
+                    <button id="btnHelp" label="在线帮助" tag="Help.png" getImage="GetImage" onAction="OnAction" getEnabled="OnGetEnabled" />
                 </group>
             </tab>
         </tabs>

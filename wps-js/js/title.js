@@ -14,11 +14,11 @@ function gwFindListTemplate(cfg, startAt) {
     var list = doc().ListTemplates;
     for (var i = 1; i <= list.Count; i++) {
         try {
-            var lvl = list.item(i).ListLevels.Item(1);
+            var lvl = list.Item(i).ListLevels.Item(1);
             if (lvl.NumberFormat === cfg.format && lvl.NumberStyle === cfg.style &&
                 lvl.TrailingCharacter === Wd.wdTrailingNone &&
                 lvl.TextPosition === 0 && lvl.NumberPosition === 0 && lvl.StartAt === startAt) {
-                return list.item(i);
+                return list.Item(i);
             }
         } catch (e) { /* 没有 1 级定义的模板直接跳过 */ }
     }
@@ -44,6 +44,7 @@ function gwSetHeading(level, startAt) {
     if (!cfg) { alert('未知的标题级别: ' + level); return; }
     if (!(startAt >= 1)) startAt = 1;          // 与 C# 一致：0 或负数按 1 处理
     var s = gwLoadSettings();
+    gwCheckFont(s.字体[cfg.font].name);
     withUndo('设为' + level + '级标题', function () {
         applyFont(s.字体[cfg.font]);
         var t = gwFindListTemplate(cfg, startAt) || gwCreateListTemplate(cfg, startAt);
@@ -56,6 +57,7 @@ function gwSetHeading(level, startAt) {
 function gwSetMainTitle() {
     if (!hasDocument()) { alert('没有打开的文档'); return; }
     var s = gwLoadSettings();
+    gwCheckFont(s.字体.公文标题.name);
     withUndo('设为公文标题', function () {
         applyFont(s.字体.公文标题);
         sel().ParagraphFormat.Alignment = Wd.wdAlignParagraphCenter;

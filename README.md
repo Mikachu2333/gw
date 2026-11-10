@@ -16,7 +16,7 @@
 | 形态 | 位置 | 适用宿主 |
 | --- | --- | --- |
 | VSTO 插件本体（C#） | `src/`，编译出 `gw_mika.dll` | Windows Microsoft Word（保留旧 WPS 兼容代码） |
-| VBA 脚本 | `VBA Script/`，42 个示例 | Windows（Word 与 WPS 的 VBA 宿主） |
+| VBA 脚本 | `VBA Script/`，43 个示例（含新增图片型 PDF 副本） | Windows（Word 与 WPS 的 VBA 宿主） |
 | WPS JS 加载项 | `wps-js/`，Windows EXE 与 Linux 安装包 | Windows（含个人版）及 Linux 的 WPS 文字，需宿主具备 JS 加载项能力 |
 
 插件支持 VBA 脚本，可以在此处`VBA Script`文件夹查看脚本示例。
@@ -54,7 +54,13 @@ python3 ~/.local/share/Kingsoft/wps/jsaddons/.gw_mika/uninstall.py --uninstall
 ```
 
 WPS 安装包本身必须具备文字 JS 加载项能力。安装器不会修改宏安全策略或 `oem.ini`。
-**当前 JS 版提供页面、标题、正文、文字清理、页码和页眉处理；尚未移植 VSTO 全部功能及 42 个 VBA 脚本。**
+WPS JS 版按 Word 版的六个分组组织功能区，提供四级标题 1–20 起始编号下拉、页面与字体设置、
+文字清理、字体转换、七个公文样式、公文部件、版记、日期、横页、页码、符号、公章、PDF/DOC 副本、文档密码与保护。
+设置保存在用户主目录的 `.gw_mika-settings.json`，同时通过 WPS PluginStorage 共享到设置窗口。
+图片输出使用离线渲染，支持逐页 PNG/JPG 及图片型 PDF；“其他 → 脚本工具”提供原版 42 项中的 38 项移植功能（含适配版），另新增图片型 PDF 工具。
+两种自动排版尚有版式细节差异；Excel 两项功能、图片转 PPT、外部扫描 PDF、PDF 合并及任意 VBA 执行尚未移植。
+详见 [VBA 移植对照表](wps-js/VBA-PORTING.md)。朗读需要宿主内嵌浏览器支持，缺少接口时按钮禁用。
+功能对应关系与宿主验收步骤见 [WPS 功能说明](wps-js/README.md)。
 Word 版“高级设置”位于“关于插件”旁边；“预设脚本”和“历史脚本”是“实验室”组的独立菜单。
 
 ### 构建与验证
@@ -68,7 +74,9 @@ python tools/test-js-installers.py
 node tools/test-js-host.mjs
 ```
 
-检查在临时目录中覆盖安装、升级、卸载、配置损坏、其他加载项保留和失败回滚，不修改真实 WPS 配置。
+检查覆盖大小写敏感的 JSAPI 集合、查找替换范围、标题编号、跨节页码、配置持久化、按钮映射及 PNG 资源。
+安装检查在临时目录中覆盖安装、升级、卸载、配置损坏、其他加载项保留和失败回滚，不修改真实 WPS 配置。
+这些模拟检查不能替代 WPS 界面中的实际验收。
 `gw_mika-Setup-<版本>.exe /DETECTONLY=<绝对文件路径> /VERYSILENT` 可仅记录宿主检测结果而不安装。
 
 ### 版本号维护

@@ -75,6 +75,8 @@ export default defineConfig({
         copyFile({ src: 'js', dest: 'js' }),
         copyFile({ src: 'images', dest: 'images' }),
         copyFile({ src: 'ui', dest: 'ui' }),
+        copyFile({ src: 'templates', dest: 'templates' }),
+        copyFile({ src: 'vendor', dest: 'vendor' }),
     ],
     build: { rollupOptions: { input: 'main.js', output: { entryFileNames: 'main.js' } } },
     server: { host: '127.0.0.1' }

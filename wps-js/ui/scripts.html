@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>公文准式脚本工具</title>
+    <link rel="stylesheet" href="settings.css">
+    <style>
+        main {max-width:1000px;} .layout {display:grid;grid-template-columns:270px 1fr;gap:20px;}
+        #scripts {height:360px;margin-top:10px;} #search {width:100%;} #history {margin:10px 0;}
+        #result {white-space:pre-wrap;overflow-wrap:anywhere;} #output {width:100%;min-height:70px;}
+        #note {white-space:pre-wrap;} small {color:#637080;} @media(max-width:600px){.layout {grid-template-columns:1fr;} #scripts {height:170px;}}
+    </style>
+</head>
+<body>
+<main>
+    <h1>脚本工具</h1>
+    <p>原版内置 VBA 功能的 WPS JS 移植。先选中文档内容，再选择工具；运行前请阅读适用范围。</p>
+    <div class="layout">
+        <section aria-label="选择脚本">
+            <input id="search" type="search" placeholder="搜索脚本" aria-label="搜索脚本">
+            <select id="history" aria-label="最近使用"><option value="">最近使用</option></select>
+            <select id="scripts" size="16" aria-label="脚本列表"></select>
+            <small id="counts"></small>
+        </section>
+        <section>
+            <h2 id="name"></h2><p id="note"></p>
+            <form id="scriptForm">
+                <div id="params" class="stack"></div>
+                <footer><button id="run" class="primary" type="submit">运行</button><button id="close" type="button">关闭</button></footer>
+            </form>
+            <p id="result" role="status" aria-live="polite"></p>
+            <textarea id="output" readonly hidden aria-label="结果内容"></textarea>
+        </section>
+    </div>
+</main>
+<script src="../js/enums.js"></script>
+<script src="../js/util.js"></script>
+<script src="../js/diagnostics.js"></script>
+<script src="../js/config.js"></script>
+<script src="../js/pagenum.js"></script>
+<script src="../js/commands.js"></script>
+<script src="../js/macro-text.js"></script>
+<script src="../js/macro-files.js"></script>
+<script src="../js/macro-format.js"></script>
+<script src="../js/macros.js"></script>
+<script src="scripts.js"></script>
+</body>
+</html>
