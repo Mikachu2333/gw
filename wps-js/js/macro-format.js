@@ -16,6 +16,83 @@ function gwMacroHeading(text) {
     for(var i=0;i<patterns.length;i++){var m=patterns[i].exec(text);if(m)return {level:i+1,length:m[0].length};}
     return null;
 }
+// 自动排版的落款与独立“公文落款”脚本不同，分别保留两个原版的字数表。
+function gwMacroSignatureLayout(name,date,modern,size) {
+    var parts=/年(\d+)月(\d+)日/.exec(date),wide=(parts[1].length===2?1:0)+(parts[2].length===2?1:0);
+    var count=name.length,first,right=modern || size===16?5.9:7,spacing=0;
+    if(modern) {
+        var positions=[17.43,16.93,16.4,15.92,15.44,14.96,14.26,13.65,13.12,12.55,12.07,11.6,11.06,10.5,9.56];
+        first=positions[Math.max(2,Math.min(count,16))-2]-(wide===2?0.4:wide===1?0.15:0);
+    } else {
+        var offsets=size===16?[1.2,1.6,6.5,4.15,2.7,3.35,7.45,6.45,5,5.5,6.1,6.6,7.2,7.7,8.25,9.25,10.25,11.25,12.25,13.25,14.25,15.25,16.25,17.25]
+            :[1.2,1.7,7.85,4.85,2.75,3.35,8.55,7.15,5.15,5.65,6.25,6.75,7.15,7.75,8.35,8.4,9.3,10.45,11.35,12.45,13.45,14.45,15.45,16.45];
+        // 原版超过数组范围会出错；使用其最长署名规则，保留完整姓名。
+        first=(size===16?18.22:20.7)-wide*0.25-offsets[Math.max(2,Math.min(count,25))-2];
+        if(count>=17)right=[6.5,7,7.85,8.52,9.2,9.88,10.55,11.22,12][Math.min(count,25)-17];
+        if(count===9 || count===5)spacing=1;
+        else if(count===8)spacing=2;
+        else if(count===4)spacing=3;
+    }
+    return {first:first,right:right,spacing:spacing};
+}
+function gwMacroFormatInscriptions(d,modern) {
+    var pairs=[];
+    for(var i=2;i<=d.Paragraphs.Count;i++) {
+        var date=d.Paragraphs.Item(i).Range,signature=d.Paragraphs.Item(i-1).Range;
+        var dateText=gwMacroDate(gwMacroText(date));
+        if(!dateText || date.Tables.Count || signature.Tables.Count || date.Font.Size===22 || date.Font.Size===18 || signature.Font.Size===22)continue;
+        if(modern && signature.ParagraphFormat.OutlineLevel!==10)continue;
+        var name=gwMacroText(signature).trim();
+        var valid=name && !/[。：；，、！？…—.:;,!?]$/.test(name) && !gwMacroHeading(name) && (!modern || /^[\u4e00-\ufa29]/.test(name));
+        pairs.push({date:date.Duplicate,signature:signature.Duplicate,name:name,text:dateText,valid:valid});
+        if(!modern)break; // 经典脚本只排第一个有效日期落款。
+    }
+    // 从后向前插入留白，前面落款的定位不受后面文本变化影响。
+    for(var j=pairs.length-1;j>=0;j--) {
+        var pair=pairs[j],date=pair.date,pf=date.ParagraphFormat,size=Number(date.Font.Size);
+        pf.Alignment=2;pf.CharacterUnitFirstLineIndent=0;pf.CharacterUnitRightIndent=modern || size===16?5.9:7;
+        date.Font.Bold=modern?-1:0;
+        if(!pair.valid){d.Range(date.Start,date.Start).Text='\r';continue;}
+        var layout=gwMacroSignatureLayout(pair.name,pair.text,modern,size),start=pair.signature.Start,name=pair.name;
+        if(!modern && name.length===2)name=name[0]+'  '+name[1];
+        else if(!modern && name.length===3)name=name.split('').join(' ');
+        var textRange=gwMacroRange(pair.signature,start,start+gwMacroText(pair.signature).length);
+        if(textRange.Text!==name)textRange.Text=name;
+        d.Range(start,start).Text='\r\r\r';
+        var nameRange=d.Range(start+3,start+3+name.length+1),nameFormat=nameRange.ParagraphFormat;
+        nameFormat.Alignment=3;nameFormat.CharacterUnitLeftIndent=0;nameFormat.CharacterUnitRightIndent=0;
+        nameFormat.CharacterUnitFirstLineIndent=layout.first;
+        nameRange.Font.Bold=modern?-1:0;nameRange.Font.Spacing=layout.spacing;
+        date.ParagraphFormat.CharacterUnitRightIndent=layout.right;
+    }
+}
+function gwMacroAutoPageNumbers(d,modern) {
+    var pages=d.ComputeStatistics(2);
+    gwMacroEach(d.Sections,function(section,index){
+        if(index===1) {
+            section.PageSetup.DifferentFirstPageHeaderFooter=false;section.PageSetup.OddAndEvenPagesHeaderFooter=false;
+            section.Headers.Item(1).Range.ParagraphFormat.Borders.Item(-3).LineStyle=0;
+        }
+        var types=[1];
+        if(section.PageSetup.DifferentFirstPageHeaderFooter)types.push(2);
+        if(section.PageSetup.OddAndEvenPagesHeaderFooter)types.push(3);
+        types.forEach(function(type){
+            var footer=section.Footers.Item(type);
+            // 页码重启是各节的设置，即使页脚链接到前节也必须单独取消。
+            if(modern) {
+                footer.PageNumbers.NumberStyle=0;
+                if(index===1)footer.PageNumbers.StartingNumber=1;
+                footer.PageNumbers.RestartNumberingAtSection=false;
+            }
+            if(index>1 && footer.LinkToPrevious)return;
+            if(pages>=3){gwAppendPageNumber(footer,1,true);footer.Range.Font.Name='宋体';footer.Range.Font.Size=14;}
+            else {
+                var clear=footer.Range.Duplicate;
+                clear.SetRange(clear.Start,Math.max(clear.Start,clear.End-1));clear.Text='';
+            }
+        });
+    });
+}
 function gwMacroAutoFormat(modern) {
     if(!window.confirm('将按原版主流程重排全文：解除正文域、编号转文字、重排标题和日期，并重建页脚。建议先保存副本。是否继续？'))return false;
     var d=doc();gwCheckFont('方正小标宋简体');
@@ -50,7 +127,7 @@ function gwMacroAutoFormat(modern) {
         if(titleOpen)titleRanges.push(r.Duplicate);
         first=false;
         r.Style=-1;r.Font.Name='仿宋';r.Font.Size=16;r.Font.Bold=0;r.Font.Italic=0;r.Font.Color=-16777216;r.Font.Kerning=0;r.Font.DisableCharacterSpaceGrid=true;
-        var pf=r.ParagraphFormat;pf.SpaceAfter=0;pf.LineSpacing=18;pf.Alignment=3;pf.CharacterUnitFirstLineIndent=2;
+        var pf=r.ParagraphFormat;pf.OutlineLevel=10;pf.SpaceAfter=0;pf.LineSpacing=18;pf.Alignment=3;pf.CharacterUnitFirstLineIndent=2;
         pf.KeepWithNext=false;pf.KeepTogether=false;pf.AutoAdjustRightIndent=false;pf.DisableLineHeightGrid=true;
         if(/^附件/.test(t)){counts=[0,0,0,0];pf.CharacterUnitFirstLineIndent=0;}
         if(heading && !titleOpen) {
@@ -63,12 +140,12 @@ function gwMacroAutoFormat(modern) {
             pf.SpaceBefore=13;pf.SpaceAfter=13;
             var colon=t.indexOf('：');if(colon<0)colon=t.indexOf(':');
             var stop=colon>=0?colon+1:(/[。！？]/.exec(t)||{}).index;
-            if(stop!==undefined && stop+1<t.length) {
-                if(colon<0)stop++;
+            if(colon<0 && stop!==undefined)stop++;
+            if(stop!==undefined && stop<t.length) {
                 var body=gwMacroRange(r,r.Start+stop,r.End);body.Font.Name='仿宋';body.Font.Bold=0;
             }
         }
-        if(date && !titleOpen){edits.push({range:gwMacroRange(r,r.Start,r.Start+t.length),text:date});pf.Alignment=2;pf.CharacterUnitFirstLineIndent=0;pf.CharacterUnitRightIndent=5.9;r.Font.Bold=-1;}
+        if(date && !titleOpen)edits.push({range:gwMacroRange(r,r.Start,r.Start+t.length),text:date});
     });
     for(var n=edits.length-1;n>=0;n--)edits[n].range.Text=edits[n].text;
     titleRanges.forEach(function(r){
@@ -76,21 +153,8 @@ function gwMacroAutoFormat(modern) {
         var pf=r.ParagraphFormat;pf.Alignment=1;pf.CharacterUnitFirstLineIndent=0;pf.SpaceBefore=0;pf.SpaceAfter=0;pf.LineSpacingRule=0;
         r.ParagraphFormat.Borders.Item(-3).LineStyle=0;
     });
-    // 日期上一段的署名按原版居中估算，正文中的日期引用不参与。
-    for(var k=2;k<=d.Paragraphs.Count;k++) {
-        var dateRange=d.Paragraphs.Item(k).Range,signature=d.Paragraphs.Item(k-1).Range;
-        if(!gwMacroDate(gwMacroText(dateRange)) || signature.Font.Size===22)continue;
-        var sig=gwMacroText(signature).trim();if(!sig || /[。：；，、！？]/.test(sig) || gwMacroHeading(sig))continue;
-        signature.ParagraphFormat.Alignment=2;signature.ParagraphFormat.CharacterUnitFirstLineIndent=0;
-        signature.ParagraphFormat.RightIndent=cmToPoints(2+(gwMacroText(dateRange).length-sig.length)*0.75/2);signature.Font.Bold=-1;
-    }
-    var pages=d.ComputeStatistics(2);
-    gwMacroEach(d.Sections,function(section,index){
-        if(index===1){section.PageSetup.DifferentFirstPageHeaderFooter=false;section.PageSetup.OddAndEvenPagesHeaderFooter=false;section.Headers.Item(1).Range.ParagraphFormat.Borders.Item(-3).LineStyle=0;}
-        var footer=section.Footers.Item(1);if(index>1 && footer.LinkToPrevious)return;
-        footer.Range.Text='';
-        if(pages>=3){gwAppendPageNumber(footer,1,true);footer.Range.Font.Name='宋体';footer.Range.Font.Size=14;}
-    });
+    gwMacroFormatInscriptions(d,modern);
+    gwMacroAutoPageNumbers(d,modern);
     d.Content.Font.Color=-16777216;
     return {message:'已完成自动排版主流程。请核对标题换行、表格前后段落、多落款和附件布局；这些细节尚未与原版完全等价。'};
 }

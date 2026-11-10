@@ -17,7 +17,7 @@ export function story(initial) {
     const searches = [];
     const fields = [];
     const paragraphFormat = {};
-    const font = {};
+    const font = {Bold:0,Italic:0};
     function replace(start, end, value) {
         const delta = value.length - (end - start);
         text = text.slice(0, start) + value + text.slice(end);
@@ -113,7 +113,7 @@ export function fixture() {
         return {Range:body.range(),PageSetup:{Orientation:0,DifferentFirstPageHeaderFooter:0},Footers:collection(footers), footers};
     }
     const sections=[section(),section(true),section()];
-    const normal={NameLocal:'正文',Font:{},ParagraphFormat:{}};
+    const normal={NameLocal:'正文',Font:{NameAscii:'Times New Roman',NameOther:'Times New Roman'},ParagraphFormat:{Alignment:3}};
     const styles=[normal],templates=[];
     const document={
         ReadOnly:false,ProtectionType:-1,Path:'C:/docs',Name:'文档.docx',FullName:'C:/docs/文档.docx',Saved:true,

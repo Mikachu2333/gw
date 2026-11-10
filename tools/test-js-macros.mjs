@@ -54,7 +54,7 @@ check('catalog maps every original script at 84d9734f5ce6 exactly once and marks
     assert.equal(c.GW_MACROS.filter(m=>m.unavailable).length,4);
     for(const m of c.GW_MACROS)assert.ok(m.unavailable || typeof m.run==='function');
     assert.equal(c.OnAction({Id:'btnScripts'}),true);
-    assert.match(c.gwDiagnosticText(),/wps-api-20261110-5/);
+    assert.match(c.gwDiagnosticText(),/wps-api-20261110-6/);
 });
 check('renumbering changes only heading prefixes and preserves body references',()=>{
     const {c,s}=textHost('第九章 总则\r引用第九章不变\r第八条 内容\r第三章 附则\r第七条 其他\r');
@@ -148,8 +148,10 @@ check('automatic-format recognition covers four heading forms and normalizes Chi
 check('saving a range preserves source layout and source focus; a failed output save remains open for recovery',()=>{
     const {f,c}=host(),calls=[];
     const setup={Orientation:1,PageWidth:842,PageHeight:595,TopMargin:20,BottomMargin:21,LeftMargin:22,RightMargin:23,HeaderDistance:10,FooterDistance:11,LayoutMode:1,CharsLine:28,LinesPage:22};
-    const range={PageSetup:setup,Copy:()=>calls.push('copy')};
+    const range={Start:0,End:5,PageSetup:setup,get Duplicate(){return this;},Copy:()=>calls.push('copy')};
     const output={Content:{PasteAndFormat:n=>calls.push(['paste',n])},PageSetup:{},SaveAs2:(...a)=>calls.push(['save',...a]),Close:n=>calls.push(['close',n])};
+    f.document.Sections=collection([{Range:{Start:0,End:20},PageSetup:setup}]);
+    output.Sections=collection([{PageSetup:output.PageSetup}]);
     f.application.Documents.Add=()=>output;f.document.Activate=()=>calls.push('source.activate');
     c.gwMacroWriteRange(f.document,range,'C:/out/a.docx',false);
     assert.deepEqual(output.PageSetup,setup);

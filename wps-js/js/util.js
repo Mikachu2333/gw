@@ -41,7 +41,13 @@ function doc() { return app().ActiveDocument; }
 function sel() { return app().Selection; }
 function mmToPoints(mm) { return Number(mm) * 72 / 25.4; }
 function cmToPoints(cm) { return mmToPoints(cm * 10); }
-function formatFontSize(size) { return Math.abs(size - 10.5) < 0.01 ? 10.5 : Math.round(size); }
+function formatFontSize(size) {
+    size = Number(size);
+    if (Math.abs(size - 10.5) < 0.01) return 10.5;
+    // 对齐原版 Math.Round：恰好半磅时取最近的偶数。
+    var lower = Math.floor(size);
+    return size - lower === 0.5 ? lower + lower % 2 : Math.round(size);
+}
 function hasDocument() {
     try { return app().Documents.Count > 0; } catch (e) { return false; }
 }
@@ -101,8 +107,9 @@ function setRangeFont(range, spec, rawSize) {
     f.Name = spec.name;
     f.NameFarEast = spec.name;
     f.Size = rawSize ? spec.size : formatFontSize(spec.size);
-    f.Bold = spec.bold ? -1 : 0;
-    f.Italic = spec.italic ? -1 : 0;
+    // 原版字体按钮只启用配置的强调，不抹掉选区已有的粗体和斜体。
+    if (spec.bold) f.Bold = -1;
+    if (spec.italic) f.Italic = -1;
 }
 function applyFont(spec) { setRangeFont(sel().Range, spec); }
 function ensureMainView() {

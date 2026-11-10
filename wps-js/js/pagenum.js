@@ -44,6 +44,12 @@ function gwPageNumber(position) {
                 var alignment = position === 0 ? 1 : (position === 1 && index === 3 ? 0 : 2);
                 if (gwAppendPageNumber(footer, alignment, position === 1)) written++;
                 else footer.Range.ParagraphFormat.Alignment = alignment;
+                if (position === 1) {
+                    // 原版外侧页码：奇数页右缩进一字，偶数页首行缩进一字。
+                    var pf = footer.Range.ParagraphFormat;
+                    pf.CharacterUnitFirstLineIndent = index === 3 ? 1 : 0;
+                    pf.CharacterUnitRightIndent = index === 3 ? 0 : 1;
+                }
             }
         }
         status(written ? '已设置公文页码。' : '页脚已有内容，已保留；外侧页码可确认后替换。');
