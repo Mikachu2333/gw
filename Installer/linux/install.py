@@ -21,12 +21,13 @@ def default_root():
 
 
 def load_config(path):
+    class ConfigBuilder(ET.TreeBuilder):
+        def doctype(self, name, pubid, system):
+            raise ValueError('publish.xml 不允许包含 DTD，原配置已保留。')
+
     if not path.exists():
         return ET.ElementTree(ET.Element('jsplugins'))
-    content = path.read_bytes()
-    if b'<!DOCTYPE' in content.upper():
-        raise ValueError('publish.xml 不允许包含 DTD，原配置已保留。')
-    tree = ET.ElementTree(ET.fromstring(content, ET.XMLParser(target=ET.TreeBuilder(insert_comments=True))))
+    tree = ET.parse(path, ET.XMLParser(target=ConfigBuilder(insert_comments=True, insert_pis=True)))
     if tree.getroot().tag != 'jsplugins':
         raise ValueError('publish.xml 的根元素不是 jsplugins，原配置已保留。')
     return tree
@@ -78,10 +79,10 @@ def update(root, payload=None, uninstall=False):
     config = root / 'publish.xml'
     state_dir = root / '.gw_mika'
     state_file = state_dir / 'state.json'
-    if state_dir.is_symlink() or config.is_symlink():
+    uninstaller = state_dir / 'uninstall.py'
+    if any(path.is_symlink() for path in (state_dir, state_file, uninstaller, config)):
         raise ValueError('配置或状态目录不能是符号链接。')
     tree = load_config(config)
-    old_config = config.read_bytes() if config.exists() else None
     state = json.loads(state_file.read_text(encoding='utf-8')) if state_file.exists() else {'id': APP_ID, 'folders': []}
     if state.get('id') != APP_ID:
         raise ValueError('安装状态不属于公文准式。')
@@ -119,35 +120,42 @@ def update(root, payload=None, uninstall=False):
     ET.SubElement(tree.getroot(), 'jsplugin', name=APP_ID, type='wps', url=folder,
                   version=version, enable='enable_dev', install='null', customDomain='')
     staging = Path(tempfile.mkdtemp(prefix='.gw_mika-stage-', dir=root))
-    backup = staging / 'previous'
+    backups = []
+    previous_files = {}
+    created_state_dir = False
     replaced = False
     try:
         shutil.copytree(payload, staging / 'new')
-        if target.exists():
-            target.rename(backup)
+        for previous in dict.fromkeys(old_targets + [target]):
+            if previous.exists():
+                previous.rename(staging / previous.name)
+                backups.append(previous)
         (staging / 'new').rename(target)
         replaced = True
-        state_dir.mkdir(exist_ok=True)
-        shutil.copyfile(__file__, state_dir / 'uninstall.py')
-        # 所有旧目录仍记录在状态中，即使清理因占用失败，下次仍能正确卸载。
-        folders = sorted(set(state['folders'] + [folder]))
-        atomic_write(state_file, json_bytes({'id': APP_ID, 'folders': folders}))
+        if not state_dir.exists():
+            state_dir.mkdir()
+            created_state_dir = True
+        for path, content in ((uninstaller, Path(__file__).read_bytes()),
+                              (state_file, json_bytes({'id': APP_ID, 'folders': [folder]}))):
+            previous = path.read_bytes() if path.exists() else None
+            atomic_write(path, content)
+            previous_files[path] = previous
         atomic_write(config, ET.tostring(tree.getroot(), encoding='utf-8', xml_declaration=True))
     except Exception:
         if replaced and target.exists():
             shutil.rmtree(target)
-        if backup.exists():
-            backup.rename(target)
-        if old_config is not None:
-            atomic_write(config, old_config)
-        if state_dir.exists():
-            atomic_write(state_file, json_bytes(state))
-        raise
-    finally:
+        for previous in backups:
+            (staging / previous.name).rename(previous)
+        for path, content in previous_files.items():
+            if content is None:
+                path.unlink()
+            else:
+                atomic_write(path, content)
+        if created_state_dir:
+            state_dir.rmdir()
         shutil.rmtree(staging)
-    for previous in old_targets:
-        if previous != target and previous.exists():
-            shutil.rmtree(previous)
+        raise
+    shutil.rmtree(staging)
 
 
 def main():

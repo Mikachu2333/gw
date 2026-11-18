@@ -18,7 +18,7 @@ spec.loader.exec_module(installer)
 
 class LinuxInstallerTests(unittest.TestCase):
     def setUp(self):
-        self.temporary = tempfile.TemporaryDirectory(prefix='gw-install-', dir=ROOT / 'dist')
+        self.temporary = tempfile.TemporaryDirectory(prefix='gw-install-')
         self.addCleanup(self.temporary.cleanup)
         self.root = Path(self.temporary.name) / '用户 data'
         self.root.mkdir()
@@ -69,6 +69,25 @@ class LinuxInstallerTests(unittest.TestCase):
             self.install()
         self.assertEqual(original, self.config.read_bytes())
 
+    def test_first_install_failure_leaves_no_state(self):
+        original = self.config.read_bytes()
+        real_write = installer.atomic_write
+        def fail_config(path, content):
+            if path == self.config:
+                raise PermissionError('配置只读')
+            real_write(path, content)
+        with patch.object(installer, 'atomic_write', side_effect=fail_config), self.assertRaises(PermissionError):
+            self.install()
+        self.assertEqual([self.config], list(self.root.iterdir()))
+        self.assertEqual(original, self.config.read_bytes())
+
+    def test_dtd_rejected_in_utf16(self):
+        content = '<!DOCTYPE jsplugins><jsplugins/>'.encode('utf-16')
+        self.config.write_bytes(content)
+        with self.assertRaises(ValueError):
+            self.install()
+        self.assertEqual(content, self.config.read_bytes())
+
     def test_does_not_replace_unowned_directory(self):
         target = self.root / 'gw_mika_4.0.2'
         target.mkdir()
@@ -80,6 +99,8 @@ class LinuxInstallerTests(unittest.TestCase):
 
     def test_config_write_failure_rolls_back_same_version(self):
         self.install()
+        uninstaller = self.root / '.gw_mika/uninstall.py'
+        uninstaller.write_bytes(b'previous uninstaller')
         original = self.config.read_bytes()
         (self.payload / 'main.js').write_text('new')
         real_write = installer.atomic_write
@@ -96,6 +117,7 @@ class LinuxInstallerTests(unittest.TestCase):
                 self.install()
         self.assertEqual(original, self.config.read_bytes())
         self.assertEqual('first', (self.root / 'gw_mika_4.0.2/main.js').read_text())
+        self.assertEqual(b'previous uninstaller', uninstaller.read_bytes())
 
     def test_malicious_state_cannot_delete_outside_root(self):
         self.install()
@@ -158,6 +180,8 @@ class WindowsRegistrationTests(LinuxInstallerTests):
     test_does_not_replace_unowned_directory = None
     test_config_write_failure_rolls_back_same_version = None
     test_malicious_state_cannot_delete_outside_root = None
+    test_first_install_failure_leaves_no_state = None
+    test_dtd_rejected_in_utf16 = None
 
 
 if __name__ == '__main__':
