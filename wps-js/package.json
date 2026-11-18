@@ -1,7 +1,7 @@
 {
   "name": "gw_mika",
   "addonType": "wps",
-  "version": "4.0.3",
+  "version": "4.1.0",
   "private": true,
   "description": "公文准式 WPS JS 加载项（Linux WPS 与 Windows WPS 通用）",
   "scripts": {
@@ -14,8 +14,8 @@
     "publish": "wpsjs publish"
   },
   "devDependencies": {
-    "pdfjs-dist": "4.10.38",
-    "vite": "^5.3.1",
+    "pdfjs-dist": "6.5.438",
+    "vite": "^6.2.7",
     "wps-jsapi-declare": "latest",
     "wpsjs": "latest"
   }
