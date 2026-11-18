@@ -7,6 +7,7 @@ import shutil
 import subprocess
 import tempfile
 import unittest
+import uuid
 from unittest.mock import patch
 import xml.etree.ElementTree as ET
 
@@ -131,11 +132,50 @@ class LinuxInstallerTests(unittest.TestCase):
 
 @unittest.skipUnless(os.name == 'nt' and shutil.which('powershell.exe'), 'Windows PowerShell is unavailable')
 class WindowsRegistrationTests(LinuxInstallerTests):
-    def run_registration(self, action, success=True):
+    def test_registry_restore_in_isolated_keys(self):
+        import winreg
+        base = 'Software\\gw_mika_test_' + uuid.uuid4().hex
+        script = self.root.parent / 'registration.ps1'
+        source = (ROOT / 'Installer/register-wps-js.ps1').read_text(encoding='utf-8-sig')
+        paths = [base + '\\AddinsWL', base + '\\AddinsBL']
+        script.write_text(source.replace(r'Software\Kingsoft\Office\WPS\Addins', base + r'\Addins'), encoding='utf-8-sig')
+        self.assertNotIn(r'Software\Kingsoft', script.read_text(encoding='utf-8-sig'))
+        self.install()
+        name = 'gw_mika.公文准式'
+        try:
+            for values in [[('%TEMP%', winreg.REG_EXPAND_SZ), (b'\xff', winreg.REG_BINARY)],
+                           [(['one'], winreg.REG_MULTI_SZ), (2**40, winreg.REG_QWORD)]]:
+                for path, (value, kind) in zip(paths, values):
+                    with winreg.CreateKey(winreg.HKEY_CURRENT_USER, path) as key:
+                        winreg.SetValueEx(key, name, 0, kind, value)
+                for action in ('Install', 'Install', 'Uninstall'):
+                    self.run_registration(action, script=script, migrate=True)
+                for path, expected in zip(paths, values):
+                    with winreg.OpenKey(winreg.HKEY_CURRENT_USER, path) as key:
+                        self.assertEqual(expected, winreg.QueryValueEx(key, name))
+        finally:
+            for path in paths + [base]:
+                try:
+                    winreg.DeleteKey(winreg.HKEY_CURRENT_USER, path)
+                except FileNotFoundError:
+                    pass
+
+    def test_install_preflight_checks_existing_directory_ownership(self):
+        self.run_registration('CheckInstall')
+        target = self.root / 'gw_mika_4.0.2'
+        target.mkdir()
+        self.run_registration('CheckInstall', success=False)
+        marker = target / 'install.json'
+        marker.write_text('{"id":"other","version":"4.0.2"}')
+        self.run_registration('CheckInstall', success=False)
+        marker.write_bytes((self.payload / 'install.json').read_bytes())
+        self.run_registration('CheckInstall')
+
+    def run_registration(self, action, success=True, script=None, migrate=False):
         metadata = json.loads((self.payload / 'install.json').read_text())
         result = subprocess.run(['powershell.exe', '-NoLogo', '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass',
-            '-File', str(ROOT / 'Installer/register-wps-js.ps1'), '-Action', action, '-DataRoot', str(self.root),
-            '-Version', metadata['version']], capture_output=True)
+            '-File', str(script or ROOT / 'Installer/register-wps-js.ps1'), '-Action', action, '-DataRoot', str(self.root),
+            '-Version', metadata['version']] + (['-MigrateLegacyVsto'] if migrate else []), capture_output=True)
         self.assertEqual(success, result.returncode == 0, result.stdout + result.stderr)
 
     def install(self):

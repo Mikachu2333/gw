@@ -1,7 +1,7 @@
 ﻿# WPS JS 加载项按当前用户注册；不修改宏安全策略，也不覆盖其他加载项。
 [CmdletBinding()]
 param(
-    [ValidateSet('Check', 'Install', 'Uninstall')][string]$Action = 'Check',
+    [ValidateSet('Check', 'CheckInstall', 'Install', 'Uninstall')][string]$Action = 'Check',
     [string]$DataRoot = (Join-Path ([Environment]::GetFolderPath('ApplicationData')) 'kingsoft\wps\jsaddons'),
     [ValidatePattern('^\d+\.\d+\.\d+$')][string]$Version,
     [switch]$MigrateLegacyVsto
@@ -53,7 +53,7 @@ function Get-LegacyRegistry {
             $records += [pscustomobject]@{
                 Path = $path; Exists = [bool]$exists
                 Kind = $(if ($exists) { $key.GetValueKind($addinId).ToString() } else { 'String' })
-                Value = $(if ($exists) { $key.GetValue($addinId) } else { $null })
+                Value = $(if ($exists) { ,$key.GetValue($addinId, $null, [Microsoft.Win32.RegistryValueOptions]::DoNotExpandEnvironmentNames) } else { $null })
             }
         } finally { if ($key) { $key.Dispose() } }
     }
@@ -67,15 +67,30 @@ function Restore-LegacyRegistry($Records) {
         try {
             if ($record.Exists) {
                 $kind = [Microsoft.Win32.RegistryValueKind]$record.Kind
-                $key.SetValue($addinId, $record.Value, $kind)
+                $value = switch ($kind) {
+                    'Binary' { ,([byte[]]$record.Value) }
+                    'MultiString' { ,([string[]]$record.Value) }
+                    'DWord' { [int]$record.Value }
+                    'QWord' { [long]$record.Value }
+                    default { $record.Value }
+                }
+                $key.SetValue($addinId, $value, $kind)
             } else { $key.DeleteValue($addinId, $false) }
         } finally { $key.Dispose() }
     }
 }
 
 try {
-    if ($Action -eq 'Check') {
+    if ($Action -in 'Check','CheckInstall') {
         $null = Read-Config
+        if ($Action -eq 'CheckInstall') {
+            if (-not $Version) { throw '需要安装版本号。' }
+            $target = Join-Path $DataRoot ('gw_mika_' + $Version)
+            if (Test-Path -LiteralPath $target) {
+                $marker = Get-Content -Raw -LiteralPath (Join-Path $target 'install.json') -Encoding UTF8 | ConvertFrom-Json
+                if ($marker.id -cne 'gw_mika' -or $marker.version -cne $Version) { throw '现有目录不属于此版本，停止安装。' }
+            }
+        }
         Write-Output 'WPS JS 注册配置可用。'
         exit 0
     }
@@ -84,15 +99,21 @@ try {
     $lock = [IO.File]::Open((Join-Path $DataRoot '.gw_mika.lock'), 'OpenOrCreate', 'ReadWrite', 'None')
     try {
         $document = Read-Config
-        $oldXml = if ([IO.File]::Exists($configPath)) { [IO.File]::ReadAllText($configPath) } else { $null }
+        $configExists = [IO.File]::Exists($configPath)
         $state = if (Test-Path -LiteralPath $statePath) {
             Get-Content -Raw -LiteralPath $statePath -Encoding UTF8 | ConvertFrom-Json
         } else { $null }
-        if ($state -and $state.Id -ne 'gw_mika') { throw '注册状态文件不属于公文准式。' }
+        if ([IO.File]::Exists($statePath)) {
+            if ($state.Id -cne 'gw_mika' -or @($state.Registry).Count -ne $registryPaths.Count) { throw '迁移记录不完整。' }
+            foreach ($path in $registryPaths) {
+                $records = @($state.Registry | Where-Object Path -eq $path)
+                if ($records.Count -ne 1 -or $records[0].Exists -isnot [bool]) { throw '迁移记录缺少注册表项。' }
+            }
+        }
 
         foreach ($node in @($document.DocumentElement.SelectNodes('jsplugin'))) {
-            if ($node.GetAttribute('type') -eq 'wps' -and
-                @('gw_mika', 'gw_mika-wps-js') -contains $node.GetAttribute('name')) {
+            if ($node.GetAttribute('type') -ceq 'wps' -and
+                @('gw_mika', 'gw_mika-wps-js') -ccontains $node.GetAttribute('name')) {
                 $null = $node.ParentNode.RemoveChild($node)
             }
         }
@@ -100,7 +121,7 @@ try {
             if (-not $Version) { throw '安装时必须提供三段版本号。' }
             $folder = 'gw_mika_' + $Version
             $payload = Join-Path $DataRoot $folder
-            foreach ($file in @('main.js', 'ribbon.xml', 'index.html', 'install.json')) {
+            foreach ($file in @('main.js', 'ribbon.xml', 'index.html', 'install.json','js/ribbon.js')) {
                 if (-not (Test-Path -LiteralPath (Join-Path $payload $file) -PathType Leaf)) { throw "缺少加载项文件：$file" }
             }
             $metadata = Get-Content -Raw -LiteralPath (Join-Path $payload 'install.json') -Encoding UTF8 | ConvertFrom-Json
@@ -110,11 +131,12 @@ try {
                 $node.SetAttribute($pair.Key, $pair.Value)
             }
             $null = $document.DocumentElement.AppendChild($node)
-            if ($MigrateLegacyVsto -and -not $state) {
-                $state = [pscustomobject]@{ Id='gw_mika'; Registry=@(Get-LegacyRegistry) }
+            $beforeMigration = if ($MigrateLegacyVsto) { @(Get-LegacyRegistry) }
+            $createdState = $MigrateLegacyVsto -and -not $state
+            if ($createdState) {
+                $state = [pscustomobject]@{ Id='gw_mika'; Registry=$beforeMigration }
                 Write-Atomic $statePath ($state | ConvertTo-Json -Depth 6)
             }
-            $beforeMigration = if ($MigrateLegacyVsto) { @(Get-LegacyRegistry) } else { @() }
             try {
                 if ($MigrateLegacyVsto) {
                     $key = [Microsoft.Win32.Registry]::CurrentUser.CreateSubKey($registryPaths[0])
@@ -125,11 +147,18 @@ try {
                 Write-Atomic $configPath $document.OuterXml
             } catch {
                 if ($MigrateLegacyVsto) { Restore-LegacyRegistry $beforeMigration }
+                if ($createdState) { [IO.File]::Delete($statePath) }
                 throw
             }
         } else {
-            if ($state) { Restore-LegacyRegistry $state.Registry }
-            if ($null -ne $oldXml) { Write-Atomic $configPath $document.OuterXml }
+            $beforeRestore = if ($state) { @(Get-LegacyRegistry) }
+            try {
+                if ($state) { Restore-LegacyRegistry $state.Registry }
+                if ($configExists) { Write-Atomic $configPath $document.OuterXml }
+            } catch {
+                if ($state) { Restore-LegacyRegistry $beforeRestore }
+                throw
+            }
             if ([IO.File]::Exists($statePath)) { [IO.File]::Delete($statePath) }
         }
         Write-Output ('WPS JS ' + $Action + ' 完成。请完全退出并重新打开 WPS。')

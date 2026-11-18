@@ -49,8 +49,8 @@ function PrepareToInstall(var NeedsRestart: Boolean): String;
 begin
   Result := '';
   ExtractTemporaryFile('register-wps-js.ps1');
-  if not Registration('Check', ExpandConstant('{tmp}\register-wps-js.ps1')) then
-    Result := 'WPS 加载项配置无法读取。请检查当前用户的 publish.xml；安装器不会覆盖损坏的配置。';
+  if not Registration('CheckInstall', ExpandConstant('{tmp}\register-wps-js.ps1')) then
+    Result := '请检查当前用户的 publish.xml 和已有版本目录中的 install.json，安装器无法确认配置或文件归属。';
 end;
 
 procedure CurStepChanged(Step: TSetupStep);
