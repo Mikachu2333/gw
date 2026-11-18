@@ -52,30 +52,17 @@ namespace gw_mika
                     throw new InvalidDataException(
                         "所选文件里没有可执行的过程。\r\n请保留一个公共 Sub 作为入口（其他过程用 Function）。");
 
-                MSWord.UndoRecord undo = WordApp.UndoRecord;
-                bool recording = false;
-                try
-                {
-                    undo.StartCustomRecord("运行VBA:" + macroName);
-                    recording = true;
-                    // 限定到刚注入的模块：裸过程名会先命中宿主文档里的同名宏，
-                    // 文档自带的宏因此可以被按钮间接调用
-                    WordApp.Run(vbm.Name + "." + macroName);
-                }
-                finally
-                {
-                    if (recording)
-                    {
-                        try { undo.EndCustomRecord(); }
-                        catch (Exception ex) { Debug.WriteLine("EndCustomRecord 失败: " + ex.Message); }
-                    }
-                }
+                WithUndo("运行VBA:" + macroName, () => WordApp.Run(vbm.Name + "." + macroName));
                 return true;
             }
             finally
             {
                 try { vbc.Remove(vbm); }
-                catch (Exception ex) { Debug.WriteLine("移除注入的 VBA 模块失败: " + ex.Message); }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("无法移除临时 VBA 模块。请在保存或分发文档前检查其 VBA 项目。\r\n" + ex.Message,
+                        "清理 VBA 模块", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                }
             }
         }
 
@@ -145,28 +132,31 @@ namespace gw_mika
 
         private bool CheckVbaEncoding(string vbaFile)
         {
-            Encoding encoding = GetTextFileEncodingType(vbaFile);
+            byte[] bytes = File.ReadAllBytes(vbaFile);
+            Encoding encoding = DetectUnicodeEncoding(bytes);
             // BigEndianUnicode 原来漏在判定之外：UTF-16BE 文件会被放行，AddFromFile 读出乱码
-            if (encoding == Encoding.Unicode || encoding == Encoding.BigEndianUnicode || encoding == Encoding.UTF8)
+            if (encoding != null)
             {
                 return RejectVbaFile(vbaFile,
-                    "您所选文件为 " + encoding.WebName + " 编码，Word VBA 只支持 ANSI(简体中文 GB2312)，" +
-                    "请另存为 ANSI 后再运行。");
+                    "所选文件的编码为 " + encoding.WebName + "，请另存为简体中文 ANSI（GBK，代码页 936）后再运行。");
             }
 
             // VBA 以 CR 断行：LF 行尾的文件会被 AddFromFile 解析成一行，报的错误莫名其妙，不如在这里说清楚
-            byte[] bytes = File.ReadAllBytes(vbaFile);
-            int cr = 0, lf = 0;
             for (int i = 0; i < bytes.Length; i++)
             {
-                if (bytes[i] == 0x0A) lf++;
-                else if (bytes[i] == 0x0D) cr++;
+                if (bytes[i] == 0) return RejectVbaFile(vbaFile, "文件含有空字节，请检查脚本编码。");
+                if (bytes[i] == 0x0D && i + 1 < bytes.Length && bytes[i + 1] == 0x0A)
+                {
+                    i++;
+                    continue;
+                }
+                if (bytes[i] == 0x0A || bytes[i] == 0x0D)
+                    return RejectVbaFile(vbaFile, "请将脚本的行尾统一为 Windows(CRLF) 格式。");
+                if (bytes[i] >= 0x80 && Encoding.Default.CodePage != 936)
+                    return RejectVbaFile(vbaFile, "此脚本含有非 ASCII 字符，VBA 导入需要简体中文 ANSI 代码页 936。当前代码页为 " + Encoding.Default.CodePage + "。");
             }
-            if (lf > 0 && cr != lf)
-            {
-                return RejectVbaFile(vbaFile,
-                    "您所选文件的行尾不是 Windows(CRLF) 格式，VBA 会把整个文件解析成一行。");
-            }
+            try { Encoding.GetEncoding(936, EncoderFallback.ExceptionFallback, DecoderFallback.ExceptionFallback).GetCharCount(bytes); }
+            catch (DecoderFallbackException) { return RejectVbaFile(vbaFile, "脚本含有无效的 GBK 字节，请检查脚本编码。"); }
             return true;
         }
 
@@ -177,7 +167,7 @@ namespace gw_mika
                 "读取VBA文件", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning);
             if (result == DialogResult.OK)
             {
-                try { Process.Start("notepad", vbaFile); }
+                try { Process.Start(Path.Combine(Environment.SystemDirectory, "notepad.exe"), "\"" + vbaFile + "\""); }
                 catch (Exception ex) { Debug.WriteLine(ex.Message); }
             }
             return false;
@@ -253,12 +243,8 @@ namespace gw_mika
             MessageBox.Show(err, "执行VBA代码出错", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
-        private static Encoding GetTextFileEncodingType(string fileName)
+        private static Encoding DetectUnicodeEncoding(byte[] buffer)
         {
-            byte[] buffer;
-            try { buffer = File.ReadAllBytes(fileName); }
-            catch { return Encoding.Default; }
-
             if (buffer.Length >= 3 && buffer[0] == 0xEF && buffer[1] == 0xBB && buffer[2] == 0xBF)
                 return Encoding.UTF8;
             // UTF-16 的 BOM 只有两个字节有效。原实现额外要求第 3 字节是 0x00 / 0x41，
@@ -276,31 +262,16 @@ namespace gw_mika
             {
                 if (buffer[i] >= 0x80) { hasHighByte = true; break; }
             }
-            if (hasHighByte && IsUTF8Bytes(buffer)) return Encoding.UTF8;
-            return Encoding.Default;
-        }
-
-        private static bool IsUTF8Bytes(byte[] data)
-        {
-            int charByteCounter = 1;
-            for (int i = 0; i < data.Length; i++)
+            if (hasHighByte)
             {
-                byte curByte = data[i];
-                if (charByteCounter == 1)
+                try
                 {
-                    if (curByte >= 0x80)
-                    {
-                        while (((curByte <<= 1) & 0x80) != 0) charByteCounter++;
-                        if (charByteCounter == 1 || charByteCounter > 6) return false;
-                    }
+                    new UTF8Encoding(false, true).GetCharCount(buffer);
+                    return Encoding.UTF8;
                 }
-                else
-                {
-                    if ((curByte & 0xC0) != 0x80) return false;
-                    charByteCounter--;
-                }
+                catch (DecoderFallbackException) { }
             }
-            return charByteCounter <= 1;
+            return null;
         }
 
         private void clearVBA()

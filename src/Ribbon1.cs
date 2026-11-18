@@ -405,7 +405,7 @@ namespace gw_mika
         }
 
         /// <summary>
-        /// 在一条自定义撤销记录中执行操作，并保证撤销记录一定闭合、ScreenUpdating 一定恢复。
+        /// 在宿主支持时创建自定义撤销记录，操作结束后恢复原屏幕刷新设置。
         /// 原写法把 StartCustomRecord 放在 try 之外、EndCustomRecord 放在 try 之内：
         /// 中途抛异常时撤销记录永不闭合，之后用户的每一次编辑都被并进这条记录，
         /// Ctrl+Z 会一次回退掉大片无关改动；ScreenUpdating 忘了恢复则 Word 看起来像卡死。
@@ -415,21 +415,33 @@ namespace gw_mika
         /// <param name="suspendScreen">执行期间是否关闭屏幕刷新</param>
         internal void WithUndo(string label, Action work, bool suspendScreen = false)
         {
-            MSWord.UndoRecord undo = WordApp.UndoRecord;
-            undo.StartCustomRecord(label);
+            MSWord.UndoRecord undo = null;
+            bool? updating = null;
+            try { updating = WordApp.ScreenUpdating; }
+            catch (System.Runtime.InteropServices.COMException ex) { Debug.WriteLine("读取 ScreenUpdating 失败: " + ex.Message); }
             try
             {
-                if (suspendScreen) WordApp.ScreenUpdating = false;
+                undo = WordApp.UndoRecord;
+                undo?.StartCustomRecord(label);
+            }
+            catch (System.Runtime.InteropServices.COMException ex)
+            {
+                Debug.WriteLine("宿主未能开始自定义撤销记录：" + ex.Message);
+                undo = null;
+            }
+            try
+            {
+                if (suspendScreen && updating == true) WordApp.ScreenUpdating = false;
                 work();
             }
             finally
             {
-                if (suspendScreen)
+                if (updating.HasValue)
                 {
-                    try { WordApp.ScreenUpdating = true; }
+                    try { WordApp.ScreenUpdating = updating.Value; }
                     catch (Exception ex) { Debug.WriteLine("恢复 ScreenUpdating 失败: " + ex.Message); }
                 }
-                try { undo.EndCustomRecord(); }
+                try { undo?.EndCustomRecord(); }
                 catch (Exception ex) { Debug.WriteLine("EndCustomRecord 失败: " + label + " — " + ex.Message); }
             }
         }

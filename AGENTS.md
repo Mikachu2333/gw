@@ -194,9 +194,9 @@ The main empty-line command uses the selection, asking for confirmation before p
   `Properties.Settings.Default`, disposes the previous owned fonts first, and refreshes
   button SuperTips. Fonts created there are registered with `Track` and disposed in
   `Ribbon1_Close`; fonts returned by the settings provider are never disposed.
-- `WithUndo(label, work, suspendScreen)` (src\Ribbon1.cs:323) is the contract for every
-  document mutation: it starts/ends one Word custom undo record and restores
-  `ScreenUpdating` even when `work` throws. Do not hand-roll
+- `WithUndo(label, work, suspendScreen)` in `src\Ribbon1.cs` groups document changes in
+  one undo record when the host supports it. It restores the original `ScreenUpdating`
+  setting even when `work` throws. Do not hand-roll
   `StartCustomRecord`/`ScreenUpdating` pairs in new code.
 - `ControlEnable(bool)` (src\ThisAddIn.cs:113) is the single gate for protected/read-only
   documents. It is called from `WindowSelectionChange`, `DocumentOpen`,
@@ -275,9 +275,9 @@ The main empty-line command uses the selection, asking for confirmation before p
   `AddFromFile` reads the bytes as-is. "GB2312" is what the in-script comments say, but it is
   really cp936: `公文自动排版.vba` and `公文自动排版2026.vba` use `〇`(A9 96) and `﨩`(FE 4F),
   which are outside strict GB2312, so a strict cp20936 round-trip would corrupt them. Any
-  validator must therefore use codepage 936, not 20936. All 42 scripts also assume codepage 936
-  is the ANSI codepage — 24 of them declare Chinese identifiers, so on a non-zh-CN machine the
-  code itself mis-decodes, and `CheckVbaEncoding` cannot detect that.
+  validator must therefore use codepage 936, not 20936. The runner accepts ASCII on any
+  Windows ANSI code page. Scripts with non-ASCII bytes require code page 936 because
+  `AddFromFile` uses the machine's ANSI encoding, including for Chinese identifiers.
 - Do not add NuGet packages, change the target framework, or restructure the VSTO
   project without explicit approval.
 - Commit only when asked. Do not commit `*.user`, `*.pfx`, `*.snk`.
