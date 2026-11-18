@@ -23,6 +23,7 @@ Sub 提取Excel内容()
     Dim 路径 As String
     Dim r As String
     Dim n As Long
+    Dim 错误信息 As String
 
     On Error GoTo 出错
 
@@ -42,7 +43,8 @@ Sub 提取Excel内容()
     Set xls = CreateObject("excel.application")
     xls.Visible = False
     xls.DisplayAlerts = False
-    Set book = xls.Workbooks.Open(路径)
+    xls.AutomationSecurity = msoAutomationSecurityForceDisable
+    Set book = xls.Workbooks.Open(路径, 0, True)
     Set sheet = book.Worksheets(1)
     Set doc = Application.ActiveDocument
 
@@ -60,6 +62,7 @@ Sub 提取Excel内容()
     Exit Sub
 
 出错:
+    错误信息 = Err.Description
     ' 原来整段 On Error Resume Next: 范围写错或文件打不开就什么都不做, 用户只看到"没反应", 后台还留下一个看不见的 EXCEL.EXE
     On Error Resume Next
     If Not book Is Nothing Then book.Close False
@@ -67,4 +70,5 @@ Sub 提取Excel内容()
     Set sheet = Nothing
     Set book = Nothing
     Set xls = Nothing
-    MsgBox "提取Excel内容时出错：" & Err.Description, vbCritical
+    MsgBox "提取Excel内容时出错：" & 错误信息, vbCritical
+End Sub

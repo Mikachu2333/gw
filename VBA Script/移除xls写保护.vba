@@ -18,7 +18,7 @@ Sub gw_移除xls写保护()
     Dim book As Object
     Dim sht As Object
     Dim fname As String
-    Dim 已保存 As Boolean
+    Dim 错误信息 As String
 
     On Error GoTo 出错
 
@@ -34,22 +34,24 @@ Sub gw_移除xls写保护()
     fname = dia.SelectedItems(1)
 
     If MsgBox("本功能会直接改写并保存原文件：" & fname & vbCrLf & "建议先留一份副本。确定继续吗?", _
-        "移除xls写保护", vbOKCancel + vbExclamation) <> vbOK Then Exit Sub
+        vbOKCancel + vbExclamation, "移除xls写保护") <> vbOK Then Exit Sub
 
     Set xls = CreateObject("excel.application")
     xls.DisplayAlerts = False
     ' 打开时先让 Excel 可见: 工作簿若要写保护密码, 隐藏实例会把密码框变成看不见的模态框, 宏就卡死在那里
     xls.Visible = True
-    Set book = xls.Workbooks.Open(fname)
+    xls.AutomationSecurity = msoAutomationSecurityForceDisable
+    Set book = xls.Workbooks.Open(fname, 0)
+    If book.ReadOnly Then Err.Raise vbObjectError + 1, , "工作簿只读，无法保存修改。"
     xls.Visible = False
 
     '循环清理sheet写保护(仅限未设密码的保护; 带密码的工作表会在这里报错并走下面的清理分支)
     For Each sht In book.Worksheets
-        sht.Protect AllowFiltering:=True
-        sht.Unprotect
+        If sht.ProtectContents Or sht.ProtectDrawingObjects Or sht.ProtectScenarios Then sht.Unprotect ""
     Next
-    book.Close True      'xls文件保存并关闭
-    已保存 = True
+    book.Save
+    book.Close False
+    Set book = Nothing
     xls.Quit
     Set book = Nothing
     Set xls = Nothing
@@ -57,12 +59,13 @@ Sub gw_移除xls写保护()
     Exit Sub
 
 出错:
+    错误信息 = Err.Description
     ' 后台实例必须显式 Quit, 只把对象置 Nothing 会留下一个看不见也杀不掉的 EXCEL.EXE
     On Error Resume Next
-    If Not book Is Nothing Then book.Close 已保存
+    If Not book Is Nothing Then book.Close False
     If Not xls Is Nothing Then xls.Quit
     Set book = Nothing
     Set xls = Nothing
-    MsgBox "移除xls写保护时出错：" & Err.Description, vbCritical
+    MsgBox "移除xls写保护时出错：" & 错误信息, vbCritical
 End Sub
 
