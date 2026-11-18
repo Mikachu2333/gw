@@ -57,8 +57,11 @@ def owned_directory(root, folder):
     if target.is_symlink() or target.resolve().parent != root.resolve():
         raise ValueError('加载项目录不能是符号链接或位于安装目录外。')
     if target.exists():
-        marker = json.loads((target / 'install.json').read_text(encoding='utf-8'))
-        if marker.get('id') != APP_ID:
+        marker_path = target / 'install.json'
+        if marker_path.is_symlink():
+            raise ValueError('安装标记不能是符号链接。')
+        marker = json.loads(marker_path.read_text(encoding='utf-8'))
+        if marker.get('id') != APP_ID or marker.get('version') != folder[len(APP_ID) + 1:]:
             raise ValueError('目录不属于公文准式：' + str(target))
     return target
 

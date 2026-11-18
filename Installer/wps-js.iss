@@ -50,7 +50,7 @@ begin
   Result := '';
   ExtractTemporaryFile('register-wps-js.ps1');
   if not Registration('CheckInstall', ExpandConstant('{tmp}\register-wps-js.ps1')) then
-    Result := '请检查当前用户的 publish.xml 和已有版本目录中的 install.json，安装器无法确认配置或文件归属。';
+    Result := '请检查当前用户的 publish.xml、.gw_mika-registry.json 和已有版本目录中的 install.json，安装器无法确认配置或文件归属。';
 end;
 
 procedure CurStepChanged(Step: TSetupStep);
@@ -63,7 +63,7 @@ end;
 function InitializeUninstall: Boolean;
 begin
   Result := Registration('Check', ExpandConstant('{app}\register-wps-js.ps1'));
-  if not Result then MsgBox('WPS 配置无法读取，请先修复 publish.xml 再卸载，避免留下失效注册。', mbError, MB_OK);
+  if not Result then MsgBox('请先检查 publish.xml 和 .gw_mika-registry.json 再卸载，避免留下失效注册。', mbError, MB_OK);
 end;
 
 procedure CurUninstallStepChanged(Step: TUninstallStep);

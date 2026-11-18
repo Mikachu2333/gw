@@ -31,6 +31,17 @@ function Read-Config {
     return ,$document
 }
 
+function Read-MigrationState {
+    if (-not (Test-Path -LiteralPath $statePath)) { return $null }
+    $state = Get-Content -Raw -LiteralPath $statePath -Encoding UTF8 | ConvertFrom-Json
+    if ($state.Id -cne 'gw_mika' -or @($state.Registry).Count -ne $registryPaths.Count) { throw '迁移记录不完整。' }
+    foreach ($path in $registryPaths) {
+        $records = @($state.Registry | Where-Object Path -eq $path)
+        if ($records.Count -ne 1 -or $records[0].Exists -isnot [bool]) { throw '迁移记录缺少注册表项。' }
+    }
+    return $state
+}
+
 function Write-Atomic([string]$Path, [string]$Content) {
     $temporary = $Path + '.' + [Guid]::NewGuid().ToString('N') + '.tmp'
     $backup = $temporary + '.bak'
@@ -83,6 +94,7 @@ function Restore-LegacyRegistry($Records) {
 try {
     if ($Action -in 'Check','CheckInstall') {
         $null = Read-Config
+        $null = Read-MigrationState
         if ($Action -eq 'CheckInstall') {
             if (-not $Version) { throw '需要安装版本号。' }
             $target = Join-Path $DataRoot ('gw_mika_' + $Version)
@@ -100,16 +112,7 @@ try {
     try {
         $document = Read-Config
         $configExists = [IO.File]::Exists($configPath)
-        $state = if (Test-Path -LiteralPath $statePath) {
-            Get-Content -Raw -LiteralPath $statePath -Encoding UTF8 | ConvertFrom-Json
-        } else { $null }
-        if ([IO.File]::Exists($statePath)) {
-            if ($state.Id -cne 'gw_mika' -or @($state.Registry).Count -ne $registryPaths.Count) { throw '迁移记录不完整。' }
-            foreach ($path in $registryPaths) {
-                $records = @($state.Registry | Where-Object Path -eq $path)
-                if ($records.Count -ne 1 -or $records[0].Exists -isnot [bool]) { throw '迁移记录缺少注册表项。' }
-            }
-        }
+        $state = Read-MigrationState
 
         foreach ($node in @($document.DocumentElement.SelectNodes('jsplugin'))) {
             if ($node.GetAttribute('type') -ceq 'wps' -and

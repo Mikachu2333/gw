@@ -120,6 +120,16 @@ class LinuxInstallerTests(unittest.TestCase):
         self.assertEqual('first', (self.root / 'gw_mika_4.0.2/main.js').read_text())
         self.assertEqual(b'previous uninstaller', uninstaller.read_bytes())
 
+    def test_uninstall_preserves_directory_with_wrong_marker_version(self):
+        self.install()
+        original = self.config.read_bytes()
+        marker = self.root / 'gw_mika_4.0.2/install.json'
+        marker.write_text(json.dumps({'id': 'gw_mika', 'version': '4.0.3'}))
+        with self.assertRaises(ValueError):
+            installer.update(self.root, uninstall=True)
+        self.assertTrue(marker.is_file())
+        self.assertEqual(original, self.config.read_bytes())
+
     def test_malicious_state_cannot_delete_outside_root(self):
         self.install()
         outside = Path(self.temporary.name) / 'outside'
@@ -171,6 +181,14 @@ class WindowsRegistrationTests(LinuxInstallerTests):
         marker.write_bytes((self.payload / 'install.json').read_bytes())
         self.run_registration('CheckInstall')
 
+    def test_preflight_checks_registry_state_before_changing_files(self):
+        original = self.config.read_bytes()
+        state = self.root / '.gw_mika-registry.json'
+        state.write_text('{"Id":"gw_mika","Registry":[]}')
+        for action in ('CheckInstall', 'Check'):
+            self.run_registration(action, success=False)
+        self.assertEqual(original, self.config.read_bytes())
+
     def run_registration(self, action, success=True, script=None, migrate=False):
         metadata = json.loads((self.payload / 'install.json').read_text())
         result = subprocess.run(['powershell.exe', '-NoLogo', '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass',
@@ -218,6 +236,7 @@ class WindowsRegistrationTests(LinuxInstallerTests):
 
     # Windows 文件生命周期由 Inno Setup 管理；下面的目录测试仅针对 Linux 安装器。
     test_does_not_replace_unowned_directory = None
+    test_uninstall_preserves_directory_with_wrong_marker_version = None
     test_config_write_failure_rolls_back_same_version = None
     test_malicious_state_cannot_delete_outside_root = None
     test_first_install_failure_leaves_no_state = None
