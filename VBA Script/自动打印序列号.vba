@@ -8,34 +8,52 @@
 '如果对编号有格式要求, 可以先调整好编号所在位置的文字格式再运行脚本, 也可以直接修改本脚本.
 
 Sub 自动打印序列号()
-    Dim i As Long
-    Dim lngStart    '开始编号
-    Dim lngCount    '结束编号
-    Dim leftWord As String
-    Dim rightWord As String
-    leftWord = "第"          '序列号前缀
-    rightWord = "份"              '序列号后缀
-    lngStart = InputBox("开始打印编号", "请输入开始打印编号！", 1)
-    If lngStart = "" Then
-        Exit Sub    '开始编号为空退出
-    End If
-    lngCount = InputBox("结束打印编号", "请输入结束打印编号！", 1)
-    If lngCount = "" Then
-        Exit Sub    '结束编号为空退出
-    End If
-    ' 填了非数字时 For 会抛"类型不匹配"并把用户拽进 VBA 调试器
-    If Not IsNumeric(lngStart) Or Not IsNumeric(lngCount) Then
-        MsgBox "开始和结束编号都必须是整数。", vbExclamation, "自动打印序列号"
+    Dim 原文档 As Document, 备份 As Document, 占位 As Range
+    Dim 开始 As Long, 结束 As Long, 编号 As Long, 已发送 As Long, 长度 As Long
+    Dim 已备份 As Boolean, 信息 As String
+    开始 = 输入编号("开始打印编号")
+    If 开始 = 0 Then Exit Sub
+    结束 = 输入编号("结束打印编号")
+    If 结束 = 0 Then Exit Sub
+    If 结束 < 开始 Then
+        MsgBox "结束编号不能小于开始编号。", vbExclamation
         Exit Sub
     End If
-    For i = CLng(lngStart) To CLng(lngCount)
-        Selection.Text = leftWord & Format(i, "00") & rightWord
-        '00的格式, 表示 01 02,09,10...99,  你可以根据需求自己调整.  如果为一个0, 则为 1,2,9,10...
-        Application.PrintOut FileName:="", Range:=wdPrintAllDocument, Item:= _
-        wdPrintDocumentContent, Copies:=1, Pages:="", PageType:=wdPrintAllPages, _
-        ManualDuplexPrint:=False, Collate:=True, Background:=False, PrintToFile:= _
-        False, PrintZoomColumn:=0, PrintZoomRow:=0, PrintZoomPaperWidth:=0, _
-        PrintZoomPaperHeight:=0
-        Selection.Text = ""
+    If MsgBox("将打印 " & (结束 - 开始 + 1) & " 份，是否继续？", vbYesNo + vbQuestion) <> vbYes Then Exit Sub
+    On Error GoTo 打印失败
+    Set 原文档 = ActiveDocument
+    Set 占位 = Selection.Range.Duplicate
+    长度 = 占位.End - 占位.Start
+    Set 备份 = Documents.Add
+    If 长度 > 0 Then 备份.Content.FormattedText = 占位.FormattedText
+    已备份 = True
+    原文档.Activate
+    For 编号 = 开始 To 结束
+        占位.Text = "第" & Format(编号, "00") & "份"
+        原文档.PrintOut Background:=False, Copies:=1
+        已发送 = 已发送 + 1
     Next
+清理:
+    On Error GoTo 恢复失败
+    If 已备份 Then
+        If 长度 = 0 Then
+            占位.Text = ""
+        Else
+            占位.FormattedText = 备份.Range(0, 长度).FormattedText
+        End If
+    End If
+    If Not 备份 Is Nothing Then 备份.Close wdDoNotSaveChanges
+    If 信息 <> "" Then MsgBox "已发送 " & 已发送 & " 份。" & 信息, vbExclamation
+    Exit Sub
+打印失败:
+    信息 = Err.Description
+    Resume 清理
+恢复失败:
+    MsgBox "恢复选区或关闭备份失败，请核对原文档及备份：" & Err.Description, vbExclamation
 End Sub
+
+Private Function 输入编号(ByVal 标题 As String) As Long
+    Dim 输入 As String
+    输入 = Trim(InputBox(标题 & "（1 至 999999）", "自动打印序列号", 1))
+    If Len(输入) > 0 And Len(输入) <= 6 And Not 输入 Like "*[!0-9]*" Then 输入编号 = CLng(输入)
+End Function

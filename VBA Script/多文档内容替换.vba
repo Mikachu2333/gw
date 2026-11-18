@@ -70,7 +70,8 @@ Function 替换一个文档(fname As String) As Boolean
 
     最近错误 = ""
     On Error GoTo 失败
-    Set 文件 = Documents.Open(fname)
+    Set 文件 = 打开批处理文档(fname, False)
+    If 文件.ReadOnly Or 文件.ProtectionType <> wdNoProtection Then Err.Raise vbObjectError + 1, , "文档只读或已保护。"
     With 文件.Content.find
         .ClearFormatting
         .MatchWildcards = True    '支持通配符
@@ -95,4 +96,33 @@ Function 替换一个文档(fname As String) As Boolean
         On Error Resume Next
         文件.Close wdDoNotSaveChanges
     End If
+End Function
+
+Private Function 打开批处理文档(ByVal 文件路径 As String, ByVal 只读 As Boolean) As Document
+    Dim 现有文档 As New Collection, 已打开 As Document, 打开结果 As Document
+    Dim 原安全设置 As MsoAutomationSecurity, 错误信息 As String
+    For Each 已打开 In Documents
+        If StrComp(已打开.FullName, 文件路径, vbTextCompare) = 0 Then Err.Raise vbObjectError + 2, , "文档已经打开。"
+        现有文档.Add 已打开
+    Next
+    原安全设置 = Application.AutomationSecurity
+    On Error GoTo 打开失败
+    Application.AutomationSecurity = msoAutomationSecurityForceDisable
+    Set 打开结果 = Documents.Open(FileName:=文件路径, ReadOnly:=只读, Revert:=False, AddToRecentFiles:=False)
+    For Each 已打开 In 现有文档
+        If 已打开 Is 打开结果 Then
+            Set 打开结果 = Nothing
+            Err.Raise vbObjectError + 2, , "文档已经打开。"
+        End If
+    Next
+    Application.AutomationSecurity = 原安全设置
+    Set 打开批处理文档 = 打开结果
+    Exit Function
+打开失败:
+    错误信息 = Err.Description
+    On Error Resume Next
+    Application.AutomationSecurity = 原安全设置
+    If Not 打开结果 Is Nothing Then 打开结果.Close wdDoNotSaveChanges
+    On Error GoTo 0
+    Err.Raise vbObjectError + 3, , 错误信息
 End Function

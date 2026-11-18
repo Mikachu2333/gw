@@ -12,71 +12,70 @@
 '用法: 选中文件夹即可''
 
 Sub Doc批量转Docx()
-    Dim xDlg As FileDialog
-    Dim xFolder As String
-    Dim xFileName As String
-    Dim baseName As String
-    Dim target As String
-    Dim okCount As Long
-    Dim skipCount As Long
-    Dim failList As String
-
-    Set xDlg = Application.FileDialog(msoFileDialogFolderPicker)
-    If xDlg.Show <> -1 Then Exit Sub
-    xFolder = xDlg.SelectedItems(1) & "\"
-
-    Application.ScreenUpdating = False
-    xFileName = Dir(xFolder & "*.doc", vbNormal)
-    Do While xFileName <> ""
-        ' Dir 的 "*.doc" 会把 .docx 也匹配进来, 必须自己按扩展名再筛一遍
-        If LCase(Right(xFileName, 4)) = ".doc" Then
-            baseName = Left(xFileName, InStrRev(xFileName, ".") - 1)
-            target = xFolder & baseName & ".docx"
-            If Dir(target) <> "" Then
-                ' 同名 .docx 已存在时覆盖会毁掉用户已有的文件, 跳过并计数
-                skipCount = skipCount + 1
-            ElseIf 转换单个(xFolder & xFileName, target) Then
-                okCount = okCount + 1
+    Dim picker As FileDialog, fs As Object, folder As Object, source As Object
+    Dim pending As New Collection, filename As Variant, target As String, message As String
+    Dim completed As Long, skipped As Long, failures As String
+    Set picker = Application.FileDialog(msoFileDialogFolderPicker)
+    If picker.Show <> -1 Then Exit Sub
+    Set fs = CreateObject("Scripting.FileSystemObject")
+    Set folder = fs.GetFolder(picker.SelectedItems(1))
+    For Each source In folder.Files
+        If LCase(fs.GetExtensionName(source.Name)) = "doc" And Left(source.Name, 2) <> "~$" Then pending.Add source.Path
+    Next
+    For Each filename In pending
+        target = fs.BuildPath(folder.Path, fs.GetBaseName(filename) & ".docx")
+        If fs.FileExists(target) Then
+            skipped = skipped + 1
+        Else
+            message = 转换单个(CStr(filename), target)
+            If message = "" Then
+                completed = completed + 1
             Else
-                failList = failList & vbCrLf & xFileName
+                failures = failures & vbCrLf & filename & "：" & message
             End If
         End If
-        xFileName = Dir()
-    Wend
-
-    Application.ScreenUpdating = True
-    Shell "explorer.exe """ & xFolder & """"
-    If failList = "" Then
-        MsgBox "转换完成: 成功 " & okCount & " 个, 因同名跳过 " & skipCount & " 个。", vbInformation
-    Else
-        MsgBox "成功 " & okCount & " 个, 跳过 " & skipCount & " 个。" & vbCrLf & _
-               "以下文件转换失败(多为被占用或已损坏):" & failList, vbExclamation
-    End If
+    Next
+    MsgBox "转换完成 " & completed & " 个，因重名跳过 " & skipped & " 个。" & failures
 End Sub
 
-Function 转换单个(ByVal 源文件 As String, ByVal 目标文件 As String) As Boolean
-    Dim docBefore As Long
-    Dim doc As Document
-
-    docBefore = Documents.Count
+Private Function 转换单个(ByVal 源文件 As String, ByVal 目标文件 As String) As String
+    Dim 文件 As Document
     On Error GoTo 失败
-    ' 用 Open 的返回值操作, 不要用 ActiveDocument: Open 失败时 ActiveDocument 是用户
-    ' 原本就开着的那份文档, 拿它去 Close 会连带关掉用户的工作。
-    Set doc = Documents.Open(FileName:=源文件, ConfirmConversions:=False, _
-        ReadOnly:=False, AddToRecentFiles:=False, PasswordDocument:="", _
-        PasswordTemplate:="", Revert:=False, WritePasswordDocument:="", _
-        WritePasswordTemplate:="", Format:=wdOpenFormatAuto, XMLTransform:="")
-    ' 目标名用 InStrRev 截出的主干拼接, 不能用 Replace(名字, "doc", "docx"):
-    ' 那是整串替换, document.doc 会变成 docxument.docx
-    doc.SaveAs 目标文件, wdFormatDocumentDefault
-    doc.Close SaveChanges:=wdDoNotSaveChanges
-    转换单个 = True
+    Set 文件 = 打开批处理文档(源文件, True)
+    文件.SaveAs 目标文件, wdFormatDocumentDefault
+    文件.Close wdDoNotSaveChanges
     Exit Function
-
 失败:
-    转换单个 = False
-    If Documents.Count > docBefore Then
-        On Error Resume Next
-        ActiveDocument.Close SaveChanges:=wdDoNotSaveChanges
-    End If
+    转换单个 = Err.Description
+    On Error Resume Next
+    If Not 文件 Is Nothing Then 文件.Close wdDoNotSaveChanges
+End Function
+
+Private Function 打开批处理文档(ByVal 文件路径 As String, ByVal 只读 As Boolean) As Document
+    Dim 现有文档 As New Collection, 已打开 As Document, 打开结果 As Document
+    Dim 原安全设置 As MsoAutomationSecurity, 错误信息 As String
+    For Each 已打开 In Documents
+        If StrComp(已打开.FullName, 文件路径, vbTextCompare) = 0 Then Err.Raise vbObjectError + 2, , "文档已经打开。"
+        现有文档.Add 已打开
+    Next
+    原安全设置 = Application.AutomationSecurity
+    On Error GoTo 打开失败
+    Application.AutomationSecurity = msoAutomationSecurityForceDisable
+    Set 打开结果 = Documents.Open(FileName:=文件路径, ReadOnly:=只读, Revert:=False, AddToRecentFiles:=False)
+    For Each 已打开 In 现有文档
+        If 已打开 Is 打开结果 Then
+            Set 打开结果 = Nothing
+            Err.Raise vbObjectError + 2, , "文档已经打开。"
+        End If
+    Next
+    Application.AutomationSecurity = 原安全设置
+    Set 打开批处理文档 = 打开结果
+    Exit Function
+打开失败:
+    错误信息 = Err.Description
+    On Error Resume Next
+    Application.AutomationSecurity = 原安全设置
+    If Not 打开结果 Is Nothing Then 打开结果.Close wdDoNotSaveChanges
+    On Error GoTo 0
+    Err.Raise vbObjectError + 3, , 错误信息
 End Function

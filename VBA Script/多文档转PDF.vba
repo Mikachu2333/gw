@@ -15,86 +15,73 @@
 Option Explicit
 
 Sub 多文档转PDF()
-    ' 关闭弹窗和屏幕刷新，提升效率
-    Dim 原提示 As Boolean
-    原提示 = Application.DisplayAlerts
-    On Error GoTo 清理
-    Application.DisplayAlerts = False
-    Application.ScreenUpdating = False
-    
-    Dim fDialog As FileDialog
-    Set fDialog = Application.FileDialog(msoFileDialogFilePicker)
-    Dim vrtSelectedItem As Variant  ' 选中的文件路径
-    Dim wdDoc As Document           ' 打开的Word文档
-    Dim i As Long                   ' 转换成功计数
-    Dim fullPath As String          ' 完整文件路径
-    Dim fileNameWithoutExt As String ' 不含扩展名的文件名
-    Dim lastDotPos As Long          ' 最后一个"."的位置
-    Dim 失败清单 As String           ' 转换失败的文件及原因
-    
-    ' 设置文件选择框：仅选Word文件
-    With fDialog
+    Dim picker As FileDialog, filename As Variant, message As String, failures As String
+    Dim completed As Long
+    Set picker = Application.FileDialog(msoFileDialogFilePicker)
+    With picker
         .Filters.Clear
-        .Filters.Add "Word文件", "*.doc;*.docx;*.docm", 1
-        .Title = "选择需转换为PDF的Word文档"
-        
-        If .Show = -1 Then ' 用户确认选择
-            For Each vrtSelectedItem In .SelectedItems
-                fullPath = CStr(vrtSelectedItem)
-                
-                ' 跳过当前VBA所在文档（避免自己转自己）
-                If InStr(LCase(fullPath), LCase(ThisDocument.Name)) = 0 Then
-                    On Error Resume Next ' 捕获文件占用等错误
-                    Set wdDoc = Application.Documents.Open(fullPath, ReadOnly:=True)
-                    
-                    If Not wdDoc Is Nothing Then ' 成功打开文档
-                        ' 关键：找到最后一个"."的位置，截取左侧为“不含扩展名的文件名”
-                        lastDotPos = InStrRev(fullPath, ".")
-                        If lastDotPos > 0 Then ' 确保文件有扩展名（避免无后缀文件报错）
-                            fileNameWithoutExt = Left(fullPath, lastDotPos - 1)
-                        Else
-                            fileNameWithoutExt = fullPath ' 无后缀时直接用原路径
-                        End If
-                        
-                        ' 直接拼接.pdf，强制带扩展名
-                        Err.Clear
-                        wdDoc.SaveAs _
-                            FileName:=fileNameWithoutExt & ".pdf", _
-                            FileFormat:=wdFormatPDF
-                        ' 这段跑在 On Error Resume Next 下: 转换失败也照样计数, 报出来的成功数是虚高的
-                        If Err.Number = 0 Then
-                            i = i + 1
-                        Else
-                            失败清单 = 失败清单 & vbCrLf & fullPath & "：" & Err.Description
-                        End If
-                        
-                        wdDoc.Close SaveChanges:=False ' 关闭文档不保存
-                        Set wdDoc = Nothing ' 释放内存
-                    End If
-                    On Error GoTo 0 ' 恢复默认错误处理
-                End If
-            Next
-        End If
+        .Filters.Add "Word 文件", "*.doc;*.docx;*.docm"
+        .AllowMultiSelect = True
+        .Title = "选择需转换为 PDF 的文档"
+        If .Show <> -1 Then Exit Sub
     End With
-    
-    ' 清理并恢复Word设置
-    Set fDialog = Nothing
-    Application.ScreenUpdating = True
-    Application.DisplayAlerts = 原提示
-    
-    ' 提示结果
-    If 失败清单 = "" Then
-        MsgBox i & "个文档已转换为PDF", vbInformation
-    Else
-        MsgBox "成功转换 " & i & " 个文档, 以下文档转换失败:" & vbCrLf & 失败清单, vbExclamation
-    End If
-    Exit Sub
-
-清理:
-    ' 原先两个全局标志只在正常走完时恢复, 中途报错就留下一个既不重绘也不弹提示的 Word;
-    ' DisplayAlerts 还被硬写回 True, 把宿主本来关着的提示一并打开了
-    Application.ScreenUpdating = True
-    Application.DisplayAlerts = 原提示
-    MsgBox "转换过程中出错: " & Err.Description & vbCrLf & "已完成 " & i & " 个; Word 的刷新与提示设置已恢复。", vbCritical
+    For Each filename In picker.SelectedItems
+        message = 导出单个PDF(CStr(filename))
+        If message = "" Then
+            completed = completed + 1
+        Else
+            failures = failures & vbCrLf & filename & "：" & message
+        End If
+    Next
+    MsgBox "已导出 " & completed & " 个 PDF。" & failures
 End Sub
+
+Private Function 导出单个PDF(ByVal 源文件 As String) As String
+    Dim fs As Object, 文件 As Document, 基名 As String, 输出 As String, 序号 As Long
+    On Error GoTo 失败
+    Set fs = CreateObject("Scripting.FileSystemObject")
+    基名 = fs.BuildPath(fs.GetParentFolderName(源文件), fs.GetBaseName(源文件))
+    输出 = 基名 & ".pdf"
+    Do While fs.FileExists(输出)
+        序号 = 序号 + 1
+        输出 = 基名 & "_" & 序号 & ".pdf"
+    Loop
+    Set 文件 = 打开批处理文档(源文件, True)
+    文件.ExportAsFixedFormat 输出, wdExportFormatPDF
+    文件.Close wdDoNotSaveChanges
+    Exit Function
+失败:
+    导出单个PDF = Err.Description
+    On Error Resume Next
+    If Not 文件 Is Nothing Then 文件.Close wdDoNotSaveChanges
+End Function
+
+Private Function 打开批处理文档(ByVal 文件路径 As String, ByVal 只读 As Boolean) As Document
+    Dim 现有文档 As New Collection, 已打开 As Document, 打开结果 As Document
+    Dim 原安全设置 As MsoAutomationSecurity, 错误信息 As String
+    For Each 已打开 In Documents
+        If StrComp(已打开.FullName, 文件路径, vbTextCompare) = 0 Then Err.Raise vbObjectError + 2, , "文档已经打开。"
+        现有文档.Add 已打开
+    Next
+    原安全设置 = Application.AutomationSecurity
+    On Error GoTo 打开失败
+    Application.AutomationSecurity = msoAutomationSecurityForceDisable
+    Set 打开结果 = Documents.Open(FileName:=文件路径, ReadOnly:=只读, Revert:=False, AddToRecentFiles:=False)
+    For Each 已打开 In 现有文档
+        If 已打开 Is 打开结果 Then
+            Set 打开结果 = Nothing
+            Err.Raise vbObjectError + 2, , "文档已经打开。"
+        End If
+    Next
+    Application.AutomationSecurity = 原安全设置
+    Set 打开批处理文档 = 打开结果
+    Exit Function
+打开失败:
+    错误信息 = Err.Description
+    On Error Resume Next
+    Application.AutomationSecurity = 原安全设置
+    If Not 打开结果 Is Nothing Then 打开结果.Close wdDoNotSaveChanges
+    On Error GoTo 0
+    Err.Raise vbObjectError + 3, , 错误信息
+End Function
 
