@@ -83,14 +83,20 @@ function render() {
     } else if (page === 'fonts') {
         title.textContent = '高级设置'; description.textContent = '设置各类文字的字体。排版按钮沿用原版字号取整规则；保存后下次排版生效。'; fontFields();
     } else if (page === 'latin') {
-        title.textContent = '指定字体更改'; description.textContent = '仅替换选定范围中的字母或数字；未选定时确认是否处理全文。';
-        var latin = group('替换范围', 'stack'); controls.kind = document.createElement('select');
-        [['letters','英文字母'],['digits','数字']].forEach(function (item) {
-            var option = document.createElement('option'); option.value = item[0]; option.textContent = item[1]; controls.kind.appendChild(option);
+        title.textContent = '指定字体更改'; description.textContent = '可同时勾选多项。未选择文字时会询问是否处理全文。';
+        [['named','指定字体',[['from','原字体',''],['to','目标字体','']]],
+         ['digits','数字',[['numberFont','数字字体',current.数字字体]]],
+         ['letters','英文字母',[['letterFont','英文字体',current.英文字体]]]].forEach(function (spec) {
+            var panel = group(spec[1]), enabled = input('checkbox', spec[0] === 'letters', spec[1]);
+            controls[spec[0]] = enabled; labelled(panel, '替换' + spec[1], enabled);
+            spec[2].forEach(function (field) {
+                var box = input('text', field[2], field[1]); box.setAttribute('list', 'fontNames'); box.required = true;
+                controls[field[0]] = box; labelled(panel, field[1], box);
+            });
+            enabled.onchange = function () { spec[2].forEach(function (field) { controls[field[0]].disabled = !enabled.checked; }); };
+            enabled.onchange();
         });
-        controls.name = input('text', current.英文字体, '目标字体'); controls.name.setAttribute('list', 'fontNames'); controls.name.required = true;
-        controls.kind.onchange = function () { controls.name.value = controls.kind.value === 'digits' ? current.数字字体 : current.英文字体; };
-        labelled(latin, '字符类型', controls.kind); labelled(latin, '目标字体', controls.name); save.textContent = '替换';
+        save.textContent = '替换';
     } else {
         var protectedDoc = page === 'protect' && Number(doc().ProtectionType) !== -1;
         title.textContent = page === 'protect' ? '限制编辑' : '文档加密';
@@ -133,7 +139,16 @@ document.getElementById('settingsForm').onsubmit = function (event) {
             gwSaveSettings({字体:fonts, 英文字体:controls.英文字体.value.trim(), 数字字体:controls.数字字体.value.trim()});
             message.textContent = '字体设置已保存。';
         } else if (page === 'latin') {
-            gwLatinFont(controls.kind.value, controls.name.value.trim()); message.textContent = '字体替换已执行。';
+            var options = {}, defaults = {};
+            Object.keys(controls).forEach(function (key) {
+                var field = controls[key]; options[key] = field.type === 'checkbox' ? field.checked : field.value.trim();
+            });
+            var matched = gwReplaceSelectedFonts(options);
+            if (matched === null) { message.textContent = '已取消。'; return; }
+            if (options.digits) defaults.数字字体 = options.numberFont;
+            if (options.letters) defaults.英文字体 = options.letterFont;
+            if (Object.keys(defaults).length) gwSaveSettings(defaults);
+            message.textContent = matched ? '字体已替换。' : '在指定范围内没有找到匹配的文字。';
         } else {
             if (controls.repeat && controls.repeat.value !== controls.password.value) throw new Error('两次输入的密码不一致。');
             gwSecurity(controls.mode.value, controls.password.value);

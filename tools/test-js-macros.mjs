@@ -56,6 +56,22 @@ check('catalog maps every original script at 84d9734f5ce6 exactly once and marks
     assert.equal(c.OnAction({Id:'btnScripts'}),true);
     assert.match(c.gwDiagnosticText(),/wps-api-20261110-6/);
 });
+check('custom font dialog applies all enabled passes within one selection and undo group',()=>{
+    const {f,c,alerts}=host(),passes=[];
+    const range={Start:2,End:7,get Duplicate(){return this;},get Find(){return {
+        Font:{},ClearFormatting(){},Replacement:{Font:{},ClearFormatting(){}},
+        Execute(pattern,...args){passes.push([pattern,this.Font,this.Replacement.Font]);assert.equal(args[6],0);return pattern==='[0-9]@';}
+    };}};
+    f.application.Selection={Range:range};
+    const options={named:true,from:'仿宋',to:'黑体',digits:true,numberFont:'Cambria',letters:true,letterFont:'Arial'};
+    assert.throws(()=>c.gwReplaceSelectedFonts({...options,numberFont:''}),/填写/);assert.equal(passes.length,0);
+    assert.equal(c.gwReplaceSelectedFonts(options),true);assert.equal(f.undo.length,2);
+    assert.deepEqual(passes.map(pass=>pass[0]),['','','','[0-9]@','[A-Za-z]@']);
+    assert.equal(passes[2][1].NameFarEast,'仿宋');assert.equal(passes[2][2].NameFarEast,'黑体');
+    assert.deepEqual(passes[3][2],{NameAscii:'Cambria'});assert.deepEqual(passes[4][2],{NameAscii:'Arial'});
+    assert.equal(alerts.length,2);
+    range.End=range.Start;c.window.confirm=()=>false;assert.equal(c.gwReplaceSelectedFonts(options),null);assert.equal(f.undo.length,2);
+});
 check('renumbering changes only heading prefixes and preserves body references',()=>{
     const {c,s}=textHost('第九章 总则\r引用第九章不变\r第八条 内容\r第三章 附则\r第七条 其他\r');
     c.gwMacroRun('renumber-chapter',{});

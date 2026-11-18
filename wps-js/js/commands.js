@@ -19,49 +19,67 @@ function gwFontNames() {
   }
   return out;
 }
-function gwCheckFont(name) {
-  var fonts = gwFontNames();
+function gwCheckFont(name, fonts) {
+  fonts = fonts || gwFontNames();
   gwLog('info', 'font.availability', { name: name, installed: fonts.length ? fonts.indexOf(name) >= 0 : null });
   if (fonts.length && fonts.indexOf(name) < 0) alert("本机未安装「" + name + "」，WPS 将使用替代字体。");
 }
-function gwFontSwitch(from, to) {
-  gwCheckFont(to);
-  withUndo("替换字体", function() {
-    var matched = false;
-    from.forEach(function(name) {
-      // 西文字体与东亚字体独立存储；分别匹配，避免把原本的 Times New Roman 也改掉。
-      ['NameAscii', 'NameOther', 'NameFarEast'].forEach(function(property) {
-        gwStep('字体转换 Find.Font.' + property, function () {
-          var f = doc().Content.Duplicate.Find;
-          f.ClearFormatting(); f.Replacement.ClearFormatting();
-          try {
-            f.Font[property] = name; f.Replacement.Font[property] = to;
-            var found = !!f.Execute('', false, false, false, false, false, true, 0, true, '^&', 2);
-            matched = found || matched;
-            gwLog('info', 'font.replace', { source: name, target: to, property: property, matched: found });
-          } finally { f.ClearFormatting(); f.Replacement.ClearFormatting(); }
-        });
+function gwReplaceFontSlots(range, from, to) {
+  var matched = false;
+  from.forEach(function(name) {
+    // 西文字体与东亚字体独立存储；分别匹配，避免把原本的 Times New Roman 也改掉。
+    ['NameAscii', 'NameOther', 'NameFarEast'].forEach(function(property) {
+      gwStep('字体转换 Find.Font.' + property, function () {
+        var f = range.Duplicate.Find;
+        f.ClearFormatting(); f.Replacement.ClearFormatting();
+        try {
+          f.Font[property] = name; f.Replacement.Font[property] = to;
+          var found = !!f.Execute('', false, false, false, false, false, true, 0, true, '^&', 2);
+          matched = found || matched;
+          gwLog('info', 'font.replace', { source: name, target: to, property: property, matched: found });
+        } finally { f.ClearFormatting(); f.Replacement.ClearFormatting(); }
       });
     });
+  });
+  return matched;
+}
+function gwFontSwitch(from, to) {
+  gwCheckFont(to);
+  withUndo('替换字体', function() {
+    var matched = gwReplaceFontSlots(doc().Content, from, to);
     status(matched ? '字体转换已完成：' + from.join(' / ') + ' → ' + to : '未找到使用指定原字体的文字：' + from.join(' / '));
   });
 }
-function gwLatinFont(kind, name) {
-  var r = scopeOrNull();
-  if (!r) return;
-  gwCheckFont(name);
-  withUndo("指定字体更改", function() {
-    var f = r.Duplicate.Find;
+function gwReplaceCharacterFont(range, pattern, name) {
+  var f = range.Duplicate.Find;
+  f.ClearFormatting();
+  f.Replacement.ClearFormatting();
+  try {
+    f.Replacement.Font.NameAscii = name;
+    return !!f.Execute(pattern, false, false, true, false, false, true, 0, true, '^&', 2);
+  } finally {
     f.ClearFormatting();
     f.Replacement.ClearFormatting();
-    try {
-      f.Replacement.Font.Name = name;
-      f.Execute(kind === "digits" ? "[0-9]@" : "[A-Za-z]@", false, false, true, false, false, true, 0, true, "^&", 2);
-    } finally {
-      f.ClearFormatting();
-      f.Replacement.ClearFormatting();
-    }
+  }
+}
+function gwReplaceSelectedFonts(options) {
+  if (!options.named && !options.digits && !options.letters) throw new Error('请至少勾选一项替换。');
+  if (options.named && (!options.from || !options.to)) throw new Error('请填写原字体和目标字体。');
+  if ((options.digits && !options.numberFont) || (options.letters && !options.letterFont)) throw new Error('请填写勾选项的目标字体。');
+  var range = scopeOrNull();
+  if (!range) return null;
+  var fonts = gwFontNames();
+  var targets = [options.named && options.to, options.digits && options.numberFont, options.letters && options.letterFont];
+  targets.forEach(function (name, index) {
+    if (name && targets.indexOf(name) === index) gwCheckFont(name, fonts);
   });
+  var matched = false;
+  withUndo('指定字体更改', function () {
+    if (options.named) matched = gwReplaceFontSlots(range, [options.from], options.to);
+    if (options.digits) matched = gwReplaceCharacterFont(range, '[0-9]@', options.numberFont) || matched;
+    if (options.letters) matched = gwReplaceCharacterFont(range, '[A-Za-z]@', options.letterFont) || matched;
+  });
+  return matched;
 }
 function gwStyles() {
   withUndo("创建或刷新公文样式", function() {

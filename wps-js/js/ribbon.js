@@ -119,7 +119,7 @@ var GW_COMMANDS = {
     gwFontSwitch(["黑体"], "方正小标宋_GBK");
   } },
   btnLatinFont: { access: "edit", run: function() {
-    gwDialog("settings.html?page=latin", "指定字体更改", 560, 380);
+    gwDialog("settings.html?page=latin", "指定字体更改", 600, 580);
   } },
   btnUnderDot: { access: "edit", run: function() {
     gwToggleFont("EmphasisMark");
