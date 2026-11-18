@@ -197,7 +197,17 @@ function gwMacroOpenOwned(path,readOnly) {
     for(var i=1;i<=documents.Count;i++) {
         if(gwMacroPathKey(documents.Item(i).FullName)===gwMacroPathKey(path))throw new Error('文件已经打开，请先关闭后再批量处理。');
     }
-    return documents.Open(path,false,readOnly,false);
+    var application=app(),security=application.AutomationSecurity,opened;
+    if([1,2,3].indexOf(security)<0)throw new Error('无法读取批处理文件的宏安全设置。');
+    try {
+        application.AutomationSecurity=3;
+        if(application.AutomationSecurity!==3)throw new Error('无法禁用待处理文件的宏。');
+        opened=documents.Open(path,false,readOnly,false);
+    } finally {
+        try { application.AutomationSecurity=security; }
+        catch(error) { if(opened)opened.Close(0);throw error; }
+    }
+    return opened;
 }
 function gwMacroBatch(kind,p) {
     var files;

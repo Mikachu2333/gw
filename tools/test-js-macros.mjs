@@ -114,7 +114,9 @@ check('batch PDF skips already open documents, does not overwrite, closes only i
     const {f,c}=host();let closed=[],exports=[],activations=0;
     f.document.FullName='C:/docs/open.docx';f.document.Activate=()=>activations++;
     const files=['C:/docs/open.docx','C:/docs/a.docx','C:/docs/fail.docx'];
+    f.application.AutomationSecurity=2;
     f.application.Documents={Count:1,Item:()=>f.document,Open(path,confirm,readOnly,addRecent){
+        assert.equal(f.application.AutomationSecurity,3);
         assert.equal(readOnly,true);assert.equal(addRecent,false);
         if(path.includes('fail'))throw Error('cannot open');
         return {ExportAsFixedFormat:(...args)=>exports.push(args),Close:n=>closed.push([path,n])};
@@ -122,9 +124,12 @@ check('batch PDF skips already open documents, does not overwrite, closes only i
     f.application.FileDialog=()=>({Show:()=>-1,SelectedItems:collection(files)});
     f.files.set('C:/docs/a.pdf',Buffer.from('keep'));
     const result=c.gwMacroRun('batch-pdf',{});
+    assert.equal(f.application.AutomationSecurity,2);
     assert.equal(result.partial,true);assert.deepEqual(exports,[['C:/docs/a_1.pdf',17,false]]);
     assert.deepEqual(closed,[['C:/docs/a.docx',0]]);assert.equal(activations,1);assert.equal(f.files.get('C:/docs/a.pdf').toString(),'keep');
     assert.ok(c.gwReadLog().some(x=>x.event==='script.partial'));
+    Object.defineProperty(f.application,'AutomationSecurity',{get(){return 2;},set(){}});
+    assert.throws(()=>c.gwMacroOpenOwned('C:/docs/new.doc',true),/无法禁用/);
 });
 check('batch conversion cancellation has no document or filesystem effects',()=>{
     const {f,c}=host();f.application.FileDialog=()=>({Show:()=>0});
