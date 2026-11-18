@@ -1,13 +1,13 @@
 // 自动排版的可移植主流程。原版按屏幕行宽挤排和复杂附件布局仍需人工核对。
 function gwMacroDate(text) {
     var s=String(text).replace(/[\s　]/g,'').replace(/[０-９]/g,function(c){return String(c.charCodeAt(0)-65296);});
-    var m=/^([2二][0-9一二三四五六七八九零〇○OoＯｏ]{3})[年./-]([0-9一二三四五六七八九十]{1,3})[月./-](?:([0-9一二三四五六七八九十]{1,3})日?)?$/.exec(s);
+    var m=/^([2二][0-9一二三四五六七八九零〇○OoＯｏ]{3})[年./-](\d{1,2}|[二三]?十[一二三四五六七八九]?|[一二三四五六七八九])[月./-](\d{1,2}|[二三]?十[一二三四五六七八九]?|[一二三四五六七八九])日?$/.exec(s);
     if(!m)return null;
     var digits='零一二三四五六七八九';
     function number(v){if(/^\d+$/.test(v))return Number(v);var at=v.indexOf('十');if(at>=0)return (at?digits.indexOf(v[0]):1)*10+(v[at+1]?digits.indexOf(v[at+1]):0);return digits.indexOf(v);}
     var year=m[1].replace(/[一二三四五六七八九零〇○OoＯｏ]/g,function(c){var n=digits.indexOf(c);return String(n<0?0:n);});
-    var month=number(m[2]),day=m[3]?number(m[3]):1;
-    if(month<1 || month>12 || day<1 || day>31)return null;
+    var month=number(m[2]),day=number(m[3]);
+    if(month<1 || month>12 || day<1 || day>new Date(Date.UTC(Number(year),month,0)).getUTCDate())return null;
     return year+'年'+month+'月'+day+'日';
 }
 function gwMacroHeading(text) {
@@ -112,7 +112,7 @@ function gwMacroAutoFormat(modern) {
     // 从后向前移除纯空行，保留表格、图片和文档终止段落。
     for(var i=d.Paragraphs.Count-1;i>=1;i--) {
         var empty=d.Paragraphs.Item(i).Range;
-        if(!gwMacroText(empty).trim() && !empty.Tables.Count && !empty.InlineShapes.Count && !empty.Fields.Count) {
+        if(/^[ \t\u3000]*$/.test(gwMacroText(empty)) && !empty.Tables.Count && !empty.InlineShapes.Count && !empty.Fields.Count) {
             var shapes=0;try{shapes=empty.ShapeRange.Count;}catch(e){}
             if(!shapes)empty.Delete();
         }

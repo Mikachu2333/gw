@@ -179,6 +179,10 @@ check('F09: classic and 2026 signatures use their own original positions and thr
         assert.equal(h.s.fontAt(at).Spacing,modern?0:3);
     }
 });
+check('autoformat preserves a paragraph containing a manual page or section break',()=>{
+    const h=autoHost('通知\r正文。\r\f\r尾段。\r');h.c.gwMacroAutoFormat(true);
+    assert.ok(h.s.text.includes('\r\f\r'));
+});
 check('F09: classic short/long names and one/two-digit dates retain their separate rules',()=>{
     const short=autoHost('通知\r正文。\r张三\r2026年1月9日\r');short.c.gwMacroAutoFormat(false);
     assert.ok(short.s.text.includes('张  三'));near(short.s.paragraphAt(short.s.text.indexOf('张')).CharacterUnitFirstLineIndent,17.02);

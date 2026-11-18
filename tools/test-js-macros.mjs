@@ -144,6 +144,19 @@ check('automatic-format recognition covers four heading forms and normalizes Chi
     assert.equal(c.gwMacroDate('二〇二六年十一月九日'),'2026年11月9日');
     assert.equal(c.gwMacroDate('２０２６年０１月０９日'),'2026年1月9日');
     assert.equal(c.gwMacroDate('2026年13月1日'),null);
+    for(const text of ['2026年11月','2026年2月29日','2026年十十月一日'])assert.equal(c.gwMacroDate(text),null);
+    assert.equal(c.gwMacroDate('二〇二四年二月二十九日'),'2024年2月29日');
+});
+check('picture export counts only PNG files written by the host',()=>{
+    const {f,c}=host();
+    f.application.FileDialog=()=>({Show:()=>-1,SelectedItems:collection(['C:/out'])});
+    f.document.InlineShapes=collection([]);
+    const png=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jWQAAAABJRU5ErkJggg==','base64');
+    f.document.Shapes=collection([{SaveAsPicture(path){f.files.set(path,png);}}, {SaveAsPicture(){}}]);
+    assert.throws(()=>c.gwMacroRun('image-save',{}),/已导出 1 张图片；WPS 未生成图片/);
+    f.document.Shapes=collection([{SaveAsPicture(path){f.files.set(path,png.subarray(0,50));}}]);
+    assert.throws(()=>c.gwMacroRun('image-save',{}),/已导出 0 张图片；PNG/);
+    assert.equal(c.gwMacroHistory().length,0);
 });
 check('saving a range preserves source layout and source focus; a failed output save remains open for recovery',()=>{
     const {f,c}=host(),calls=[];

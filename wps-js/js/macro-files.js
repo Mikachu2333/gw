@@ -157,7 +157,15 @@ function gwMacroSavePictures() {
     try {
         [d.Shapes,d.InlineShapes].forEach(function(items){gwMacroEach(items,function(shape){
             gwMacroRequireMethod(shape,'SaveAsPicture');
-            shape.SaveAsPicture(gwMacroUnique(gwMacroPath(folders[0],gwMacroBase(d.Name)+'_shape_'+(count+1)+'.png')));count++;
+            var path=gwMacroUnique(gwMacroPath(folders[0],gwMacroBase(d.Name)+'_shape_'+(count+1)+'.png'));
+            if(shape.SaveAsPicture(path)===false || !gwHost('FileSystem').Exists(path))
+                throw new Error('WPS 未生成图片：'+path);
+            var bytes=gwReadBytes(path);
+            var signature=[137,80,78,71,13,10,26,10],end=[0,0,0,0,73,69,78,68,174,66,96,130];
+            if(bytes.length<57 || !signature.every(function(value,index){return value===bytes[index];}) ||
+                !end.every(function(value,index){return value===bytes[bytes.length-end.length+index];}))
+                throw new Error('PNG 文件格式错误或被截断：'+path);
+            count++;
         });});
     } catch(e){throw new Error('已导出 '+count+' 张图片；'+e.message);}
     return {message:'已导出 '+count+' 张图片：'+folders[0]};
@@ -178,8 +186,10 @@ function gwMacroImagesPdf() {
             shape.RelativeHorizontalPosition=1;shape.RelativeVerticalPosition=1;shape.Left=0;shape.Top=0;shape.WrapFormat.Type=3;
             range.ParagraphFormat.LineSpacingRule=4;range.ParagraphFormat.LineSpacing=1;range.Font.Size=1;
         });
-        output.ExportAsFixedFormat(path,17,false);output.Close(0);
-    } finally {if(source)source.Activate();}
+        output.ExportAsFixedFormat(path,17,false);
+    } finally {
+        try {output.Close(0);} finally {if(source)source.Activate();}
+    }
     return {message:'已生成 '+images.length+' 页图片 PDF：'+path};
 }
 function gwMacroOpenOwned(path,readOnly) {

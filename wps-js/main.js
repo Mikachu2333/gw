@@ -11,6 +11,7 @@ document.write("<script language='javascript' src='js/header.js'></script>");
 document.write("<script language='javascript' src='js/commands.js'></script>");
 document.write("<script language='javascript' src='js/other.js'></script>");
 document.write("<script language='javascript' src='js/macro-text.js'></script>");
+document.write("<script language='javascript' src='js/image-pdf.js'></script>");
 document.write("<script language='javascript' src='js/macro-files.js'></script>");
 document.write("<script language='javascript' src='js/macro-format.js'></script>");
 document.write("<script language='javascript' src='js/macros.js'></script>");
