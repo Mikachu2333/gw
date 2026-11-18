@@ -90,7 +90,7 @@ var Code: Integer; Path, Arguments: String; Started: Boolean;
 begin
   ExtractTemporaryFile(Name);
   Path := ExpandConstant('{tmp}\') + Name;
-  Arguments := '/NORESTART /SP-';
+  Arguments := '/NORESTART /RESTARTEXITCODE=3010 /SP-';
   if WizardSilent then Arguments := Arguments + ' /VERYSILENT /SUPPRESSMSGBOXES';
   if Elevate then
     Started := ShellExec('runas', Path, Arguments, '', SW_SHOWNORMAL, ewWaitUntilTerminated, Code)

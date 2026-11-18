@@ -164,9 +164,6 @@ Root: HKLM; Subkey: "Software\{#MyAppPublisher}\{#MyProductId}"; ValueType: stri
 [Code]
 var
   DownloadPage: TDownloadWizardPage;
-  // 这个标记必须在 [Registry] 的 uninsdeletekey 删掉信息键之前读出来，
-  // 所以赋值放在 usUninstall，实际删证书放在 usPostUninstall。
-  UninstallCertInstalled: string;
 
 const
   AddinId = '{#MyAddinId}';
@@ -201,7 +198,7 @@ var
 begin
   // 4.x 的 Release 值在两个视图里都可能出现，先看 64 位再看 32 位。
   Result := False;
-  if RegQueryDWordValue(HKLM64, NetFullKey, 'Release', Release) then
+  if IsWin64 and RegQueryDWordValue(HKLM64, NetFullKey, 'Release', Release) then
     Result := Release >= MinNet48Release
   else if RegQueryDWordValue(HKLM32, NetFullKey, 'Release', Release) then
     Result := Release >= MinNet48Release;
@@ -225,7 +222,7 @@ begin
   Keys[1] := '\v4';
   for I := 0 to High(Roots) do
     for J := 0 to High(Keys) do
-      if not Result then
+      if not Result and ((I = 0) or IsWin64) then
       begin
         if RegQueryStringValue(Roots[I], VstoSetupKey + Keys[J], 'Version', S) then
           if S <> '' then
@@ -305,6 +302,12 @@ begin
     Exit;
   end;
 
+  if CompareText(GetSHA256OfFile(RedistPath), VstoRedistSha256) <> 0 then
+  begin
+    Result := FmtMessage(CustomMessage('VstoDownloadFailed'), ['SHA-256']);
+    Exit;
+  end;
+
   // /q /norestart 是微软对这个下载器包记录的静默参数。这里不信它的退出码
   // （这类 wrapper 在"已经装过"时也会返回非 0），一切以装完再检测为准。
   if Exec(RedistPath, '/q /norestart', '', SW_HIDE, ewWaitUntilTerminated, ResultCode) then
@@ -331,33 +334,53 @@ end;
 //   Root             —— 证书链只有自己当根才验证得通过；
 //   TrustedPublisher —— Office 据此认定发布者，不再逐次弹信任提示。
 // 只导公钥，私钥留在打包机上。失败不终止安装：插件照样能装，只是首次加载会弹一次提示。
+function ValidThumbprint(Value: String): Boolean;
+var I: Integer;
+begin
+  Result := False;
+  if Length(Value) <> 40 then Exit;
+  for I := 1 to Length(Value) do
+    if Pos(Uppercase(Copy(Value, I, 1)), '0123456789ABCDEF') = 0 then Exit;
+  Result := True;
+end;
+
+function TrustCertificateStore(StoreName, CerPath: String): Boolean;
+var Code: Integer;
+begin
+  Result := False;
+  if not ValidThumbprint(CertThumbprint) then Exit;
+  if RunHidden('{sys}\certutil.exe', '-store ' + StoreName + ' ' + CertThumbprint, Code) then
+  begin
+    Result := True;
+    Exit;
+  end;
+  if (Code <> -2146893807) and (Code <> -2146885628) then Exit;
+  if RunHidden('{sys}\certutil.exe', '-addstore ' + StoreName + ' "' + CerPath + '"', Code) then
+    Result := RegWriteStringValue(HKLM, InfoRegKey + '\OwnedCertificates\' + StoreName, CertThumbprint, '1');
+end;
+
+procedure RemoveOwnedCertificates(StoreName: String);
+var Names: TArrayOfString; I, Code: Integer; Key, Owned: String;
+begin
+  Key := InfoRegKey + '\OwnedCertificates\' + StoreName;
+  if not RegGetValueNames(HKLM, Key, Names) then Exit;
+  for I := 0 to GetArrayLength(Names) - 1 do
+    if ValidThumbprint(Names[I]) and RegQueryStringValue(HKLM, Key, Names[I], Owned) and (Owned = '1') then
+      RunHidden('{sys}\certutil.exe', '-delstore ' + StoreName + ' ' + Names[I], Code);
+end;
+
 procedure TrustSigningCertificate;
 var
-  ResultCode: Integer;
   CerPath: string;
-  RootOk, PublisherOk, Verified: Boolean;
+  RootOk, PublisherOk: Boolean;
 begin
   ExtractTemporaryFile(CertFileName);
   CerPath := ExpandConstant('{tmp}\' + CertFileName);
 
-  RootOk := RunHidden('{sys}\certutil.exe', '-addstore -f Root "' + CerPath + '"', ResultCode);
-  PublisherOk := RunHidden('{sys}\certutil.exe',
-    '-addstore -f TrustedPublisher "' + CerPath + '"', ResultCode);
-
-  if CertThumbprint <> '' then
-  begin
-    // addstore 的退出码不足以说明证书真的进了存储，按指纹再查一次。
-    Verified := RunHidden('{sys}\certutil.exe', '-store Root ' + CertThumbprint, ResultCode) and
-      RunHidden('{sys}\certutil.exe', '-store TrustedPublisher ' + CertThumbprint, ResultCode);
-  end
-  else
-    Verified := RootOk and PublisherOk;
-
-  if Verified then
-  begin
-    Log('证书已导入本机受信任根与受信任发布者。');
-    RegWriteStringValue(HKLM, InfoRegKey, 'CertInstalled', '1');
-  end
+  RootOk := TrustCertificateStore('Root', CerPath);
+  PublisherOk := TrustCertificateStore('TrustedPublisher', CerPath);
+  if RootOk and PublisherOk then
+    Log('签名证书已受信任。')
   else if RootOk or PublisherOk then
     MsgBox(FmtMessage(CustomMessage('CertPartial'), [CertThumbprint]), mbError, MB_OK)
   else
@@ -396,23 +419,10 @@ begin
 end;
 
 procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
-var
-  ResultCode: Integer;
 begin
   if CurUninstallStep = usUninstall then
   begin
-    if not RegQueryStringValue(HKLM, InfoRegKey, 'CertInstalled', UninstallCertInstalled) then
-      UninstallCertInstalled := '';
-  end;
-
-  if CurUninstallStep = usPostUninstall then
-  begin
-    // 只删本安装包导入的那张证书（按打包时传进来的指纹），不动别人手工导入的证书；
-    // 手工编译时指纹为空，这一步整体跳过。
-    if (UninstallCertInstalled = '1') and (CertThumbprint <> '') then
-    begin
-      RunHidden('{sys}\certutil.exe', '-delstore -f Root ' + CertThumbprint, ResultCode);
-      RunHidden('{sys}\certutil.exe', '-delstore -f TrustedPublisher ' + CertThumbprint, ResultCode);
-    end;
+    RemoveOwnedCertificates('Root');
+    RemoveOwnedCertificates('TrustedPublisher');
   end;
 end;
